@@ -1011,6 +1011,9 @@ function normaliseOverlaySettings(settings = {}) {
     result.badges =
         settings.badges !== false;
 
+    result.gifs =
+        settings.gifs !== false;
+
     result.scale =
         Number(
             settings.scale ?? 0.5
@@ -1022,8 +1025,8 @@ function normaliseOverlaySettings(settings = {}) {
 
     result.scale =
         Math.max(
-            0,
-            Math.min(result.scale, 10)
+            0.25,
+            Math.min(result.scale, 3)
         );
 
     result.emoteScale =
@@ -1037,8 +1040,8 @@ function normaliseOverlaySettings(settings = {}) {
 
     result.emoteScale =
         Math.max(
-            0,
-            Math.min(result.emoteScale, 10)
+            0.25,
+            Math.min(result.emoteScale, 3)
         );
 
     result.wrap =
@@ -1168,6 +1171,10 @@ function appendFlatOverlaySettings(
         [
             "badges",
             normalised.badges ? "1" : "0"
+        ],
+        [
+            "gifs",
+            normalised.gifs ? "1" : "0"
         ],
         [
             "wrap",
@@ -1312,6 +1319,12 @@ let badgesEnabled =
         true
     );
 
+let gifsEnabled =
+    parseQueryBoolean(
+        "gifs",
+        true
+    );
+
 let scale =
     Number(
         params.get("scale") ?? 0.5
@@ -1323,8 +1336,8 @@ if (!Number.isFinite(scale)) {
 
 scale =
     Math.max(
-        0,
-        Math.min(scale, 10)
+        0.25,
+        Math.min(scale, 3)
     );
 
 let emoteScale =
@@ -1338,8 +1351,8 @@ if (!Number.isFinite(emoteScale)) {
 
 emoteScale =
     Math.max(
-        0,
-        Math.min(emoteScale, 10)
+        0.25,
+        Math.min(emoteScale, 3)
     );
 
 document.documentElement.style.setProperty(
@@ -2242,25 +2255,6 @@ function showOverlaySetupScreen() {
             align-items: center;
         }
 
-        #overlay-setup-screen .mc-range {
-            width: 100%;
-            min-width: 0;
-            height: 20px;
-            padding: 0;
-            margin: 0;
-            accent-color: #e8d58a;
-            cursor: pointer;
-        }
-
-        #overlay-setup-screen .mc-range-value {
-            min-width: 62px;
-            color: #b9b9c1;
-            font-size: 9px;
-            font-weight: 800;
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-        }
-
         #overlay-setup-screen .mc-unit {
             color: #65656e;
             font-size: 8px;
@@ -2904,6 +2898,7 @@ function showOverlaySetupScreen() {
 
     const wrapCheckbox = addToggle(appearancePanel, "Wrap messages", "Allow long chat messages to continue on another line.", "wrap", wrapEnabled);
     const badgesCheckbox = addToggle(appearancePanel, "Badges", "Show Twitch, 7TV, FFZ and other supported badges.", "badges", badgesEnabled);
+    const gifsCheckbox = addToggle(appearancePanel, "GIFs", "Show Twitch GIFs in chat messages.", "gifs", gifsEnabled);
     const unlistedCheckbox = addToggle(appearancePanel, "Unlisted 7TV emotes", "Render unlisted 7TV emotes when they are available.", "unlisted", showUnlisted7TV);
 
     const typographyPanel = createPanel("typography", "Typography", "Choose the font used by the renderer. Changes are applied to the live preview immediately.", "03");
@@ -2929,53 +2924,27 @@ function showOverlaySetupScreen() {
     typographyPanel.appendChild(typographyNote);
 
     const textScaleInput = document.createElement("input");
-    textScaleInput.type = "range";
-    textScaleInput.className = "mc-range";
-    textScaleInput.min = "0";
-    textScaleInput.max = "10";
-    textScaleInput.step = "0.01";
+    textScaleInput.type = "number";
+    textScaleInput.className = "mc-input";
+    textScaleInput.min = "0.25";
+    textScaleInput.max = "3";
+    textScaleInput.step = "0.05";
     textScaleInput.value = String(scale);
 
-    const textScaleValue = document.createElement("span");
-    textScaleValue.className = "mc-range-value";
-    textScaleValue.textContent =
-        `${Number(scale).toFixed(2)}x`;
-
-    const textScaleLine =
-        document.createElement("div");
-    textScaleLine.className = "mc-range-line";
-    textScaleLine.appendChild(textScaleInput);
-    textScaleLine.appendChild(textScaleValue);
-
-    addField(
-        typographyPanel,
-        "Text scale",
-        textScaleLine
-    );
+    addField(typographyPanel, "Text scale", textScaleInput);
 
     const emoteScaleInput = document.createElement("input");
-    emoteScaleInput.type = "range";
-    emoteScaleInput.className = "mc-range";
-    emoteScaleInput.min = "0";
-    emoteScaleInput.max = "10";
-    emoteScaleInput.step = "0.01";
+    emoteScaleInput.type = "number";
+    emoteScaleInput.className = "mc-input";
+    emoteScaleInput.min = "0.25";
+    emoteScaleInput.max = "3";
+    emoteScaleInput.step = "0.05";
     emoteScaleInput.value = String(emoteScale);
-
-    const emoteScaleValue = document.createElement("span");
-    emoteScaleValue.className = "mc-range-value";
-    emoteScaleValue.textContent =
-        `${Number(emoteScale).toFixed(2)}x`;
-
-    const emoteScaleLine =
-        document.createElement("div");
-    emoteScaleLine.className = "mc-range-line";
-    emoteScaleLine.appendChild(emoteScaleInput);
-    emoteScaleLine.appendChild(emoteScaleValue);
 
     addField(
         typographyPanel,
         "Emote scale",
-        emoteScaleLine
+        emoteScaleInput
     );
 
     const timingPanel = createPanel("timing", "Timing", "Tune message lifetime and fading behavior.", "04");
@@ -3071,6 +3040,18 @@ function showOverlaySetupScreen() {
         badgesEnabled = badgesCheckbox.checked;
     });
 
+    gifsCheckbox.addEventListener("change", () => {
+        gifsEnabled = gifsCheckbox.checked;
+
+        if (!gifsEnabled) {
+            previewChat
+                .querySelectorAll(
+                    ".twitch-gif, .twitch-gif-break"
+                )
+                .forEach(element => element.remove());
+        }
+    });
+
     unlistedCheckbox.addEventListener("change", () => {
         showUnlisted7TV = unlistedCheckbox.checked;
     });
@@ -3099,19 +3080,8 @@ function showOverlaySetupScreen() {
         if (!Number.isFinite(newScale)) {
             return;
         }
-        scale =
-            Math.max(
-                0,
-                Math.min(newScale, 10)
-            );
-
-        textScaleValue.textContent =
-            `${Number(scale).toFixed(2)}x`;
-
-        document.documentElement.style.setProperty(
-            "--chat-scale",
-            scale
-        );
+        scale = Math.max(0.25, Math.min(newScale, 3));
+        document.documentElement.style.setProperty("--chat-scale", scale);
     });
 
     emoteScaleInput.addEventListener("input", () => {
@@ -3126,15 +3096,12 @@ function showOverlaySetupScreen() {
 
         emoteScale =
             Math.max(
-                0,
+                0.25,
                 Math.min(
                     newEmoteScale,
-                    10
+                    3
                 )
             );
-
-        emoteScaleValue.textContent =
-            `${Number(emoteScale).toFixed(2)}x`;
 
         document.documentElement.style.setProperty(
             "--emote-scale",
@@ -3195,6 +3162,9 @@ function showOverlaySetupScreen() {
 
             badges:
                 badgesCheckbox.checked,
+
+            gifs:
+                gifsCheckbox.checked,
 
             scale:
                 Math.max(
@@ -6802,6 +6772,139 @@ function parseTwitchEmoteRanges(
     return result;
 }
 
+function parseTwitchGifRanges(
+    tags
+) {
+    const result = [];
+
+    if (!gifsEnabled || !tags.gifs) {
+        return result;
+    }
+
+    for (
+        const entry
+        of String(tags.gifs)
+            .split(",")
+    ) {
+        if (!entry) {
+            continue;
+        }
+
+        const firstPipe =
+            entry.indexOf("|");
+
+        if (firstPipe === -1) {
+            continue;
+        }
+
+        const secondPipe =
+            entry.indexOf(
+                "|",
+                firstPipe + 1
+            );
+
+        if (secondPipe === -1) {
+            continue;
+        }
+
+        const rangeText =
+            entry.substring(
+                0,
+                firstPipe
+            );
+
+        const gifId =
+            entry.substring(
+                firstPipe + 1,
+                secondPipe
+            );
+
+        const gifUrl =
+            entry.substring(
+                secondPipe + 1
+            );
+
+        const dash =
+            rangeText.indexOf("-");
+
+        if (
+            dash === -1 ||
+            !gifUrl
+        ) {
+            continue;
+        }
+
+        const start =
+            Number(
+                rangeText.substring(
+                    0,
+                    dash
+                )
+            );
+
+        const end =
+            Number(
+                rangeText.substring(
+                    dash + 1
+                )
+            );
+
+        if (
+            Number.isNaN(start) ||
+            Number.isNaN(end) ||
+            end < start
+        ) {
+            continue;
+        }
+
+        result.push({
+            start,
+            end,
+            id: gifId,
+            url: gifUrl,
+            type: "gif"
+        });
+    }
+
+    result.sort(
+        (a, b) =>
+            a.start - b.start ||
+            a.end - b.end
+    );
+
+    return result;
+}
+
+function createTwitchGif(
+    url,
+    alt = "Twitch GIF"
+) {
+    if (!url) {
+        return null;
+    }
+
+    const gif =
+        createEmote(
+            url,
+            alt
+        );
+
+    gif.classList.add(
+        "twitch-gif",
+        "twitch-gif-large"
+    );
+
+    gif.dataset.twitchGif =
+        "true";
+
+    gif.setAttribute(
+        "role",
+        "img"
+    );
+
+    return gif;
+}
+
 function applyEffectsToPreviousEmote(
     container,
     effects
@@ -6841,7 +6944,28 @@ function renderMessageText(
             tags
         );
 
-    if (!twitchRanges.length) {
+    const gifRanges =
+        parseTwitchGifRanges(
+            tags
+        );
+
+    const mediaRanges =
+        [
+            ...twitchRanges.map(
+                range => ({
+                    ...range,
+                    type: "emote"
+                })
+            ),
+            ...gifRanges
+        ]
+            .sort(
+                (a, b) =>
+                    a.start - b.start ||
+                    a.end - b.end
+            );
+
+    if (!mediaRanges.length) {
         renderExternalText(
             container,
             text,
@@ -6859,18 +6983,16 @@ function renderMessageText(
 
     for (
         const range
-        of twitchRanges
+        of mediaRanges
     ) {
         if (
-            range.start <
-            cursor
+            range.start < cursor
         ) {
             continue;
         }
 
         if (
-            range.start >
-            cursor
+            range.start > cursor
         ) {
             renderExternalText(
                 container,
@@ -6880,6 +7002,58 @@ function renderMessageText(
                 ),
                 username
             );
+        }
+
+        if (
+            range.type === "gif"
+        ) {
+            const altText =
+                text.substring(
+                    range.start,
+                    range.end + 1
+                ) ||
+                "Twitch GIF";
+
+            const gif =
+                createTwitchGif(
+                    range.url,
+                    altText
+                );
+
+            if (gif) {
+                if (range.id) {
+                    gif.dataset.twitchGifId =
+                        String(range.id);
+                }
+
+                const lineBreak =
+                    document.createElement('br');
+
+                lineBreak.className =
+                    'twitch-gif-break';
+
+                container.appendChild(
+                    lineBreak
+                );
+
+                container.appendChild(
+                    gif
+                );
+            } else {
+                container.appendChild(
+                    document.createTextNode(
+                        text.substring(
+                            range.start,
+                            range.end + 1
+                        )
+                    )
+                );
+            }
+
+            cursor =
+                range.end + 1;
+
+            continue;
         }
 
         const twitchEmote =
@@ -6922,8 +7096,7 @@ function renderMessageText(
     }
 
     if (
-        cursor <
-        text.length
+        cursor < text.length
     ) {
         renderExternalText(
             container,
@@ -7850,6 +8023,8 @@ function handleTwitchIRCPrivmsg(message) {
             emotes,
         badges:
             tags.badges || "",
+        gifs:
+            tags.gifs || "",
         "display-name":
             username,
         "user-id":
@@ -7933,7 +8108,7 @@ function ensureEmoteScaleStyle() {
             "emote-scale-style";
 
         style.textContent = `
-            .emote:not(.seven-tv-zero-width),
+            .emote:not(.seven-tv-zero-width):not(.twitch-gif),
             .twemoji {
                 height:
                     calc(
@@ -7943,6 +8118,28 @@ function ensureEmoteScaleStyle() {
 
                 width:
                     auto !important;
+            }
+
+            .twitch-gif {
+                display: block !important;
+                width: auto !important;
+                height: 480px !important;
+                max-width: min(80vw, 1240px) !important;
+                max-height: 480px !important;
+                object-fit: contain !important;
+                object-position: left center !important;
+                margin: 10px 0 12px 0 !important;
+                vertical-align: top !important;
+                flex: 0 0 auto !important;
+                filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.9)) !important;
+            }
+
+            .twitch-gif-break {
+                display: block !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 0 !important;
             }
         `;
 
