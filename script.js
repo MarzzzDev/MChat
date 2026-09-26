@@ -1,21 +1,12 @@
-const TWITCH_CLIENT_ID = "l2f4c48jfsoflno8qg5vhoy79zw4pd";
 let CHANNEL = null;
 let TWITCH_USER_ID = null;
 
-const TWITCH_OAUTH_SCOPES = [
-    "user:read:chat"
-];
-
-let accessToken = null;
-let authenticatedUserId = null;
-let authenticatedUsername = null;
-
-let eventSubSocket = null;
-let eventSubSessionId = null;
-let eventSubReconnectUrl = null;
-let eventSubReconnectTimer = null;
-
-let twitchAuthPromise = null;
+let twitchIRCSocket = null;
+let twitchIRCReconnectTimer = null;
+let twitchIRCBuffer = "";
+let twitchIRCReadyPromise = null;
+let twitchIRCReadyResolve = null;
+let twitchIRCReadyReject = null;
 
 const sevenTVEmotes = new Map();
 const sevenTVUsers = new Map();
@@ -94,7 +85,6 @@ const FFZ_EFFECT_FLAGS = Object.freeze({
 const LOADING_TASKS = [
     { label: "7TV global emotes", run: load7TVGlobalEmotes },
     { label: "7TV channel emotes", run: load7TVEmotes },
-    { label: "Twitch emotes", run: loadTwitchEmotes },
     { label: "FFZ emotes", run: loadFFZEmotes },
     { label: "BTTV emotes", run: loadBTTVEmotes },
     { label: "Twitch badges", run: loadTwitchBadges },
@@ -103,29 +93,101 @@ const LOADING_TASKS = [
 ];
 
 function showLoadingIndicator() {
-    const indicator = document.createElement("div");
+    loadGoogleFontIfNeeded(
+        "'Open Sans', sans-serif"
+    );
 
-    indicator.id = "overlay-loading-indicator";
+    const indicator =
+        document.createElement("div");
+
+    indicator.id =
+        "overlay-loading-indicator";
 
     indicator.style.cssText = `
         position: fixed;
         inset: 0;
 
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        text-align: center;
-        padding: 12px;
+
+        gap: 16px;
+        padding: 24px;
 
         color: #ffffff;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 50px;
+
+        font-family:
+            'Open Sans',
+            Arial,
+            sans-serif;
+
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.25;
+        text-align: center;
+
+        text-shadow:
+            0 3px 14px
+            rgba(0, 0, 0, .85);
 
         pointer-events: none;
         z-index: 999999;
     `;
 
-    document.body.appendChild(indicator);
+    const logo =
+        document.createElement("img");
+
+    logo.src =
+        "waga.gif";
+
+    logo.alt =
+        "Waga";
+
+    logo.draggable =
+        false;
+
+    logo.style.cssText = `
+        display: block;
+
+        width: auto;
+        height: 86px;
+        max-width: min(220px, 60vw);
+
+        object-fit: contain;
+
+        filter:
+            drop-shadow(
+                0 5px 14px
+                rgba(0, 0, 0, .8)
+            );
+    `;
+
+    const text =
+        document.createElement("div");
+
+    text.id =
+        "overlay-loading-text";
+
+    text.style.cssText = `
+        font-family:
+            'Open Sans',
+            Arial,
+            sans-serif;
+
+        font-weight: 700;
+
+        text-shadow:
+            0 3px 14px
+            rgba(0, 0, 0, .85);
+    `;
+
+    indicator.appendChild(logo);
+    indicator.appendChild(text);
+
+    document.body.appendChild(
+        indicator
+    );
 
     return indicator;
 }
@@ -139,9 +201,17 @@ async function runLoadingTasks(tasks) {
             return;
         }
 
-        indicator.textContent = pending.size
-            ? `Loading ${[...pending].join(", ")}...`
-            : "Ready!";
+        const loadingText =
+            indicator.querySelector(
+                "#overlay-loading-text"
+            );
+
+        if (loadingText) {
+            loadingText.textContent =
+                pending.size
+                    ? `Loading ${[...pending].join(", ")}...`
+                    : "Ready!";
+        }
     }
 
     refresh();
@@ -169,9 +239,7 @@ let twemojiReady = null;
 const messageElements = new Map();
 const userMessageElements = new Map();
 
-function getOAuthRedirectUri() {
-    return window.location.origin + window.location.pathname;
-}
+
 
 const params = new URLSearchParams(
     window.location.search
@@ -843,38 +911,323 @@ function disconnectSevenTVEvents() {
     }
 }
 
-function decodeOverlaySettings() {
-    const encoded =
-        params.get("settings");
+function parseQueryBoolean(name, fallback) {
+    const value = params.get(name);
 
+    if (value === null || value === "") {
+        return fallback;
+    }
+
+    const normalized =
+        String(value)
+            .trim()
+            .toLowerCase();
+
+    if (
+        normalized === "1" ||
+        normalized === "true" ||
+        normalized === "yes" ||
+        normalized === "on"
+    ) {
+        return true;
+    }
+
+    if (
+        normalized === "0" ||
+        normalized === "false" ||
+        normalized === "no" ||
+        normalized === "off"
+    ) {
+        return false;
+    }
+
+    return fallback;
+}
+
+function decodeLegacySerializedSettings(encoded) {
     if (!encoded) {
         return {};
     }
 
     try {
+        const normalized =
+            String(encoded)
+                .replace(/-/g, "+")
+                .replace(/_/g, "/");
+
+        const padded =
+            normalized +
+            "=".repeat(
+                (4 - normalized.length % 4) % 4
+            );
+
         const json =
             decodeURIComponent(
-                atob(
-                    encoded
-                        .replace(/-/g, "+")
-                        .replace(/_/g, "/")
-                )
+                atob(padded)
             );
 
         return JSON.parse(json) || {};
-
     } catch (error) {
-        console.error(
-            "Failed to decode overlay settings:",
+        console.warn(
+            "Legacy serialized overlay settings could not be decoded:",
             error
         );
 
-        return {};
+        return null;
     }
 }
 
-const overlaySettings =
-    decodeOverlaySettings();
+function normaliseOverlaySettings(settings = {}) {
+    const result = {};
+
+    result.background =
+        settings.background === true;
+
+    result.backgroundColor =
+        typeof settings.backgroundColor === "string" &&
+        /^#[0-9a-fA-F]{6}$/.test(
+            settings.backgroundColor
+        )
+            ? settings.backgroundColor
+            : "#2d0c12";
+
+    result.fade =
+        settings.fade === false
+            ? false
+            : Number(
+                settings.fade ?? 15
+            );
+
+    if (
+        result.fade !== false &&
+        (
+            !Number.isFinite(result.fade) ||
+            result.fade < 1
+        )
+    ) {
+        result.fade = 15;
+    }
+
+    result.badges =
+        settings.badges !== false;
+
+    result.scale =
+        Number(
+            settings.scale ?? 0.5
+        );
+
+    if (!Number.isFinite(result.scale)) {
+        result.scale = 0.5;
+    }
+
+    result.scale =
+        Math.max(
+            0.25,
+            Math.min(result.scale, 3)
+        );
+
+    result.wrap =
+        settings.wrap === true;
+
+    result.unlisted =
+        settings.unlisted !== false;
+
+    result.font =
+        typeof settings.font === "string" &&
+        settings.font.trim()
+            ? settings.font
+            : "'Open Sans', sans-serif";
+
+    return result;
+}
+
+function fontValueToQueryKey(value) {
+    const map = {
+        "'Open Sans', sans-serif": "opensans",
+        "Arial, sans-serif": "arial",
+        "'Comic Sans MS', sans-serif": "comicsans",
+        "'Roboto', sans-serif": "roboto",
+        "'Montserrat', sans-serif": "montserrat",
+        "'Minecraft', sans-serif": "minecraft"
+    };
+
+    return (
+        map[value] ||
+        "opensans"
+    );
+}
+
+function fontQueryKeyToValue(value) {
+    const map = {
+        opensans: "'Open Sans', sans-serif",
+        open_sans: "'Open Sans', sans-serif",
+        "open-sans": "'Open Sans', sans-serif",
+
+        arial: "Arial, sans-serif",
+
+        comicsans: "'Comic Sans MS', sans-serif",
+        comic_sans: "'Comic Sans MS', sans-serif",
+        "comic-sans": "'Comic Sans MS', sans-serif",
+
+        roboto: "'Roboto', sans-serif",
+
+        montserrat: "'Montserrat', sans-serif",
+
+        minecraft: "'Minecraft', sans-serif"
+    };
+
+    return (
+        map[
+            String(value || "")
+                .trim()
+                .toLowerCase()
+        ] ||
+        "'Open Sans', sans-serif"
+    );
+}
+
+function cleanQueryColor(value) {
+    const color =
+        String(value || "")
+            .trim()
+            .replace(/^#/, "");
+
+    return /^[0-9a-fA-F]{6}$/.test(color)
+        ? color.toLowerCase()
+        : "2d0c12";
+}
+
+function appendFlatOverlaySettings(
+    url,
+    channel,
+    settings
+) {
+    const normalised =
+        normaliseOverlaySettings(
+            settings
+        );
+
+    /*
+     * Keep generated links human-readable.
+     * Do not use URLSearchParams here: it percent-encodes spaces,
+     * commas and the "#" in CSS colors.
+     */
+    const query = [
+        [
+            "channel",
+            String(channel)
+                .trim()
+                .toLowerCase()
+                .replace(/^#/, "")
+        ],
+        [
+            "scale",
+            String(normalised.scale)
+        ],
+        [
+            "font",
+            fontValueToQueryKey(
+                normalised.font
+            )
+        ],
+        [
+            "background",
+            normalised.background ? "1" : "0"
+        ],
+        [
+            "backgroundColor",
+            cleanQueryColor(
+                normalised.backgroundColor
+            )
+        ],
+        [
+            "fade",
+            normalised.fade === false
+                ? "off"
+                : String(normalised.fade)
+        ],
+        [
+            "badges",
+            normalised.badges ? "1" : "0"
+        ],
+        [
+            "wrap",
+            normalised.wrap ? "1" : "0"
+        ],
+        [
+            "unlisted",
+            normalised.unlisted ? "1" : "0"
+        ]
+    ];
+
+    url.search =
+        "?" +
+        query
+            .map(
+                ([key, value]) =>
+                    `${key}=${value}`
+            )
+            .join("&");
+
+    return url;
+}
+
+function migrateLegacySerializedLink() {
+    const encoded =
+        params.get("settings");
+
+    if (!encoded) {
+        return false;
+    }
+
+    const legacySettings =
+        decodeLegacySerializedSettings(
+            encoded
+        );
+
+    if (!legacySettings) {
+        return false;
+    }
+
+    const channel =
+        (
+            params.get("channel") ||
+            ""
+        )
+            .trim()
+            .toLowerCase()
+            .replace(/^#/, "");
+
+    if (!channel) {
+        return false;
+    }
+
+    const url =
+        new URL(
+            window.location.href
+        );
+
+    url.search = "";
+
+    appendFlatOverlaySettings(
+        url,
+        channel,
+        legacySettings
+    );
+
+    console.warn(
+        "This overlay link used the old serialized settings format. Redirecting it to the new readable query-parameter format."
+    );
+
+    window.location.replace(
+        url.toString()
+    );
+
+    return true;
+}
+
+const legacySerializedRedirecting =
+    migrateLegacySerializedLink();
 
 const selectedChannel =
     (
@@ -886,18 +1239,79 @@ const selectedChannel =
         .replace(/^#/, "");
 
 let backgroundEnabled =
-    overlaySettings.background === true;
+    parseQueryBoolean(
+        "background",
+        false
+    );
 
-document.body.classList.toggle(
-    "has-background",
-    backgroundEnabled
-);
+let backgroundColor = (() => {
+    const value =
+        String(
+            params.get("backgroundColor") ||
+            ""
+        )
+            .trim()
+            .replace(/^#/, "");
 
-let backgroundColor =
-    typeof overlaySettings.backgroundColor === "string" &&
-    /^#[0-9a-fA-F]{6}$/.test(overlaySettings.backgroundColor)
-        ? overlaySettings.backgroundColor
+    return /^[0-9a-fA-F]{6}$/.test(value)
+        ? `#${value}`
         : "#2d0c12";
+})();
+
+let fade;
+const fadeParam =
+    params.get("fade");
+
+if (
+    fadeParam === null ||
+    fadeParam === ""
+) {
+    fade = 15;
+} else if (
+    /^(?:off|false|0)$/i.test(
+        fadeParam.trim()
+    )
+) {
+    fade = false;
+} else {
+    fade =
+        Number(
+            fadeParam
+        );
+
+    if (
+        !Number.isFinite(fade) ||
+        fade < 1
+    ) {
+        fade = 15;
+    }
+}
+
+let badgesEnabled =
+    parseQueryBoolean(
+        "badges",
+        true
+    );
+
+let scale =
+    Number(
+        params.get("scale") ?? 0.5
+    );
+
+if (!Number.isFinite(scale)) {
+    scale = 0.5;
+}
+
+scale =
+    Math.max(
+        0.25,
+        Math.min(scale, 3)
+    );
+
+document.documentElement.style.setProperty(
+    "--chat-scale",
+    scale
+);
 
 function hexToRgbaString(hex, alpha) {
     let h = hex.replace("#", "");
@@ -926,36 +1340,6 @@ function applyBackgroundColor(hex) {
 }
 
 applyBackgroundColor(backgroundColor);
-
-let fade =
-    overlaySettings.fade === false
-        ? false
-        : Number(
-            overlaySettings.fade ?? 15
-        );
-
-let badgesEnabled =
-    overlaySettings.badges !== false;
-
-let scale =
-    Number(
-        overlaySettings.scale ?? 0.5
-    );
-
-if (!Number.isFinite(scale)) {
-    scale = 0.5;
-}
-
-scale =
-    Math.max(
-        0.25,
-        Math.min(scale, 3)
-    );
-
-document.documentElement.style.setProperty(
-    "--chat-scale",
-    scale
-);
 
 const CHAT_FONTS = [
     { label: "Open Sans", value: "'Open Sans', sans-serif" },
@@ -1026,12 +1410,15 @@ function loadCustomFontIfNeeded(fontValue) {
 }
 
 let chatFont =
-    typeof overlaySettings.font === "string" &&
-    overlaySettings.font.trim()
-        ? overlaySettings.font
-        : "'Open Sans', sans-serif";
+    fontQueryKeyToValue(
+        params.get("font")
+    );
 
-document.documentElement.style.setProperty("--chat-font", chatFont);
+document.documentElement.style.setProperty(
+    "--chat-font",
+    chatFont
+);
+
 loadGoogleFontIfNeeded(chatFont);
 loadCustomFontIfNeeded(chatFont);
 
@@ -1041,300 +1428,210 @@ document.body.classList.toggle(
 );
 
 let wrapEnabled =
-    overlaySettings.wrap === true;
+    parseQueryBoolean(
+        "wrap",
+        false
+    );
 
 let showUnlisted7TV =
-    overlaySettings.unlisted !== false;
-
-function saveTwitchAuth() {
-    if (!accessToken) {
-        return;
-    }
-
-    localStorage.setItem(
-        "twitch_overlay_access_token",
-        accessToken
+    parseQueryBoolean(
+        "unlisted",
+        true
     );
 
-    if (authenticatedUserId) {
-        localStorage.setItem(
-            "twitch_overlay_user_id",
-            authenticatedUserId
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const TWITCH_GQL_URL = "https://gql.twitch.tv/gql";
+const TWITCH_PUBLIC_CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko";
+
+let twitchBadgesReadyPromise = Promise.resolve();
+
+function cacheTwitchGraphQLBadges(badges) {
+    let loaded = 0;
+
+    for (const badge of Array.isArray(badges) ? badges : []) {
+        const setId =
+            badge?.setID ||
+            badge?.setId ||
+            badge?.set_id;
+
+        const versionId =
+            badge?.version ??
+            badge?.id;
+
+        if (!setId || versionId == null) {
+            continue;
+        }
+
+        const imageUrl =
+            badge?.imageURL ||
+            badge?.imageUrl ||
+            badge?.image_url;
+
+        if (!imageUrl) {
+            continue;
+        }
+
+        twitchBadges.set(
+            `${setId}/${versionId}`,
+            {
+                title:
+                    badge?.title ||
+                    badge?.description ||
+                    setId,
+                url_1x: imageUrl,
+                url_2x: imageUrl,
+                url_4x: imageUrl
+            }
+        );
+
+        loaded++;
+    }
+
+    return loaded;
+}
+
+async function twitchGraphQL(query) {
+    const response = await fetch(
+        TWITCH_GQL_URL,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Client-ID": TWITCH_PUBLIC_CLIENT_ID
+            },
+            body: JSON.stringify({ query }),
+            cache: "no-store"
+        }
+    );
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        const detail =
+            payload?.message ||
+            payload?.error ||
+            (Array.isArray(payload?.errors)
+                ? payload.errors
+                    .map(error => error?.message || "Unknown GraphQL error")
+                    .join("; ")
+                : "");
+
+        throw new Error(
+            `Twitch GraphQL returned ${response.status}` +
+            (detail ? `: ${detail}` : "")
         );
     }
 
-    if (authenticatedUsername) {
-        localStorage.setItem(
-            "twitch_overlay_username",
-            authenticatedUsername
+    if (Array.isArray(payload?.errors) && payload.errors.length) {
+        throw new Error(
+            payload.errors
+                .map(error => error?.message || "Unknown GraphQL error")
+                .join("; ")
         );
     }
+
+    return payload?.data || {};
 }
 
+async function loadTwitchBadges() {
+    const load = (async () => {
+        let loaded = 0;
 
-function loadSavedTwitchAuth() {
-    accessToken =
-        localStorage.getItem(
-            "twitch_overlay_access_token"
-        );
-
-    authenticatedUserId =
-        localStorage.getItem(
-            "twitch_overlay_user_id"
-        );
-
-    authenticatedUsername =
-        localStorage.getItem(
-            "twitch_overlay_username"
-        );
-
-    return Boolean(accessToken);
-}
-
-
-function clearTwitchAuth() {
-    accessToken = null;
-    authenticatedUserId = null;
-    authenticatedUsername = null;
-
-    localStorage.removeItem(
-        "twitch_overlay_access_token"
-    );
-
-    localStorage.removeItem(
-        "twitch_overlay_user_id"
-    );
-
-    localStorage.removeItem(
-        "twitch_overlay_username"
-    );
-}
-
-
-function startTwitchLogin() {
-    const redirectUri =
-        getOAuthRedirectUri();
-
-    const oauthParams =
-        new URLSearchParams({
-            client_id:
-                TWITCH_CLIENT_ID,
-
-            redirect_uri:
-                redirectUri,
-
-            response_type:
-                "token",
-
-            scope:
-                TWITCH_OAUTH_SCOPES.join(" ")
-        });
-
-    window.location.href =
-        "https://id.twitch.tv/oauth2/authorize?" +
-        oauthParams.toString();
-}
-
-function readOAuthTokenFromHash() {
-    if (!window.location.hash) {
-        return null;
-    }
-
-    const hash =
-        window.location.hash.substring(1);
-
-    const params =
-        new URLSearchParams(hash);
-
-    const token =
-        params.get("access_token");
-
-    if (!token) {
-        return null;
-    }
-
-    window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname +
-        window.location.search
-    );
-
-    return token;
-}
-
-
-async function validateTwitchToken() {
-    if (!accessToken) {
-        return false;
-    }
-
-    try {
-        const response =
-            await fetch(
-                "https://id.twitch.tv/oauth2/validate",
-                {
-                    headers: {
-                        Authorization:
-                            `OAuth ${accessToken}`
+        try {
+            const globalData = await twitchGraphQL(
+                `query {
+                    badges {
+                        imageURL(size: DOUBLE)
+                        description
+                        title
+                        setID
+                        version
                     }
-                }
+                }`
             );
 
-        if (!response.ok) {
-            throw new Error(
-                `Token validation failed: ${response.status}`
+            loaded += cacheTwitchGraphQLBadges(
+                globalData?.badges
+            );
+        } catch (error) {
+            console.warn(
+                "Twitch global badge catalog unavailable:",
+                error
             );
         }
 
-        const data =
-            await response.json();
+        if (TWITCH_USER_ID) {
+            try {
+                const channelData = await twitchGraphQL(
+                    `query {
+                        user(id: "${String(TWITCH_USER_ID).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}") {
+                            broadcastBadges {
+                                imageURL(size: DOUBLE)
+                                description
+                                title
+                                setID
+                                version
+                            }
+                        }
+                    }`
+                );
 
-        authenticatedUserId =
-            String(data.user_id);
+                loaded += cacheTwitchGraphQLBadges(
+                    channelData?.user?.broadcastBadges
+                );
+            } catch (error) {
+                console.warn(
+                    "Twitch channel badge catalog unavailable:",
+                    error
+                );
+            }
+        }
 
-        authenticatedUsername =
-            data.login ||
-            data.user_name ||
-            authenticatedUsername;
+        if (!twitchBadges.has("subscriber/1")) {
+            twitchBadges.set(
+                "subscriber/1",
+                {
+                    title: "Subscriber",
+                    url_1x:
+                        "https://static-cdn.jtvnw.net/badges/v1/5d9f2208-5dd8-11e7-8513-2ff4adfae661/1",
+                    url_2x:
+                        "https://static-cdn.jtvnw.net/badges/v1/5d9f2208-5dd8-11e7-8513-2ff4adfae661/2",
+                    url_4x:
+                        "https://static-cdn.jtvnw.net/badges/v1/5d9f2208-5dd8-11e7-8513-2ff4adfae661/3"
+                }
+            );
+        }
 
-        TWITCH_USER_ID = authenticatedUserId;
-        CHANNEL = authenticatedUsername;
-
-        saveTwitchAuth();
+        console.log(
+            `Loaded ${twitchBadges.size} Twitch badge definitions (${loaded} from Twitch GraphQL).`
+        );
 
         return true;
+    })();
 
-    } catch (error) {
-        console.error(
-            "Twitch OAuth validation error:",
-            error
-        );
-
-        clearTwitchAuth();
-
-        return false;
-    }
-}
-
-async function getTwitchUserByLogin(login) {
-    if (!accessToken || !login) {
-        return null;
-    }
-
-    try {
-        const response =
-            await fetch(
-                `https://api.twitch.tv/helix/users?login=${encodeURIComponent(
-                    login
-                )}`,
-                {
-                    headers: {
-                        "Client-ID":
-                            TWITCH_CLIENT_ID,
-
-                        "Authorization":
-                            `Bearer ${accessToken}`
-                    }
-                }
-            );
-
-        if (!response.ok) {
-            throw new Error(
-                `Twitch user lookup failed: ${response.status}`
-            );
-        }
-
-        const data =
-            await response.json();
-
-        return data.data?.[0] || null;
-
-    } catch (error) {
-        console.error(
-            "Twitch channel lookup error:",
-            error
-        );
-
-        return null;
-    }
-}
-
-async function resolveOverlayChannel() {
-    if (!selectedChannel) {
-        return false;
-    }
-
-    const channelUser =
-        await getTwitchUserByLogin(
-            selectedChannel
-        );
-
-    if (!channelUser) {
-        console.error(
-            "Twitch channel does not exist:",
-            selectedChannel
-        );
-
-        showChannelError(
-            `Twitch channel "${selectedChannel}" could not be found.`
-        );
-
-        return false;
-    }
-
-    CHANNEL =
-        channelUser.login;
-
-    TWITCH_USER_ID =
-        channelUser.id;
-
-    return true;
-}
-
-async function ensureTwitchAuth() {
-    if (twitchAuthPromise) {
-        return twitchAuthPromise;
-    }
-
-    twitchAuthPromise =
-        (async () => {
-            const hashToken =
-                readOAuthTokenFromHash();
-
-            if (hashToken) {
-                accessToken =
-                    hashToken;
-
-                await validateTwitchToken();
-
-                if (accessToken) {
-                    saveTwitchAuth();
-                }
-            } else {
-                loadSavedTwitchAuth();
-
-                if (accessToken) {
-                    const valid =
-                        await validateTwitchToken();
-
-                    if (!valid) {
-                        return false;
-                    }
-                }
-            }
-
-            if (!accessToken) {
-                showTwitchLoginScreen();
-
-                return false;
-            }
-
-            return true;
-        })();
-
-
-        return twitchAuthPromise;
+    twitchBadgesReadyPromise = load;
+    return load;
 }
 
 async function loadPreviewEmotes() {
@@ -1355,9 +1652,7 @@ async function loadPreviewEmotes() {
         loadChatterinoBadges()
     ];
 
-    if (accessToken) {
-        tasks.push(loadTwitchBadges());
-    }
+    tasks.push(loadTwitchBadges());
 
     await Promise.allSettled(tasks);
 
@@ -1418,8 +1713,8 @@ const previewMessages = [
         { badges: "broadcaster/1,subscriber/1,subtember/1" }
     ],
     [
-        "XDR412",
-        "DOVE! RAAAAAAH RAAAAAAH RAAAAAAH",
+        "RandomKid",
+        "Maybe",
         "#DAA520",
         "195845559",
         { badges: "moderator/1,subscriber/1,pikachu/1" }
@@ -1442,23 +1737,23 @@ function runPreviewMessage() {
 }
 
 
-function showTwitchLoginScreen() {
-    let screen = document.getElementById("twitch-login-screen");
+function showOverlaySetupScreen() {
+    let screen = document.getElementById("overlay-setup-screen");
 
     if (screen) {
         return;
     }
 
     screen = document.createElement("div");
-    screen.id = "twitch-login-screen";
+    screen.id = "overlay-setup-screen";
 
     loadGoogleFontIfNeeded("'Open Sans', sans-serif");
 
     const style = document.createElement("style");
     style.dataset.marzSetup = "true";
     style.textContent = `
-        html:has(#twitch-login-screen),
-        body:has(#twitch-login-screen) {
+        html:has(#overlay-setup-screen),
+        body:has(#overlay-setup-screen) {
             margin: 0;
             width: 100%;
             height: 100%;
@@ -1466,7 +1761,7 @@ function showTwitchLoginScreen() {
             background: #0b0b0e;
         }
 
-        #twitch-login-screen {
+        #overlay-setup-screen {
             position: fixed;
             left: 0;
             top: 0;
@@ -1484,29 +1779,29 @@ function showTwitchLoginScreen() {
         }
 
         /* Keep the 125% setup surface pinned to the viewport instead of exposing body edges. */
-        html:has(#twitch-login-screen),
-        body:has(#twitch-login-screen) {
+        html:has(#overlay-setup-screen),
+        body:has(#overlay-setup-screen) {
             scrollbar-width: none;
         }
 
-        html:has(#twitch-login-screen)::-webkit-scrollbar,
-        body:has(#twitch-login-screen)::-webkit-scrollbar {
+        html:has(#overlay-setup-screen)::-webkit-scrollbar,
+        body:has(#overlay-setup-screen)::-webkit-scrollbar {
             display: none;
         }
 
-        #twitch-login-screen *,
-        #twitch-login-screen *::before,
-        #twitch-login-screen *::after {
+        #overlay-setup-screen *,
+        #overlay-setup-screen *::before,
+        #overlay-setup-screen *::after {
             box-sizing: border-box;
         }
 
-        #twitch-login-screen button,
-        #twitch-login-screen input,
-        #twitch-login-screen select {
+        #overlay-setup-screen button,
+        #overlay-setup-screen input,
+        #overlay-setup-screen select {
             font: inherit;
         }
 
-        #twitch-login-screen .mc-topbar {
+        #overlay-setup-screen .mc-topbar {
             grid-column: 1 / -1;
             display: flex;
             align-items: center;
@@ -1516,14 +1811,14 @@ function showTwitchLoginScreen() {
             background: #111114;
         }
 
-        #twitch-login-screen .mc-brand {
+        #overlay-setup-screen .mc-brand {
             display: flex;
             align-items: center;
             gap: 10px;
             min-width: 0;
         }
 
-        #twitch-login-screen .mc-brand-mark {
+        #overlay-setup-screen .mc-brand-mark {
             height: 30px;
             width: auto;
             max-width: 96px;
@@ -1534,11 +1829,11 @@ function showTwitchLoginScreen() {
             object-position: center;
         }
 
-        #twitch-login-screen .mc-brand-text {
+        #overlay-setup-screen .mc-brand-text {
             min-width: 0;
         }
 
-        #twitch-login-screen .mc-brand-name {
+        #overlay-setup-screen .mc-brand-name {
             color: #fafafa;
             font-size: 12px;
             font-weight: 800;
@@ -1546,11 +1841,11 @@ function showTwitchLoginScreen() {
             letter-spacing: .02em;
         }
 
-        #twitch-login-screen .mc-brand-m {
+        #overlay-setup-screen .mc-brand-m {
             color: #f2df9b;
         }
 
-        #twitch-login-screen .mc-brand-page {
+        #overlay-setup-screen .mc-brand-page {
             margin-top: 3px;
             color: #74747f;
             font-size: 9px;
@@ -1559,7 +1854,7 @@ function showTwitchLoginScreen() {
             letter-spacing: .11em;
         }
 
-        #twitch-login-screen .mc-top-status {
+        #overlay-setup-screen .mc-top-status {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -1569,14 +1864,14 @@ function showTwitchLoginScreen() {
             letter-spacing: .08em;
         }
 
-        #twitch-login-screen .mc-status-dot {
+        #overlay-setup-screen .mc-status-dot {
             width: 7px;
             height: 7px;
             border-radius: 50%;
             background: #3d3d45;
         }
 
-        #twitch-login-screen .mc-sidebar {
+        #overlay-setup-screen .mc-sidebar {
             min-width: 0;
             min-height: 0;
             display: flex;
@@ -1586,7 +1881,7 @@ function showTwitchLoginScreen() {
             background: #101013;
         }
 
-        #twitch-login-screen .mc-nav-label {
+        #overlay-setup-screen .mc-nav-label {
             padding: 0 8px 8px;
             color: #62626c;
             font-size: 8px;
@@ -1595,13 +1890,13 @@ function showTwitchLoginScreen() {
             text-transform: none;
         }
 
-        #twitch-login-screen .mc-nav {
+        #overlay-setup-screen .mc-nav {
             display: flex;
             flex-direction: column;
             gap: 3px;
         }
 
-        #twitch-login-screen .mc-nav-button {
+        #overlay-setup-screen .mc-nav-button {
             position: relative;
             display: grid;
             grid-template-columns: 24px 1fr;
@@ -1619,17 +1914,17 @@ function showTwitchLoginScreen() {
             transition: background .12s ease, color .12s ease;
         }
 
-        #twitch-login-screen .mc-nav-button:hover {
+        #overlay-setup-screen .mc-nav-button:hover {
             background: #17171b;
             color: #d8d8de;
         }
 
-        #twitch-login-screen .mc-nav-button.is-active {
+        #overlay-setup-screen .mc-nav-button.is-active {
             background: #2a271d;
             color: #f0e9f8;
         }
 
-        #twitch-login-screen .mc-nav-button.is-active::before {
+        #overlay-setup-screen .mc-nav-button.is-active::before {
             content: "";
             position: absolute;
             left: -10px;
@@ -1640,7 +1935,7 @@ function showTwitchLoginScreen() {
             background: #e8d58a;
         }
 
-        #twitch-login-screen .mc-nav-icon {
+        #overlay-setup-screen .mc-nav-icon {
             width: 24px;
             color: #66666f;
             font-size: 10px;
@@ -1648,24 +1943,24 @@ function showTwitchLoginScreen() {
             text-align: center;
         }
 
-        #twitch-login-screen .mc-nav-button.is-active .mc-nav-icon {
+        #overlay-setup-screen .mc-nav-button.is-active .mc-nav-icon {
             color: #f2df9b;
         }
 
-        #twitch-login-screen .mc-nav-copy {
+        #overlay-setup-screen .mc-nav-copy {
             min-width: 0;
         }
 
-        #twitch-login-screen .mc-nav-title {
+        #overlay-setup-screen .mc-nav-title {
             font-size: 10px;
             font-weight: 700;
         }
 
-        #twitch-login-screen .mc-side-spacer {
+        #overlay-setup-screen .mc-side-spacer {
             flex: 1;
         }
 
-        #twitch-login-screen .mc-side-hint {
+        #overlay-setup-screen .mc-side-hint {
             padding: 9px 8px;
             border-top: 1px solid #222228;
             color: #5d5d67;
@@ -1673,7 +1968,7 @@ function showTwitchLoginScreen() {
             line-height: 1.5;
         }
 
-        #twitch-login-screen .mc-controls {
+        #overlay-setup-screen .mc-controls {
             min-width: 0;
             min-height: 0;
             display: flex;
@@ -1682,12 +1977,12 @@ function showTwitchLoginScreen() {
             border-right: 1px solid #27272d;
         }
 
-        #twitch-login-screen .mc-controls-head {
+        #overlay-setup-screen .mc-controls-head {
             padding: 18px 18px 15px;
             border-bottom: 1px solid #27272d;
         }
 
-        #twitch-login-screen .mc-control-title {
+        #overlay-setup-screen .mc-control-title {
             margin: 0;
             font-size: 15px;
             line-height: 1.15;
@@ -1695,14 +1990,14 @@ function showTwitchLoginScreen() {
             letter-spacing: -.02em;
         }
 
-        #twitch-login-screen .mc-control-subtitle {
+        #overlay-setup-screen .mc-control-subtitle {
             margin: 5px 0 0;
             color: #686872;
             font-size: 9px;
             line-height: 1.45;
         }
 
-        #twitch-login-screen .mc-panel-stack {
+        #overlay-setup-screen .mc-panel-stack {
             flex: 1;
             min-height: 0;
             overflow: auto;
@@ -1711,23 +2006,23 @@ function showTwitchLoginScreen() {
             scrollbar-color: #34343c transparent;
         }
 
-        #twitch-login-screen .mc-panel {
+        #overlay-setup-screen .mc-panel {
             display: none;
         }
 
-        #twitch-login-screen .mc-panel.is-active {
+        #overlay-setup-screen .mc-panel.is-active {
             display: block;
         }
 
-        #twitch-login-screen .mc-field {
+        #overlay-setup-screen .mc-field {
             margin-bottom: 15px;
         }
 
-        #twitch-login-screen .mc-field:last-child {
+        #overlay-setup-screen .mc-field:last-child {
             margin-bottom: 0;
         }
 
-        #twitch-login-screen .mc-label {
+        #overlay-setup-screen .mc-label {
             display: block;
             margin-bottom: 6px;
             color: #b9b9c1;
@@ -1737,8 +2032,8 @@ function showTwitchLoginScreen() {
             text-transform: none;
         }
 
-        #twitch-login-screen .mc-input,
-        #twitch-login-screen .mc-select {
+        #overlay-setup-screen .mc-input,
+        #overlay-setup-screen .mc-select {
             width: 100%;
             height: 34px;
             padding: 0 10px;
@@ -1751,18 +2046,18 @@ function showTwitchLoginScreen() {
             transition: border-color .12s ease, background .12s ease;
         }
 
-        #twitch-login-screen .mc-input:hover,
-        #twitch-login-screen .mc-select:hover {
+        #overlay-setup-screen .mc-input:hover,
+        #overlay-setup-screen .mc-select:hover {
             border-color: #45454f;
         }
 
-        #twitch-login-screen .mc-input:focus,
-        #twitch-login-screen .mc-select:focus {
+        #overlay-setup-screen .mc-input:focus,
+        #overlay-setup-screen .mc-select:focus {
             border-color: #e8d58a;
             background: #0d0c10;
         }
 
-        #twitch-login-screen .mc-inline {
+        #overlay-setup-screen .mc-inline {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 10px;
@@ -1770,13 +2065,13 @@ function showTwitchLoginScreen() {
         }
 
 
-        #twitch-login-screen .mc-divider {
+        #overlay-setup-screen .mc-divider {
             height: 1px;
             margin: 17px 0;
             background: #24242a;
         }
 
-        #twitch-login-screen .mc-subhead {
+        #overlay-setup-screen .mc-subhead {
             margin: 0 0 9px;
             color: #777781;
             font-size: 8px;
@@ -1785,7 +2080,7 @@ function showTwitchLoginScreen() {
             text-transform: none;
         }
 
-        #twitch-login-screen .mc-toggle-row {
+        #overlay-setup-screen .mc-toggle-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -1801,29 +2096,29 @@ function showTwitchLoginScreen() {
             transition: border-color .12s ease, background .12s ease;
         }
 
-        #twitch-login-screen .mc-toggle-row:hover {
+        #overlay-setup-screen .mc-toggle-row:hover {
             border-color: #33333a;
             background: #151519;
         }
 
-        #twitch-login-screen .mc-toggle-copy {
+        #overlay-setup-screen .mc-toggle-copy {
             min-width: 0;
         }
 
-        #twitch-login-screen .mc-toggle-title {
+        #overlay-setup-screen .mc-toggle-title {
             color: #d5d5db;
             font-size: 10px;
             font-weight: 700;
         }
 
-        #twitch-login-screen .mc-toggle-note {
+        #overlay-setup-screen .mc-toggle-note {
             margin-top: 2px;
             color: #5e5e68;
             font-size: 8px;
             line-height: 1.3;
         }
 
-        #twitch-login-screen .mc-check {
+        #overlay-setup-screen .mc-check {
             width: 1px;
             height: 1px;
             position: absolute;
@@ -1831,7 +2126,7 @@ function showTwitchLoginScreen() {
             pointer-events: none;
         }
 
-        #twitch-login-screen .mc-switch {
+        #overlay-setup-screen .mc-switch {
             width: 31px;
             height: 18px;
             flex: 0 0 auto;
@@ -1841,7 +2136,7 @@ function showTwitchLoginScreen() {
             transition: background .12s ease;
         }
 
-        #twitch-login-screen .mc-switch::after {
+        #overlay-setup-screen .mc-switch::after {
             content: "";
             position: absolute;
             width: 14px;
@@ -1853,15 +2148,15 @@ function showTwitchLoginScreen() {
             transition: transform .12s ease;
         }
 
-        #twitch-login-screen .mc-toggle-row.is-on .mc-switch {
+        #overlay-setup-screen .mc-toggle-row.is-on .mc-switch {
             background: #e8d58a;
         }
 
-        #twitch-login-screen .mc-toggle-row.is-on .mc-switch::after {
+        #overlay-setup-screen .mc-toggle-row.is-on .mc-switch::after {
             transform: translateX(13px);
         }
 
-        #twitch-login-screen .mc-color-row {
+        #overlay-setup-screen .mc-color-row {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 86px;
             align-items: center;
@@ -1874,12 +2169,12 @@ function showTwitchLoginScreen() {
             background: #0e0e11;
         }
 
-        #twitch-login-screen .mc-muted {
+        #overlay-setup-screen .mc-muted {
             color: #62626b;
             font-size: 8px;
         }
 
-        #twitch-login-screen .mc-color {
+        #overlay-setup-screen .mc-color {
             width: 86px;
             height: 24px;
             padding: 1px;
@@ -1889,29 +2184,29 @@ function showTwitchLoginScreen() {
             cursor: pointer;
         }
 
-        #twitch-login-screen .mc-color::-webkit-color-swatch-wrapper { padding: 0; }
-        #twitch-login-screen .mc-color::-webkit-color-swatch { border: 0; border-radius: 3px; }
-        #twitch-login-screen .mc-color::-moz-color-swatch { border: 0; border-radius: 3px; }
+        #overlay-setup-screen .mc-color::-webkit-color-swatch-wrapper { padding: 0; }
+        #overlay-setup-screen .mc-color::-webkit-color-swatch { border: 0; border-radius: 3px; }
+        #overlay-setup-screen .mc-color::-moz-color-swatch { border: 0; border-radius: 3px; }
 
-        #twitch-login-screen .mc-two-col {
+        #overlay-setup-screen .mc-two-col {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
 
-        #twitch-login-screen .mc-range-line {
+        #overlay-setup-screen .mc-range-line {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 72px;
             gap: 10px;
             align-items: center;
         }
 
-        #twitch-login-screen .mc-unit {
+        #overlay-setup-screen .mc-unit {
             color: #65656e;
             font-size: 8px;
         }
 
-        #twitch-login-screen .mc-actions {
+        #overlay-setup-screen .mc-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
@@ -1920,7 +2215,7 @@ function showTwitchLoginScreen() {
             border-top: 1px solid #25252b;
         }
 
-        #twitch-login-screen .mc-button {
+        #overlay-setup-screen .mc-button {
             height: 35px;
             border: 1px solid #35353d;
             border-radius: 5px;
@@ -1932,28 +2227,28 @@ function showTwitchLoginScreen() {
             transition: background .12s ease, border-color .12s ease, color .12s ease;
         }
 
-        #twitch-login-screen .mc-button:hover {
+        #overlay-setup-screen .mc-button:hover {
             background: #212127;
             border-color: #484850;
             color: #fff;
         }
 
-        #twitch-login-screen .mc-button-primary {
+        #overlay-setup-screen .mc-button-primary {
             border-color: #9147ff;
             background: #9147ff;
             color: #fff;
         }
 
-        #twitch-login-screen .mc-button-primary:hover {
+        #overlay-setup-screen .mc-button-primary:hover {
             background: #7f35e7;
             border-color: #7f35e7;
         }
 
-        #twitch-login-screen .mc-button-full {
+        #overlay-setup-screen .mc-button-full {
             grid-column: 1 / -1;
         }
 
-        #twitch-login-screen .mc-footnote {
+        #overlay-setup-screen .mc-footnote {
             margin-top: 9px;
             color: #55555e;
             font-size: 8px;
@@ -1961,7 +2256,7 @@ function showTwitchLoginScreen() {
             text-align: center;
         }
 
-        #twitch-login-screen .mc-error {
+        #overlay-setup-screen .mc-error {
             display: none;
             margin-top: 9px;
             padding: 8px 9px;
@@ -1973,7 +2268,7 @@ function showTwitchLoginScreen() {
             line-height: 1.4;
         }
 
-        #twitch-login-screen .mc-stage {
+        #overlay-setup-screen .mc-stage {
             min-width: 0;
             min-height: 0;
             display: flex;
@@ -1981,7 +2276,7 @@ function showTwitchLoginScreen() {
             background: #09090c;
         }
 
-        #twitch-login-screen .mc-stage-head {
+        #overlay-setup-screen .mc-stage-head {
             height: 44px;
             flex: 0 0 44px;
             display: flex;
@@ -1992,7 +2287,7 @@ function showTwitchLoginScreen() {
             background: #0e0e11;
         }
 
-        #twitch-login-screen .mc-stage-title {
+        #overlay-setup-screen .mc-stage-title {
             color: #a6a6af;
             font-size: 8px;
             font-weight: 800;
@@ -2000,7 +2295,7 @@ function showTwitchLoginScreen() {
             text-transform: none;
         }
 
-        #twitch-login-screen .mc-stage-meta {
+        #overlay-setup-screen .mc-stage-meta {
             display: flex;
             align-items: center;
             gap: 9px;
@@ -2008,12 +2303,12 @@ function showTwitchLoginScreen() {
             font-size: 8px;
         }
 
-        #twitch-login-screen .mc-stage-meta strong {
+        #overlay-setup-screen .mc-stage-meta strong {
             color: #8b8b95;
             font-weight: 700;
         }
 
-        #twitch-login-screen .mc-stage-canvas {
+        #overlay-setup-screen .mc-stage-canvas {
             position: relative;
             flex: 1;
             min-width: 0;
@@ -2024,13 +2319,13 @@ function showTwitchLoginScreen() {
             overflow: hidden;
         }
 
-        #twitch-login-screen .mc-stage-canvas::before {
+        #overlay-setup-screen .mc-stage-canvas::before {
             content: "";
             position: absolute;
             pointer-events: none;
         }
 
-        #twitch-login-screen .mc-stage-canvas::before {
+        #overlay-setup-screen .mc-stage-canvas::before {
             inset: 0;
             opacity: .33;
             background-image:
@@ -2040,7 +2335,7 @@ function showTwitchLoginScreen() {
             mask-image: radial-gradient(circle at 50% 45%, black 0%, transparent 80%);
         }
 
-        #twitch-login-screen .mc-preview-frame {
+        #overlay-setup-screen .mc-preview-frame {
             position: relative;
             z-index: 1;
             width: min(760px, calc(100% - 40px));
@@ -2059,7 +2354,7 @@ function showTwitchLoginScreen() {
             box-shadow: none;
         }
 
-        #twitch-login-screen .mc-preview-corner {
+        #overlay-setup-screen .mc-preview-corner {
             position: absolute;
             inset: 10px 10px auto auto;
             z-index: 3;
@@ -2079,14 +2374,14 @@ function showTwitchLoginScreen() {
             backdrop-filter: none;
         }
 
-        #twitch-login-screen .mc-preview-dot {
+        #overlay-setup-screen .mc-preview-dot {
             width: 5px;
             height: 5px;
             border-radius: 50%;
             background: #35c759;
         }
 
-        #twitch-login-screen #chat.mc-preview-chat {
+        #overlay-setup-screen #chat.mc-preview-chat {
             position: relative;
             z-index: 2;
             width: 100%;
@@ -2101,11 +2396,11 @@ function showTwitchLoginScreen() {
             scrollbar-width: none;
         }
 
-        #twitch-login-screen #chat.mc-preview-chat::-webkit-scrollbar {
+        #overlay-setup-screen #chat.mc-preview-chat::-webkit-scrollbar {
             display: none;
         }
 
-        #twitch-login-screen .mc-preview-note {
+        #overlay-setup-screen .mc-preview-note {
             position: absolute;
             z-index: 2;
             left: 22px;
@@ -2117,7 +2412,7 @@ function showTwitchLoginScreen() {
             pointer-events: none;
         }
 
-        #twitch-login-screen .mc-stage-help {
+        #overlay-setup-screen .mc-stage-help {
             position: absolute;
             right: 34px;
             bottom: 22px;
@@ -2129,66 +2424,66 @@ function showTwitchLoginScreen() {
             text-align: right;
         }
 
-        #twitch-login-screen .mc-nav-title {
+        #overlay-setup-screen .mc-nav-title {
             font-size: 12px;
         }
 
-        #twitch-login-screen .mc-brand-name {
+        #overlay-setup-screen .mc-brand-name {
             font-size: 14px;
         }
 
-        #twitch-login-screen .mc-brand-page {
+        #overlay-setup-screen .mc-brand-page {
             font-size: 10px;
         }
 
-        #twitch-login-screen .mc-control-title {
+        #overlay-setup-screen .mc-control-title {
             font-size: 18px;
         }
 
-        #twitch-login-screen .mc-control-subtitle,
-        #twitch-login-screen .mc-label,
-        #twitch-login-screen .mc-input,
-        #twitch-login-screen .mc-select,
-        #twitch-login-screen .mc-toggle-title,
-        #twitch-login-screen .mc-button {
+        #overlay-setup-screen .mc-control-subtitle,
+        #overlay-setup-screen .mc-label,
+        #overlay-setup-screen .mc-input,
+        #overlay-setup-screen .mc-select,
+        #overlay-setup-screen .mc-toggle-title,
+        #overlay-setup-screen .mc-button {
             font-size: 11px;
         }
 
-        #twitch-login-screen .mc-toggle-note,
-        #twitch-login-screen .mc-muted,
-        #twitch-login-screen .mc-footnote {
+        #overlay-setup-screen .mc-toggle-note,
+        #overlay-setup-screen .mc-muted,
+        #overlay-setup-screen .mc-footnote {
             font-size: 9px;
         }
 
         @media (max-width: 1020px) {
-            #twitch-login-screen {
+            #overlay-setup-screen {
                 grid-template-columns: 176px minmax(330px, 420px) minmax(0, 1fr);
             }
 
-            #twitch-login-screen .mc-stage-canvas {
+            #overlay-setup-screen .mc-stage-canvas {
                 padding: 14px;
             }
         }
 
         @media (max-width: 780px) {
-            #twitch-login-screen {
+            #overlay-setup-screen {
                 grid-template-columns: 1fr;
                 grid-template-rows: 58px auto minmax(320px, 1fr);
                 overflow-y: auto;
             }
 
-            #twitch-login-screen .mc-sidebar {
+            #overlay-setup-screen .mc-sidebar {
                 min-height: auto;
                 border-right: 0;
                 border-bottom: 1px solid #27272d;
             }
 
-            #twitch-login-screen .mc-nav {
+            #overlay-setup-screen .mc-nav {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
             }
 
-            #twitch-login-screen .mc-nav-button {
+            #overlay-setup-screen .mc-nav-button {
                 grid-template-columns: 1fr;
                 justify-items: center;
                 gap: 2px;
@@ -2196,7 +2491,7 @@ function showTwitchLoginScreen() {
                 text-align: center;
             }
 
-            #twitch-login-screen .mc-nav-button.is-active::before {
+            #overlay-setup-screen .mc-nav-button.is-active::before {
                 left: 12px;
                 right: 12px;
                 top: auto;
@@ -2205,41 +2500,41 @@ function showTwitchLoginScreen() {
                 height: 2px;
             }
 
-            #twitch-login-screen .mc-side-spacer,
-            #twitch-login-screen .mc-side-hint {
+            #overlay-setup-screen .mc-side-spacer,
+            #overlay-setup-screen .mc-side-hint {
                 display: none;
             }
 
-            #twitch-login-screen .mc-controls {
+            #overlay-setup-screen .mc-controls {
                 border-right: 0;
                 border-bottom: 1px solid #27272d;
             }
 
-            #twitch-login-screen .mc-panel-stack {
+            #overlay-setup-screen .mc-panel-stack {
                 max-height: 430px;
             }
 
-            #twitch-login-screen .mc-stage {
+            #overlay-setup-screen .mc-stage {
                 min-height: 430px;
             }
         }
 
         @media (max-width: 520px) {
-            #twitch-login-screen .mc-two-col,
-            #twitch-login-screen .mc-actions {
+            #overlay-setup-screen .mc-two-col,
+            #overlay-setup-screen .mc-actions {
                 grid-template-columns: 1fr;
             }
 
-            #twitch-login-screen .mc-button-full {
+            #overlay-setup-screen .mc-button-full {
                 grid-column: auto;
             }
 
-            #twitch-login-screen .mc-preview-frame {
+            #overlay-setup-screen .mc-preview-frame {
                 width: 100%;
                 height: calc(100% - 20px);
             }
 
-            #twitch-login-screen .mc-stage-help {
+            #overlay-setup-screen .mc-stage-help {
                 display: none;
             }
         }
@@ -2495,12 +2790,12 @@ function showTwitchLoginScreen() {
         return checkbox;
     }
 
-    const connectionPanel = createPanel("connection", "Connection", "Choose the channel this overlay should read from and authorize Twitch when needed.", "01");
+    const connectionPanel = createPanel("connection", "Connection", "Choose the Twitch channel this overlay should read from anonymously.", "01");
 
     const channelInput = document.createElement("input");
     channelInput.type = "text";
     channelInput.className = "mc-input";
-    channelInput.placeholder = "channelname";
+    channelInput.placeholder = "Channel Name";
     channelInput.value = selectedChannel || "";
     channelInput.autocomplete = "off";
     channelInput.spellcheck = false;
@@ -2570,7 +2865,7 @@ function showTwitchLoginScreen() {
 
     const typographyNote = document.createElement("div");
     typographyNote.className = "mc-muted";
-    typographyNote.textContent = "The same font setting is serialized into the generated overlay URL.";
+    typographyNote.textContent = "Settings are included directly in the generated overlay URL.";
     typographyPanel.appendChild(typographyNote);
 
     const textScaleInput = document.createElement("input");
@@ -2624,17 +2919,14 @@ function showTwitchLoginScreen() {
     const actions = document.createElement("div");
     actions.className = "mc-actions";
 
-    const authorizeButton = document.createElement("button");
-    authorizeButton.type = "button";
-    authorizeButton.className = "mc-button mc-button-primary";
-    authorizeButton.textContent = accessToken ? "Twitch authorized" : "Authorize Twitch";
-
     const copyButton = document.createElement("button");
     copyButton.type = "button";
-    copyButton.className = "mc-button";
-    copyButton.textContent = "Copy overlay link";
+    copyButton.className =
+        "mc-button mc-button-full";
 
-    actions.appendChild(authorizeButton);
+    copyButton.textContent =
+        "Copy overlay link";
+
     actions.appendChild(copyButton);
 
     const error = document.createElement("div");
@@ -2723,58 +3015,85 @@ function showTwitchLoginScreen() {
     });
 
     function getOverlayUrl() {
-        const channel = channelInput.value.trim().toLowerCase().replace(/^#/, "");
+        const channel =
+            channelInput.value
+                .trim()
+                .toLowerCase()
+                .replace(/^#/, "");
 
         if (!channel) {
-            error.textContent = "Enter a Twitch channel before generating the overlay link.";
-            error.style.display = "block";
+            error.textContent =
+                "Enter a Twitch channel before generating the overlay link.";
+
+            error.style.display =
+                "block";
+
             activatePanel("connection");
             channelInput.focus();
+
             return null;
         }
 
-        error.style.display = "none";
+        error.style.display =
+            "none";
 
         const overlaySettings = {
-            background: backgroundCheckbox.checked,
-            backgroundColor: backgroundColorInput.value,
-            fade: noFade.checked ? false : Math.max(1, Number(fadeInput.value) || 15),
-            badges: badgesCheckbox.checked,
-            scale: Math.max(0.25, Math.min(Number(textScaleInput.value) || 1, 3)),
-            wrap: wrapCheckbox.checked,
-            unlisted: unlistedCheckbox.checked,
-            font: fontSelect.value
+            background:
+                backgroundCheckbox.checked,
+
+            backgroundColor:
+                backgroundColorInput.value,
+
+            fade:
+                noFade.checked
+                    ? false
+                    : Math.max(
+                        1,
+                        Number(
+                            fadeInput.value
+                        ) || 15
+                    ),
+
+            badges:
+                badgesCheckbox.checked,
+
+            scale:
+                Math.max(
+                    0.25,
+                    Math.min(
+                        Number(
+                            textScaleInput.value
+                        ) || 1,
+                        3
+                    )
+                ),
+
+            wrap:
+                wrapCheckbox.checked,
+
+            unlisted:
+                unlistedCheckbox.checked,
+
+            font:
+                fontSelect.value
         };
 
-        const encodedSettings = btoa(
-            encodeURIComponent(JSON.stringify(overlaySettings))
-        )
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=+$/, "");
+        const url =
+            new URL(
+                window.location.href
+            );
 
-        const url = new URL(window.location.href);
         url.search = "";
-        url.searchParams.set("channel", channel);
-        url.searchParams.set("settings", encodedSettings);
+
+        appendFlatOverlaySettings(
+            url,
+            channel,
+            overlaySettings
+        );
 
         return url.toString();
     }
 
-    authorizeButton.addEventListener("click", () => {
-        const url = getOverlayUrl();
-        if (!url) {
-            return;
-        }
-
-        if (accessToken) {
-            authorizeButton.textContent = "Twitch authorized";
-            return;
-        }
-
-        localStorage.setItem("twitch_overlay_pending_url", url);
-        startTwitchLogin();
-    });
 
     copyButton.addEventListener("click", async () => {
         const url = getOverlayUrl();
@@ -2806,13 +3125,13 @@ function showTwitchLoginScreen() {
 
     window.setTimeout(() => {
         runPreviewMessage();
-    }, 3000);
+    }, 6000);
 }
 
 function showChannelError(message) {
     const screen =
         document.getElementById(
-            "twitch-login-screen"
+            "overlay-setup-screen"
         );
 
     if (!screen) {
@@ -2833,10 +3152,10 @@ function showChannelError(message) {
     }
 }
 
-function hideTwitchLoginScreen() {
+function hideOverlaySetupScreen() {
     const screen =
         document.getElementById(
-            "twitch-login-screen"
+            "overlay-setup-screen"
         );
 
     if (!screen) {
@@ -3294,169 +3613,8 @@ function getTwitchEmoteUrl(emote) {
     );
 }
 
-async function loadTwitchEmotes() {
-    try {
-        const headers = {
-            "Client-ID":
-                TWITCH_CLIENT_ID,
 
-            "Authorization":
-                `Bearer ${accessToken}`
-        };
 
-        const globalResponse =
-            await fetch(
-                "https://api.twitch.tv/helix/chat/emotes/global",
-                {
-                    headers
-                }
-            );
-
-        if (!globalResponse.ok) {
-            throw new Error(
-                `Twitch global emotes: ${globalResponse.status}`
-            );
-        }
-
-        const globalData =
-            await globalResponse.json();
-
-        for (
-            const emote
-            of globalData.data || []
-        ) {
-            const url =
-                getTwitchEmoteUrl(emote);
-
-            if (!url) {
-                continue;
-            }
-
-            twitchEmotes.set(
-                String(emote.id),
-                {
-                    id:
-                        String(emote.id),
-
-                    name:
-                        emote.name,
-
-                    url,
-
-                    animated:
-                        Array.isArray(
-                            emote.format
-                        ) &&
-                        emote.format.includes(
-                            "animated"
-                        ),
-
-                    format:
-                        emote.format || [],
-
-                    scale:
-                        emote.scale || []
-                }
-            );
-        }
-
-        const userResponse =
-            await fetch(
-                `https://api.twitch.tv/helix/users?login=${encodeURIComponent(
-                    CHANNEL
-                )}`,
-                {
-                    headers
-                }
-            );
-
-        if (!userResponse.ok) {
-            throw new Error(
-                `Twitch channel lookup: ${userResponse.status}`
-            );
-        }
-
-        const userData =
-            await userResponse.json();
-
-        const broadcasterId =
-            userData.data?.[0]?.id;
-
-        if (!broadcasterId) {
-            console.log(
-                `Loaded ${twitchEmotes.size} Twitch emotes.`
-            );
-
-            return;
-        }
-
-        const channelResponse =
-            await fetch(
-                `https://api.twitch.tv/helix/chat/emotes?broadcaster_id=${broadcasterId}`,
-                {
-                    headers
-                }
-            );
-
-        if (!channelResponse.ok) {
-            throw new Error(
-                `Twitch channel emotes: ${channelResponse.status}`
-            );
-        }
-
-        const channelData =
-            await channelResponse.json();
-
-        for (
-            const emote
-            of channelData.data || []
-        ) {
-            const url =
-                getTwitchEmoteUrl(emote);
-
-            if (!url) {
-                continue;
-            }
-
-            twitchEmotes.set(
-                String(emote.id),
-                {
-                    id:
-                        String(emote.id),
-
-                    name:
-                        emote.name,
-
-                    url,
-
-                    animated:
-                        Array.isArray(
-                            emote.format
-                        ) &&
-                        emote.format.includes(
-                            "animated"
-                        ),
-
-                    format:
-                        emote.format || [],
-
-                    scale:
-                        emote.scale || []
-                }
-            );
-        }
-
-        console.log(
-            `Loaded ${twitchEmotes.size} Twitch emotes.`
-        );
-
-    } catch (error) {
-        console.error(
-            "Twitch emote error:",
-            error
-        );
-    }
-}
 
 
 
@@ -4453,117 +4611,8 @@ async function get7TVPaint(userId) {
 }
 
 
-async function loadTwitchBadges() {
-    try {
-        if (!accessToken) {
-            throw new Error(
-                "No Twitch access token available."
-            );
-        }
-
-        const headers = {
-            "Client-ID":
-                TWITCH_CLIENT_ID,
-
-            "Authorization":
-                `Bearer ${accessToken}`
-        };
-        const globalResponse =
-            await fetch(
-                "https://api.twitch.tv/helix/chat/badges/global",
-                {
-                    headers
-                }
-            );
-
-        if (!globalResponse.ok) {
-            throw new Error(
-                `Global Twitch badges: ${globalResponse.status}`
-            );
-        }
-
-        const globalData =
-            await globalResponse.json();
-
-        addTwitchBadges(
-            globalData.data || []
-        );
-
-        const userResponse =
-            await fetch(
-                `https://api.twitch.tv/helix/users?login=${encodeURIComponent(
-                    CHANNEL
-                )}`,
-                {
-                    headers
-                }
-            );
-
-        if (!userResponse.ok) {
-            throw new Error(
-                `Twitch channel lookup: ${userResponse.status}`
-            );
-        }
-
-        const userData =
-            await userResponse.json();
-
-        const broadcasterId =
-            userData.data?.[0]?.id;
 
 
-        if (broadcasterId) {
-            const channelResponse =
-                await fetch(
-                    `https://api.twitch.tv/helix/chat/badges?broadcaster_id=${broadcasterId}`,
-                    {
-                        headers
-                    }
-                );
-
-            if (!channelResponse.ok) {
-                console.warn(
-                    "Twitch channel badges:",
-                    channelResponse.status
-                );
-            } else {
-                const channelData =
-                    await channelResponse.json();
-
-                addTwitchBadges(
-                    channelData.data || []
-                );
-            }
-        }
-
-
-        console.log(
-            `Loaded ${twitchBadges.size} Twitch badges.`
-        );
-
-    } catch (error) {
-        console.error(
-            "Twitch badge error:",
-            error
-        );
-    }
-}
-
-function addTwitchBadges(badgeSets) {
-    for (const set of badgeSets || []) {
-        for (const version of set.versions || []) {
-            twitchBadges.set(
-                `${set.set_id}/${version.id}`,
-                {
-                    title: version.title || set.set_id,
-                    url_1x: version.image_url_1x,
-                    url_2x: version.image_url_2x,
-                    url_4x: version.image_url_4x
-                }
-            );
-        }
-    }
-}
 function normalizeFFZRoomBadge(
     badge,
     title
@@ -4800,7 +4849,6 @@ async function loadChatterinoBadges() {
 
 async function loadExternalBadges() {
     await Promise.allSettled([
-        loadTwitchBadges(),
         loadFFZBadges(),
         loadChatterinoBadges()
     ]);
@@ -4972,15 +5020,20 @@ function createTwitchBadges(tags) {
                 slash + 1
             );
 
-        const badge =
+        let badge =
             twitchBadges.get(
                 `${set}/${version}`
             );
 
+        if (!badge && set === "subscriber") {
+            badge = twitchBadges.get("subscriber/1");
+        }
+
         const badgeUrl =
             badge?.url_2x ||
             badge?.url_1x ||
-            badge?.url_4x;
+            badge?.url_4x ||
+            null;
 
         if (!badgeUrl) {
             console.warn(
@@ -6889,7 +6942,7 @@ function addPreviewMessage(
     tags = {}
 ) {
     const previewChat =
-        document.getElementById("chat");   // FIXED
+        document.getElementById("chat");
 
     if (!previewChat) {
         return;
@@ -7195,6 +7248,525 @@ function parseIRCtags(raw) {
     return tags;
 }
 
+
+function getAnonymousIRCNick() {
+    return `justinfan${Math.floor(10000 + Math.random() * 90000)}`;
+}
+
+function createTwitchIRCSocket() {
+    if (!CHANNEL) {
+        return Promise.reject(
+            new Error("No Twitch channel configured.")
+        );
+    }
+
+    if (twitchIRCSocket) {
+        try {
+            twitchIRCSocket.close();
+        } catch {}
+        twitchIRCSocket = null;
+    }
+
+    clearTimeout(twitchIRCReconnectTimer);
+    twitchIRCBuffer = "";
+
+    twitchIRCReadyPromise =
+        new Promise((resolve, reject) => {
+            twitchIRCReadyResolve = resolve;
+            twitchIRCReadyReject = reject;
+
+            const socket =
+                new WebSocket(
+                    "wss://irc-ws.chat.twitch.tv:443"
+                );
+
+            twitchIRCSocket = socket;
+
+            socket.onopen = () => {
+                console.log(
+                    "Connected to Twitch IRC anonymously."
+                );
+
+                socket.send(
+                    "CAP REQ :twitch.tv/tags twitch.tv/commands\r\n"
+                );
+
+                const nick =
+                    getAnonymousIRCNick();
+
+                socket.send(
+                    "PASS SCHMOOPIIE\r\n"
+                );
+                socket.send(
+                    `NICK ${nick}\r\n`
+                );
+                socket.send(
+                    `USER ${nick} 8 * :${nick}\r\n`
+                );
+                socket.send(
+                    `JOIN #${CHANNEL}\r\n`
+                );
+            };
+
+            socket.onmessage = event => {
+                twitchIRCBuffer +=
+                    String(event.data || "");
+
+                const messages =
+                    twitchIRCBuffer.split("\r\n");
+
+                twitchIRCBuffer =
+                    messages.pop() || "";
+
+                for (const raw of messages) {
+                    if (raw) {
+                        handleTwitchIRCMessage(raw);
+                    }
+                }
+            };
+
+            socket.onerror = error => {
+                console.error(
+                    "Twitch IRC WebSocket error:",
+                    error
+                );
+            };
+
+            socket.onclose = event => {
+                console.log(
+                    "Twitch IRC WebSocket closed:",
+                    event.code,
+                    event.reason
+                );
+
+                twitchIRCSocket = null;
+
+                if (twitchIRCReadyReject) {
+                    const rejectReady =
+                        twitchIRCReadyReject;
+
+                    twitchIRCReadyResolve = null;
+                    twitchIRCReadyReject = null;
+
+                    rejectReady(
+                        new Error(
+                            "Twitch IRC connection closed before ROOMSTATE."
+                        )
+                    );
+                }
+
+                clearTimeout(
+                    twitchIRCReconnectTimer
+                );
+
+                twitchIRCReconnectTimer =
+                    setTimeout(() => {
+                        if (
+                            CHANNEL &&
+                            !twitchIRCSocket
+                        ) {
+                            createTwitchIRCSocket()
+                                .catch(() => {});
+                        }
+                    }, 3000);
+            };
+        });
+
+    return twitchIRCReadyPromise;
+}
+
+function parseTwitchIRCLine(raw) {
+    let line = String(raw || "");
+    let tags = {};
+
+    if (line.startsWith("@")) {
+        const tagEnd =
+            line.indexOf(" ");
+
+        if (tagEnd !== -1) {
+            tags =
+                parseIRCtags(
+                    line.substring(
+                        1,
+                        tagEnd
+                    )
+                );
+
+            line =
+                line.substring(
+                    tagEnd + 1
+                );
+        }
+    }
+
+    let prefix = "";
+
+    if (line.startsWith(":")) {
+        const prefixEnd =
+            line.indexOf(" ");
+
+        if (prefixEnd !== -1) {
+            prefix =
+                line.substring(
+                    1,
+                    prefixEnd
+                );
+
+            line =
+                line.substring(
+                    prefixEnd + 1
+                );
+        }
+    }
+
+    const colonIndex =
+        line.indexOf(" :");
+
+    const commandPart =
+        colonIndex === -1
+            ? line
+            : line.substring(
+                0,
+                colonIndex
+            );
+
+    const trailing =
+        colonIndex === -1
+            ? ""
+            : line.substring(
+                colonIndex + 2
+            );
+
+    const parts =
+        commandPart
+            .split(" ")
+            .filter(Boolean);
+
+    const command =
+        parts.shift() || "";
+
+    return {
+        raw,
+        tags,
+        prefix,
+        command,
+        params: parts,
+        trailing
+    };
+}
+
+function handleTwitchIRCMessage(raw) {
+    if (raw.startsWith("PING ")) {
+        if (
+            twitchIRCSocket?.readyState ===
+            WebSocket.OPEN
+        ) {
+            twitchIRCSocket.send(
+                `PONG ${raw.substring(5)}\r\n`
+            );
+        }
+        return;
+    }
+
+    const message =
+        parseTwitchIRCLine(raw);
+
+    if (
+        message.command === "ROOMSTATE"
+    ) {
+        const roomId =
+            message.tags["room-id"];
+
+        if (roomId) {
+            TWITCH_USER_ID =
+                String(roomId);
+
+            console.log(
+                "Overlay channel ID from IRC:",
+                TWITCH_USER_ID
+            );
+        }
+
+        if (twitchIRCReadyResolve) {
+            const resolve =
+                twitchIRCReadyResolve;
+
+            twitchIRCReadyResolve = null;
+            twitchIRCReadyReject = null;
+
+            resolve({
+                roomId:
+                    TWITCH_USER_ID
+            });
+        }
+
+        return;
+    }
+
+    if (
+        message.command === "PRIVMSG"
+    ) {
+        handleTwitchIRCPrivmsg(
+            message
+        );
+        return;
+    }
+
+    if (
+        message.command === "CLEARMSG"
+    ) {
+        handleTwitchIRCClearMessage(
+            message.tags["target-msg-id"]
+        );
+        return;
+    }
+
+    if (
+        message.command === "CLEARCHAT"
+    ) {
+        const userId =
+            message.tags["target-user-id"];
+
+        if (userId) {
+            handleTwitchIRCClearUserMessages(userId);
+        } else {
+            handleTwitchIRCClearChat();
+        }
+    }
+}
+
+function handleTwitchIRCClearUserMessages(userId) {
+    if (!userId) {
+        return;
+    }
+
+    const elements =
+        userMessageElements.get(
+            String(userId)
+        );
+
+    if (!elements) {
+        return;
+    }
+
+    for (const element of elements) {
+        const messageId =
+            element.dataset.messageId;
+
+        element.remove();
+
+        if (messageId) {
+            messageElements.delete(
+                messageId
+            );
+        }
+    }
+
+    userMessageElements.delete(
+        String(userId)
+    );
+}
+
+function handleTwitchIRCClearChat() {
+    const chat =
+        document.getElementById("chat");
+
+    if (chat) {
+        chat.innerHTML = "";
+    }
+
+    messageElements.clear();
+    userMessageElements.clear();
+}
+
+function handleTwitchIRCPrivmsg(message) {
+    const tags =
+        message.tags || {};
+
+    const prefixUser =
+        message.prefix
+            ? message.prefix.split("!")[0]
+            : "";
+
+    const username =
+        tags["display-name"] ||
+        prefixUser ||
+        tags["login"] ||
+        "Unknown";
+
+    const userId =
+        tags["user-id"] ||
+        null;
+
+    const usernameColor =
+        getTwitchDisplayColor(
+            tags.color,
+            tags.login ||
+                prefixUser
+        );
+
+    const messageId =
+        tags.id ||
+        null;
+
+    const rawText =
+        message.trailing || "";
+
+    const actionMatch =
+        rawText.match(
+            /^\x01?ACTION /
+        );
+
+    const isAction =
+        Boolean(actionMatch);
+
+    let emotes =
+        tags.emotes || "";
+
+    if (
+        isAction &&
+        emotes
+    ) {
+        const actionPrefixLength =
+            actionMatch[0].length;
+
+        emotes =
+            emotes
+                .split("/")
+                .map(group => {
+                    const separator =
+                        group.indexOf(":");
+
+                    if (separator === -1) {
+                        return group;
+                    }
+
+                    const id =
+                        group.substring(
+                            0,
+                            separator
+                        );
+
+                    const ranges =
+                        group.substring(
+                            separator + 1
+                        )
+                            .split(",")
+                            .map(range => {
+                                const dash =
+                                    range.indexOf("-");
+
+                                if (dash === -1) {
+                                    return range;
+                                }
+
+                                const start =
+                                    Number(
+                                        range.substring(
+                                            0,
+                                            dash
+                                        )
+                                    );
+
+                                const end =
+                                    Number(
+                                        range.substring(
+                                            dash + 1
+                                        )
+                                    );
+
+                                if (
+                                    Number.isNaN(start) ||
+                                    Number.isNaN(end)
+                                ) {
+                                    return range;
+                                }
+
+                                return (
+                                    `${start - actionPrefixLength}` +
+                                    `-${end - actionPrefixLength}`
+                                );
+                            })
+                            .join(",");
+
+                    return `${id}:${ranges}`;
+                })
+                .join("/");
+    }
+
+    const ircTags = {
+        ...tags,
+        emotes:
+            emotes,
+        badges:
+            tags.badges || "",
+        "display-name":
+            username,
+        "user-id":
+            userId,
+        "is-action":
+            isAction,
+        "custom-reward-id":
+            tags["custom-reward-id"] ||
+            "",
+        "reply-parent-msg-id":
+            tags["reply-parent-msg-id"] ||
+            "",
+        "reply-parent-user-id":
+            tags["reply-parent-user-id"] ||
+            "",
+        "reply-parent-user-login":
+            tags["reply-parent-user-login"] ||
+            "",
+        "reply-parent-display-name":
+            tags["reply-parent-display-name"] ||
+            "",
+        "reply-parent-msg-body":
+            tags["reply-parent-msg-body"] ||
+            ""
+    };
+
+    twitchBadgesReadyPromise
+        .catch(() => {})
+        .then(() => {
+            try {
+                onMsg(
+                    username,
+                    rawText,
+                    usernameColor,
+                    userId,
+                    ircTags,
+                    null,
+                    messageId
+                );
+            } catch (error) {
+                console.error(
+                    "Twitch IRC message rendering error:",
+                    error
+                );
+            }
+        });
+}
+
+function handleTwitchIRCClearMessage(
+    messageId
+) {
+    if (!messageId) {
+        return;
+    }
+
+    const element =
+        messageElements.get(
+            messageId
+        );
+
+    if (element) {
+        element.remove();
+        messageElements.delete(
+            messageId
+        );
+    }
+}
 function addGlobalStyle() {
     if (
         document.getElementById(
@@ -7762,586 +8334,62 @@ function addGlobalStyle() {
     );
 }
 
-function createEventSubSocket(url = null) {
-    const socketUrl =
-        url ||
-        "wss://eventsub.wss.twitch.tv/ws";
 
-    console.log(
-        "Connecting to Twitch EventSub:",
-        socketUrl
-    );
 
-    const socket =
-        new WebSocket(socketUrl);
 
-    eventSubSocket =
-        socket;
 
-    socket.onopen =
-        function() {
-            console.log(
-                "Connected to Twitch EventSub WebSocket."
-            );
-        };
 
 
-    socket.onmessage =
-        async function(event) {
-            try {
-                const data =
-                    JSON.parse(event.data);
 
-                await handleEventSubMessage(
-                    data
-                );
 
-            } catch (error) {
-                console.error(
-                    "EventSub message error:",
-                    error
-                );
-            }
-        };
 
 
-    socket.onerror =
-        function(error) {
-            console.error(
-                "Twitch EventSub WebSocket error:",
-                error
-            );
-        };
 
 
-    socket.onclose =
-        function(event) {
-            console.log(
-                "Twitch EventSub WebSocket closed:",
-                event.code,
-                event.reason
-            );
 
-            eventSubSocket =
-                null;
 
-            eventSubSessionId =
-                null;
 
-            if (
-                eventSubReconnectUrl
-            ) {
-                const reconnectUrl =
-                    eventSubReconnectUrl;
 
-                eventSubReconnectUrl =
-                    null;
 
-                clearTimeout(
-                    eventSubReconnectTimer
-                );
 
-                eventSubReconnectTimer =
-                    setTimeout(
-                        () => {
-                            createEventSubSocket(
-                                reconnectUrl
-                            );
-                        },
-                        100
-                    );
 
-                return;
-            }
 
-            clearTimeout(
-                eventSubReconnectTimer
-            );
-
-            eventSubReconnectTimer =
-                setTimeout(
-                    () => {
-                        if (
-                            accessToken &&
-                            !eventSubSocket
-                        ) {
-                            createEventSubSocket();
-                        }
-                    },
-                    3000
-                );
-        };
-
-    return socket;
-}
-
-
-async function handleEventSubMessage(data) {
-    const messageType =
-        data?.metadata?.message_type;
-
-    if (!messageType) {
-        return;
-    }
-
-    if (
-        messageType ===
-        "session_welcome"
-    ) {
-        const session =
-            data.payload?.session;
-
-        if (!session?.id) {
-            console.error(
-                "EventSub welcome did not contain a session ID."
-            );
-
-            return;
-        }
-
-        eventSubSessionId =
-            session.id;
-
-        console.log(
-            "EventSub session:",
-            eventSubSessionId
-        );
-
-        await subscribeToChat();
-
-        return;
-    }
-
-    if (
-        messageType ===
-        "session_reconnect"
-    ) {
-        eventSubReconnectUrl =
-            data.payload?.session?.reconnect_url ||
-            null;
-
-        console.log(
-            "Twitch requested EventSub reconnect:",
-            eventSubReconnectUrl
-        );
-
-        if (eventSubSocket) {
-            eventSubSocket.close();
-        }
-
-        return;
-    }
-
-    if (
-        messageType ===
-        "session_keepalive"
-    ) {
-        return;
-    }
-
-    if (
-        messageType ===
-        "notification"
-    ) {
-        const subscription =
-            data.payload?.subscription;
-
-        const event =
-            data.payload?.event;
-
-        if (
-            subscription?.type ===
-            "channel.chat.message"
-        ) {
-            handleEventSubChatMessage(
-                event
-            );
-        }
-
-        if (
-            subscription?.type ===
-            "channel.chat.message_delete"
-        ) {
-            handleEventSubMessageDelete(
-                event
-            );
-        }
-
-        if (
-            subscription?.type ===
-            "channel.chat.clear_user_messages"
-        ) {
-            handleEventSubClearUserMessages(
-                event
-            );
-        }
-
-        if (
-            subscription?.type ===
-            "channel.chat.clear"
-        ) {
-            handleEventSubClearChat();
-        }
-
-        return;
-    }
-}
-
-function handleEventSubMessageDelete(event) {
-    if (!event) return;
-
-    const messageId = event.message_id;
-
-    if (!messageId) {
-        return;
-    }
-
-    const element = messageElements.get(messageId);
-
-    if (element) {
-        element.remove();
-        messageElements.delete(messageId);
-    }
-}
-
-async function subscribeToChat() {
-    if (
-        !eventSubSessionId ||
-        !accessToken
-    ) {
-        return;
-    }
-
-    if (
-        !authenticatedUserId
-    ) {
-        console.error(
-            "Cannot subscribe to chat: authenticated user ID is missing."
-        );
-
-        return;
-    }
-
-    const condition = {
-        broadcaster_user_id:
-            String(TWITCH_USER_ID),
-
-        user_id:
-            String(authenticatedUserId)
-    };
-
-    const transport = {
-        method:
-            "websocket",
-
-        session_id:
-            eventSubSessionId
-    };
-
-    const subscriptions = [
-        {
-            type: "channel.chat.message",
-            version: "1",
-            condition,
-            transport
-        },
-        {
-            type: "channel.chat.message_delete",
-            version: "1",
-            condition,
-            transport
-        },
-        {
-            type: "channel.chat.clear_user_messages",
-            version: "1",
-            condition,
-            transport
-        },
-        {
-            type: "channel.chat.clear",
-            version: "1",
-            condition,
-            transport
-        }
-    ];
-
-    for (const body of subscriptions) {
-        try {
-            const response =
-                await fetch(
-                    "https://api.twitch.tv/helix/eventsub/subscriptions",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Client-ID": TWITCH_CLIENT_ID,
-                            "Authorization": `Bearer ${accessToken}`,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(body)
-                    }
-                );
-
-            const responseText =
-                await response.text();
-
-            if (!response.ok) {
-                console.error(
-                    "EventSub subscription failed:",
-                    body.type,
-                    response.status,
-                    responseText
-                );
-
-                continue;
-            }
-
-            console.log(
-                "EventSub subscription created:",
-                body.type
-            );
-
-        } catch (error) {
-            console.error(
-                "EventSub subscription request error:",
-                body.type,
-                error
-            );
-        }
-    }
-}
-
-function handleEventSubClearUserMessages(event) {
-    if (!event) return;
-
-    const userId = event.target_user_id;
-
-    if (!userId) {
-        return;
-    }
-
-    const elements = userMessageElements.get(userId);
-
-    if (!elements) {
-        return;
-    }
-
-    for (const element of elements) {
-        const messageId = element.dataset.messageId;
-
-        element.remove();
-
-        if (messageId) {
-            messageElements.delete(messageId);
-        }
-    }
-
-    userMessageElements.delete(userId);
-}
-
-function handleEventSubClearChat() {
-    const chat = document.getElementById("chat");
-
-    if (chat) {
-        chat.innerHTML = "";
-    }
-
-    messageElements.clear();
-    userMessageElements.clear();
-}
-
-function handleEventSubChatMessage(event) {
-    if (!event) return;
-
-    const username = event.chatter_user_name || event.chatter_user_login || "Unknown";
-    const userId = event.chatter_user_id || null;
-    const usernameColor = getTwitchDisplayColor(event.color, event.chatter_user_login);
-    const messageId = event.message_id || null;
-
-    const rawText = event.message?.text || "";
-    const actionMatch = rawText.match(/^\x01?ACTION /);
-    const isAction = Boolean(actionMatch);
-    const actionPrefixLength = actionMatch ? actionMatch[0].length : 0;
-
-    const emoteRanges = convertEventSubEmotes(
-        event.message?.fragments,
-        rawText,
-        actionPrefixLength
-    );
-
-    const badges = convertEventSubBadges(event.badges);
-
-    const tags = {
-        badges,
-        emotes: emoteRanges,
-        color: event.color || "",
-        "user-id": userId,
-        "display-name": username,
-        "is-action": isAction,
-        "custom-reward-id": event.channel_points_custom_reward_id || "",
-        "reply-parent-msg-id": event.reply?.parent_message_id || "",
-        "reply-parent-user-id": event.reply?.parent_user_id || "",
-        "reply-parent-user-login": event.reply?.parent_user_login || "",
-        "reply-parent-display-name": event.reply?.parent_user_name || "",
-        "reply-parent-msg-body": event.reply?.parent_message_body || ""
-    };
-
-    try {
-        onMsg(username, rawText, usernameColor, userId, tags, null, messageId);
-    } catch (error) {
-        console.error("Message rendering error:", error, { username, rawText });
-    }
-}
-
-
-function convertEventSubBadges(
-    badges
-) {
-    if (
-        !Array.isArray(
-            badges
-        )
-    ) {
-        return "";
-    }
-
-
-    return badges
-        .map(badge => {
-            const setId =
-                badge?.set_id;
-
-            const version =
-                badge?.id;
-
-            if (
-                !setId ||
-                !version
-            ) {
-                return null;
-            }
-
-            return (
-                `${setId}/${version}`
-            );
-        })
-        .filter(Boolean)
-        .join(",");
-}
-
-
-function convertEventSubEmotes(fragments, text, offset = 0) {
-    if (!Array.isArray(fragments) || !text) {
-        return "";
-    }
-
-    const ranges = [];
-    let cursor = 0;
-
-    for (const fragment of fragments) {
-        const fragmentText = fragment?.text || "";
-
-        if (!fragmentText) {
-            continue;
-        }
-
-        const start = text.indexOf(fragmentText, cursor);
-
-        if (start === -1) {
-            continue;
-        }
-
-        const end = start + fragmentText.length - 1;
-
-        if (fragment.type === "emote") {
-            const emoteId = fragment.emote?.id;
-
-            if (emoteId) {
-                ranges.push({
-                    id: String(emoteId),
-                    start: start - offset,
-                    end: end - offset
-                });
-            }
-        }
-
-        cursor = start + fragmentText.length;
-    }
-
-    if (!ranges.length) {
-        return "";
-    }
-
-    const grouped = new Map();
-
-    for (const range of ranges) {
-        if (!grouped.has(range.id)) {
-            grouped.set(range.id, []);
-        }
-
-        grouped
-            .get(range.id)
-            .push(`${range.start}-${range.end}`);
-    }
-
-    return Array.from(grouped.entries())
-        .map(([id, rangesForId]) => `${id}:${rangesForId.join(",")}`)
-        .join("/");
-}
 
 addGlobalStyle();
 
 async function startOverlay() {
     addGlobalStyle();
 
+    if (legacySerializedRedirecting) {
+        return;
+    }
+
     if (!selectedChannel) {
-        loadSavedTwitchAuth();
-        showTwitchLoginScreen();
+        showOverlaySetupScreen();
         return;
     }
 
-    const authenticated = await ensureTwitchAuth();
+    CHANNEL = selectedChannel;
+    hideOverlaySetupScreen();
 
-    if (!authenticated) {
-        console.log("Twitch authentication required.");
+    try {
+        await createTwitchIRCSocket();
+    } catch (error) {
+        console.error(
+            "Anonymous Twitch IRC startup error:",
+            error
+        );
         return;
     }
-
-    const channelResolved = await resolveOverlayChannel();
-
-    if (!channelResolved) {
-        return;
-    }
-
-    hideTwitchLoginScreen();
 
     await runLoadingTasks(LOADING_TASKS);
 
     console.log("Chat emotes and badge data loaded.");
     console.log("Overlay channel:", CHANNEL);
     console.log("Overlay channel ID:", TWITCH_USER_ID);
-    console.log("Authenticated reader:", authenticatedUsername);
-
-    createEventSubSocket();
-
-    setInterval(
-        async () => {
-            if (!accessToken) {
-                return;
-            }
-
-            const valid = await validateTwitchToken();
-
-            if (!valid) {
-                if (eventSubSocket) {
-                    eventSubSocket.close();
-                }
-
-                showTwitchLoginScreen();
-            }
-        },
-        5 * 60 * 1000
-    );
+    console.log("Twitch reader: anonymous IRC");
 }
+
 startOverlay()
     .catch(error => {
         console.error(
