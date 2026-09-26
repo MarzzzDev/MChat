@@ -1733,6 +1733,10 @@ const PREVIEW_TWITCH_BADGES = {
         title: "pikachu",
         url: "https://static-cdn.jtvnw.net/badges/v1/20f214cf-36b0-4b42-8992-3b769bcb0461/3"
     },
+    "noob/1": {
+        title: "Noob",
+        url: "https://static-cdn.jtvnw.net/badges/v1/d87a78f5-76d9-451f-8f31-752a369e6045/3"
+    },
 };
 
 function seedPreviewTwitchBadges() {
@@ -1770,6 +1774,13 @@ const previewMessages = [
         "#DAA520",
         "195845559",
         { badges: "moderator/1,subscriber/1,pikachu/1" }
+    ],
+    [
+        "Underpaid_Actor",
+        "PagMan ffzSpin",
+        "#FF69B4",
+        "406239629",
+        { badges: "founder/1,noob/1" }
     ]
 ];
 
