@@ -1022,8 +1022,23 @@ function normaliseOverlaySettings(settings = {}) {
 
     result.scale =
         Math.max(
-            0.25,
-            Math.min(result.scale, 3)
+            0,
+            Math.min(result.scale, 10)
+        );
+
+    result.emoteScale =
+        Number(
+            settings.emoteScale ?? 1
+        );
+
+    if (!Number.isFinite(result.emoteScale)) {
+        result.emoteScale = 1;
+    }
+
+    result.emoteScale =
+        Math.max(
+            0,
+            Math.min(result.emoteScale, 10)
         );
 
     result.wrap =
@@ -1123,6 +1138,10 @@ function appendFlatOverlaySettings(
         [
             "scale",
             String(normalised.scale)
+        ],
+        [
+            "emoteScale",
+            String(normalised.emoteScale)
         ],
         [
             "font",
@@ -1304,13 +1323,33 @@ if (!Number.isFinite(scale)) {
 
 scale =
     Math.max(
-        0.25,
-        Math.min(scale, 3)
+        0,
+        Math.min(scale, 10)
+    );
+
+let emoteScale =
+    Number(
+        params.get("emoteScale") ?? 1
+    );
+
+if (!Number.isFinite(emoteScale)) {
+    emoteScale = 1;
+}
+
+emoteScale =
+    Math.max(
+        0,
+        Math.min(emoteScale, 10)
     );
 
 document.documentElement.style.setProperty(
     "--chat-scale",
     scale
+);
+
+document.documentElement.style.setProperty(
+    "--emote-scale",
+    emoteScale
 );
 
 function hexToRgbaString(hex, alpha) {
@@ -1738,6 +1777,8 @@ function runPreviewMessage() {
 
 
 function showOverlaySetupScreen() {
+    ensureEmoteScaleStyle();
+
     let screen = document.getElementById("overlay-setup-screen");
 
     if (screen) {
@@ -2199,6 +2240,25 @@ function showOverlaySetupScreen() {
             grid-template-columns: minmax(0, 1fr) 72px;
             gap: 10px;
             align-items: center;
+        }
+
+        #overlay-setup-screen .mc-range {
+            width: 100%;
+            min-width: 0;
+            height: 20px;
+            padding: 0;
+            margin: 0;
+            accent-color: #e8d58a;
+            cursor: pointer;
+        }
+
+        #overlay-setup-screen .mc-range-value {
+            min-width: 62px;
+            color: #b9b9c1;
+            font-size: 9px;
+            font-weight: 800;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
         }
 
         #overlay-setup-screen .mc-unit {
@@ -2869,14 +2929,54 @@ function showOverlaySetupScreen() {
     typographyPanel.appendChild(typographyNote);
 
     const textScaleInput = document.createElement("input");
-    textScaleInput.type = "number";
-    textScaleInput.className = "mc-input";
-    textScaleInput.min = "0.25";
-    textScaleInput.max = "3";
-    textScaleInput.step = "0.05";
+    textScaleInput.type = "range";
+    textScaleInput.className = "mc-range";
+    textScaleInput.min = "0";
+    textScaleInput.max = "10";
+    textScaleInput.step = "0.01";
     textScaleInput.value = String(scale);
 
-    addField(typographyPanel, "Text scale", textScaleInput);
+    const textScaleValue = document.createElement("span");
+    textScaleValue.className = "mc-range-value";
+    textScaleValue.textContent =
+        `${Number(scale).toFixed(2)}x`;
+
+    const textScaleLine =
+        document.createElement("div");
+    textScaleLine.className = "mc-range-line";
+    textScaleLine.appendChild(textScaleInput);
+    textScaleLine.appendChild(textScaleValue);
+
+    addField(
+        typographyPanel,
+        "Text scale",
+        textScaleLine
+    );
+
+    const emoteScaleInput = document.createElement("input");
+    emoteScaleInput.type = "range";
+    emoteScaleInput.className = "mc-range";
+    emoteScaleInput.min = "0";
+    emoteScaleInput.max = "10";
+    emoteScaleInput.step = "0.01";
+    emoteScaleInput.value = String(emoteScale);
+
+    const emoteScaleValue = document.createElement("span");
+    emoteScaleValue.className = "mc-range-value";
+    emoteScaleValue.textContent =
+        `${Number(emoteScale).toFixed(2)}x`;
+
+    const emoteScaleLine =
+        document.createElement("div");
+    emoteScaleLine.className = "mc-range-line";
+    emoteScaleLine.appendChild(emoteScaleInput);
+    emoteScaleLine.appendChild(emoteScaleValue);
+
+    addField(
+        typographyPanel,
+        "Emote scale",
+        emoteScaleLine
+    );
 
     const timingPanel = createPanel("timing", "Timing", "Tune message lifetime and fading behavior.", "04");
 
@@ -2999,8 +3099,47 @@ function showOverlaySetupScreen() {
         if (!Number.isFinite(newScale)) {
             return;
         }
-        scale = Math.max(0.25, Math.min(newScale, 3));
-        document.documentElement.style.setProperty("--chat-scale", scale);
+        scale =
+            Math.max(
+                0,
+                Math.min(newScale, 10)
+            );
+
+        textScaleValue.textContent =
+            `${Number(scale).toFixed(2)}x`;
+
+        document.documentElement.style.setProperty(
+            "--chat-scale",
+            scale
+        );
+    });
+
+    emoteScaleInput.addEventListener("input", () => {
+        const newEmoteScale =
+            Number(
+                emoteScaleInput.value
+            );
+
+        if (!Number.isFinite(newEmoteScale)) {
+            return;
+        }
+
+        emoteScale =
+            Math.max(
+                0,
+                Math.min(
+                    newEmoteScale,
+                    10
+                )
+            );
+
+        emoteScaleValue.textContent =
+            `${Number(emoteScale).toFixed(2)}x`;
+
+        document.documentElement.style.setProperty(
+            "--emote-scale",
+            emoteScale
+        );
     });
 
     channelInput.addEventListener("input", () => {
@@ -3063,6 +3202,17 @@ function showOverlaySetupScreen() {
                     Math.min(
                         Number(
                             textScaleInput.value
+                        ) || 1,
+                        3
+                    )
+                ),
+
+            emoteScale:
+                Math.max(
+                    0.25,
+                    Math.min(
+                        Number(
+                            emoteScaleInput.value
                         ) || 1,
                         3
                     )
@@ -7767,6 +7917,47 @@ function handleTwitchIRCClearMessage(
         );
     }
 }
+function ensureEmoteScaleStyle() {
+    let style =
+        document.getElementById(
+            "emote-scale-style"
+        );
+
+    if (!style) {
+        style =
+            document.createElement(
+                "style"
+            );
+
+        style.id =
+            "emote-scale-style";
+
+        style.textContent = `
+            .emote:not(.seven-tv-zero-width),
+            .twemoji {
+                height:
+                    calc(
+                        65px *
+                        var(--emote-scale, 1)
+                    ) !important;
+
+                width:
+                    auto !important;
+            }
+        `;
+
+        (
+            document.head ||
+            document.documentElement
+        ).appendChild(style);
+    }
+
+    document.documentElement.style.setProperty(
+        "--emote-scale",
+        Number(emoteScale) || 1
+    );
+}
+
 function addGlobalStyle() {
     if (
         document.getElementById(
@@ -8358,6 +8549,7 @@ function addGlobalStyle() {
 addGlobalStyle();
 
 async function startOverlay() {
+    ensureEmoteScaleStyle();
     addGlobalStyle();
 
     if (legacySerializedRedirecting) {
