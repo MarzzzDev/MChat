@@ -7250,7 +7250,7 @@ function parseIRCtags(raw) {
 
 
 function getAnonymousIRCNick() {
-    return `skibidifan5342${Math.floor(10000 + Math.random() * 90000)}`;
+    return `justinfan${Math.floor(10000 + Math.random() * 90000)}`;
 }
 
 function createTwitchIRCSocket() {
