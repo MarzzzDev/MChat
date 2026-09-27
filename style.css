@@ -239,9 +239,6 @@ body.has-background .message.redeem-message:hover {
         scaleY(var(--ffz-scale-y, 1));
 }
 
-.emote:hover {
-    transform: scale(1.08);
-}
 
 .external-badges {
     margin-left: 2px;
@@ -260,10 +257,6 @@ body.has-background .message.redeem-message:hover {
     word-break: break-word;
 }
 
-.message:hover {
-    border-left: none;
-    box-shadow: none;
-}
 
 body.has-background .message:hover {
     box-shadow:

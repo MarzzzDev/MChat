@@ -1025,8 +1025,8 @@ function normaliseOverlaySettings(settings = {}) {
 
     result.scale =
         Math.max(
-            0.25,
-            Math.min(result.scale, 3)
+            0.01,
+            Math.min(result.scale, 10)
         );
 
     result.emoteScale =
@@ -1040,8 +1040,8 @@ function normaliseOverlaySettings(settings = {}) {
 
     result.emoteScale =
         Math.max(
-            0.25,
-            Math.min(result.emoteScale, 3)
+            0.01,
+            Math.min(result.emoteScale, 10)
         );
 
     result.wrap =
@@ -1125,11 +1125,6 @@ function appendFlatOverlaySettings(
             settings
         );
 
-    /*
-     * Keep generated links human-readable.
-     * Do not use URLSearchParams here: it percent-encodes spaces,
-     * commas and the "#" in CSS colors.
-     */
     const query = [
         [
             "channel",
@@ -1336,8 +1331,8 @@ if (!Number.isFinite(scale)) {
 
 scale =
     Math.max(
-        0.25,
-        Math.min(scale, 3)
+        0.01,
+        Math.min(scale, 10)
     );
 
 let emoteScale =
@@ -1351,8 +1346,8 @@ if (!Number.isFinite(emoteScale)) {
 
 emoteScale =
     Math.max(
-        0.25,
-        Math.min(emoteScale, 3)
+        0.01,
+        Math.min(emoteScale, 10)
     );
 
 document.documentElement.style.setProperty(
@@ -1733,10 +1728,6 @@ const PREVIEW_TWITCH_BADGES = {
         title: "pikachu",
         url: "https://static-cdn.jtvnw.net/badges/v1/20f214cf-36b0-4b42-8992-3b769bcb0461/3"
     },
-    "noob/1": {
-        title: "Noob",
-        url: "https://static-cdn.jtvnw.net/badges/v1/d87a78f5-76d9-451f-8f31-752a369e6045/3"
-    },
 };
 
 function seedPreviewTwitchBadges() {
@@ -1774,13 +1765,6 @@ const previewMessages = [
         "#DAA520",
         "195845559",
         { badges: "moderator/1,subscriber/1,pikachu/1" }
-    ],
-    [
-        "Underpaid_Actor",
-        "PagMan ffzSpin",
-        "#FF69B4",
-        "406239629",
-        { badges: "founder/1,noob/1" }
     ]
 ];
 
@@ -1843,7 +1827,6 @@ function showOverlaySetupScreen() {
             overflow: hidden;
         }
 
-        /* Keep the 125% setup surface pinned to the viewport instead of exposing body edges. */
         html:has(#overlay-setup-screen),
         body:has(#overlay-setup-screen) {
             scrollbar-width: none;
@@ -2071,6 +2054,136 @@ function showOverlaySetupScreen() {
             scrollbar-color: #34343c transparent;
         }
 
+        #overlay-setup-screen .mc-setup-footer {
+            flex: 0 0 auto;
+            padding: 11px 14px 12px;
+            border-top: 1px solid #27272d;
+            background: #0c0c0f;
+        }
+
+        #overlay-setup-screen .mc-feedback {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-height: 40px;
+            padding: 7px 9px;
+            margin-bottom: 10px;
+            border: 1px solid #25252c;
+            border-radius: 7px;
+            background: #111116;
+            color: #777781;
+            font-size: 9px;
+            line-height: 1.35;
+        }
+
+        #overlay-setup-screen .mc-discord-icon {
+            width: 23px;
+            height: 23px;
+            flex: 0 0 23px;
+            display: grid;
+            place-items: center;
+            border-radius: 6px;
+            background: #25252e;
+            color: #d7d7df;
+        }
+
+        #overlay-setup-screen .mc-discord-icon svg {
+            width: 15px;
+            height: 15px;
+            display: block;
+        }
+
+        #overlay-setup-screen .mc-feedback-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        #overlay-setup-screen .mc-feedback-label {
+            color: #686872;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        #overlay-setup-screen .mc-feedback-link {
+            color: #d4d4db;
+            font-size: 9px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        #overlay-setup-screen .mc-feedback-link:hover {
+            color: #fff;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        #overlay-setup-screen .mc-feedback-note {
+            color: #55555f;
+            font-size: 8px;
+        }
+
+        #overlay-setup-screen .mc-attribution {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            color: #666670;
+            font-size: 8px;
+            line-height: 1.4;
+        }
+
+        #overlay-setup-screen .mc-attribution-brand {
+            color: #a3a3ac;
+            font-weight: 700;
+        }
+
+        #overlay-setup-screen .mc-attribution-separator {
+            color: #3f3f47;
+        }
+
+        #overlay-setup-screen .mc-attribution-disclaimer {
+            color: #4f4f58;
+        }
+
+        #overlay-setup-screen .mc-help-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        #overlay-setup-screen .mc-help-item {
+            position: relative;
+            margin-bottom: 7px;
+            padding: 9px 10px 9px 24px;
+            border: 1px solid #25252b;
+            border-radius: 5px;
+            background: #121216;
+            color: #c7c7ce;
+            font-size: 10px;
+            line-height: 1.45;
+        }
+
+        #overlay-setup-screen .mc-help-item::before {
+            content: "•";
+            position: absolute;
+            left: 10px;
+            top: 8px;
+            color: #e8d58a;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        #overlay-setup-screen .mc-help-note {
+            margin-top: 11px;
+            color: #62626b;
+            font-size: 8px;
+            line-height: 1.5;
+        }
+
         #overlay-setup-screen .mc-panel {
             display: none;
         }
@@ -2269,6 +2382,78 @@ function showOverlaySetupScreen() {
         #overlay-setup-screen .mc-unit {
             color: #65656e;
             font-size: 8px;
+        }
+
+        #overlay-setup-screen .mc-slider-line {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 56px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #overlay-setup-screen .mc-slider-value {
+            color: #d5d5db;
+            font-size: 10px;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        #overlay-setup-screen .mc-range {
+            width: 100%;
+            height: 34px;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        #overlay-setup-screen .mc-range:focus {
+            outline: none;
+        }
+
+        #overlay-setup-screen .mc-range::-webkit-slider-runnable-track {
+            height: 4px;
+            border-radius: 999px;
+            background: #2a2a31;
+        }
+
+        #overlay-setup-screen .mc-range::-moz-range-track {
+            height: 4px;
+            border-radius: 999px;
+            background: #2a2a31;
+        }
+
+        #overlay-setup-screen .mc-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            margin-top: -6px;
+            border-radius: 50%;
+            background: #e8d58a;
+            border: 2px solid #0a0a0d;
+            box-shadow: 0 0 0 1px #45454f;
+            transition: transform .12s ease;
+        }
+
+        #overlay-setup-screen .mc-range::-webkit-slider-thumb:hover {
+            transform: scale(1.12);
+        }
+
+        #overlay-setup-screen .mc-range::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #e8d58a;
+            border: 2px solid #0a0a0d;
+            box-shadow: 0 0 0 1px #45454f;
+            transition: transform .12s ease;
+        }
+
+        #overlay-setup-screen .mc-range::-moz-range-thumb:hover {
+            transform: scale(1.12);
         }
 
         #overlay-setup-screen .mc-actions {
@@ -2545,7 +2730,7 @@ function showOverlaySetupScreen() {
 
             #overlay-setup-screen .mc-nav {
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(5, 1fr);
             }
 
             #overlay-setup-screen .mc-nav-button {
@@ -2686,6 +2871,64 @@ function showOverlaySetupScreen() {
 
     controls.appendChild(controlsHead);
     controls.appendChild(panelStack);
+
+    const setupFooter = document.createElement("div");
+    setupFooter.className = "mc-setup-footer";
+
+    const feedback = document.createElement("div");
+    feedback.className = "mc-feedback";
+
+    const discordIcon = document.createElement("span");
+    discordIcon.className = "mc-discord-icon";
+    discordIcon.setAttribute("aria-hidden", "true");
+    discordIcon.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18.93 5.45A16.2 16.2 0 0 0 14.9 4.2l-.5 1.03a14.5 14.5 0 0 0-4.8 0L9.1 4.2a16.2 16.2 0 0 0-4.03 1.25C2.52 9.15 1.83 12.97 2.18 16.74a16.4 16.4 0 0 0 4.95 2.5l1.2-1.65c-.66-.24-1.28-.54-1.87-.9l.46-.36c3.62 1.7 7.56 1.7 11.14 0 .15.12.3.25.46.36-.6.36-1.22.66-1.88.9l1.2 1.65a16.4 16.4 0 0 0 4.95-2.5c.42-4.37-.72-8.15-3.86-11.29ZM8.48 15.3c-1.08 0-1.96-1-1.96-2.23 0-1.24.86-2.24 1.96-2.24s1.98 1 1.96 2.24c0 1.23-.87 2.23-1.96 2.23Zm7.04 0c-1.08 0-1.96-1-1.96-2.23 0-1.24.86-2.24 1.96-2.24s1.98 1 1.96 2.24c0 1.23-.87 2.23-1.96 2.23Z" fill="currentColor"/>
+        </svg>
+    `;
+
+    const feedbackCopy = document.createElement("div");
+    feedbackCopy.className = "mc-feedback-copy";
+
+    const feedbackLabel = document.createElement("div");
+    feedbackLabel.className = "mc-feedback-label";
+    feedbackLabel.textContent = "Feedback & support";
+
+    const feedbackLink = document.createElement("a");
+    feedbackLink.className = "mc-feedback-link";
+    feedbackLink.href = "https://discord.com/users/1422977056085639309";
+    feedbackLink.target = "_blank";
+    feedbackLink.rel = "noopener noreferrer";
+    feedbackLink.textContent = "Add me on Discord for fast answers";
+
+
+    feedbackCopy.appendChild(feedbackLabel);
+    feedbackCopy.appendChild(feedbackLink);
+    feedback.appendChild(discordIcon);
+    feedback.appendChild(feedbackCopy);
+
+    const attribution = document.createElement("div");
+    attribution.className = "mc-attribution";
+
+    const attributionBrand = document.createElement("span");
+    attributionBrand.className = "mc-attribution-brand";
+    attributionBrand.textContent = "MChat · made with 🤍 by marz_dev";
+
+    const attributionSeparator = document.createElement("span");
+    attributionSeparator.className = "mc-attribution-separator";
+    attributionSeparator.textContent = "•";
+
+    const attributionDisclaimer = document.createElement("span");
+    attributionDisclaimer.className = "mc-attribution-disclaimer";
+    attributionDisclaimer.textContent = "Not affiliated with Twitch";
+
+    attribution.appendChild(attributionBrand);
+    attribution.appendChild(attributionSeparator);
+    attribution.appendChild(attributionDisclaimer);
+
+    setupFooter.appendChild(feedback);
+    setupFooter.appendChild(attribution);
+    controls.appendChild(setupFooter);
 
     const stage = document.createElement("section");
     stage.className = "mc-stage";
@@ -2855,7 +3098,7 @@ function showOverlaySetupScreen() {
         return checkbox;
     }
 
-    const connectionPanel = createPanel("connection", "Connection", "Choose the channel!", "01");
+    const connectionPanel = createPanel("connection", "Connection", "Choose the Twitch channel this overlay should read from anonymously.", "01");
 
     const channelInput = document.createElement("input");
     channelInput.type = "text";
@@ -2935,30 +3178,79 @@ function showOverlaySetupScreen() {
     typographyPanel.appendChild(typographyNote);
 
     const textScaleInput = document.createElement("input");
-    textScaleInput.type = "number";
-    textScaleInput.className = "mc-input";
-    textScaleInput.min = "0.25";
-    textScaleInput.max = "3";
-    textScaleInput.step = "0.05";
+    textScaleInput.type = "range";
+    textScaleInput.className = "mc-range";
+    textScaleInput.min = "0.01";
+    textScaleInput.max = "10";
+    textScaleInput.step = "0.01";
     textScaleInput.value = String(scale);
 
-    addField(typographyPanel, "Text scale", textScaleInput);
+    const textScaleValue = document.createElement("span");
+    textScaleValue.className = "mc-slider-value";
+    textScaleValue.textContent = Number(scale).toFixed(2);
+
+    const textScaleLine = document.createElement("div");
+    textScaleLine.className = "mc-slider-line";
+    textScaleLine.appendChild(textScaleInput);
+    textScaleLine.appendChild(textScaleValue);
+
+    addField(typographyPanel, "Text scale", textScaleLine);
 
     const emoteScaleInput = document.createElement("input");
-    emoteScaleInput.type = "number";
-    emoteScaleInput.className = "mc-input";
-    emoteScaleInput.min = "0.25";
-    emoteScaleInput.max = "3";
-    emoteScaleInput.step = "0.05";
+    emoteScaleInput.type = "range";
+    emoteScaleInput.className = "mc-range";
+    emoteScaleInput.min = "0.01";
+    emoteScaleInput.max = "10";
+    emoteScaleInput.step = "0.01";
     emoteScaleInput.value = String(emoteScale);
+
+    const emoteScaleValue = document.createElement("span");
+    emoteScaleValue.className = "mc-slider-value";
+    emoteScaleValue.textContent = Number(emoteScale).toFixed(2);
+
+    const emoteScaleLine = document.createElement("div");
+    emoteScaleLine.className = "mc-slider-line";
+    emoteScaleLine.appendChild(emoteScaleInput);
+    emoteScaleLine.appendChild(emoteScaleValue);
 
     addField(
         typographyPanel,
         "Emote scale",
-        emoteScaleInput
+        emoteScaleLine
     );
 
     const timingPanel = createPanel("timing", "Timing", "Tune message lifetime and fading behavior.", "04");
+
+    const helpPanel = createPanel("help", "Help", "Learn what MChat can do and how to use the overlay.", "05");
+
+    const helpFeatures = [
+        "MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
+        "7TV Paints, FFZ, BTTV and Twitch badges are supported.",
+        "GIFs are supported, but can be disabled for performance.",
+        "Unlisted 7TV emotes can be enabled or disabled.",
+        "You can choose from a variety of fonts for the chat.",
+        "You can scale the text and emotes independently.",
+        "You can set a fade time for messages or disable fading.",
+        "You can choose a background color or disable the background.",
+        "Once adjusted to your liking, you can copy the link.",
+    ];
+
+    const helpList = document.createElement("ul");
+    helpList.className = "mc-help-list";
+
+    for (const feature of helpFeatures) {
+        const item = document.createElement("li");
+        item.className = "mc-help-item";
+        item.textContent = feature;
+        helpList.appendChild(item);
+    }
+
+    helpPanel.appendChild(helpList);
+
+    const helpNote = document.createElement("div");
+    helpNote.className = "mc-help-note";
+    helpNote.textContent = "More features being added daily.";
+    helpPanel.appendChild(helpNote);
 
     const timingTwoCol = document.createElement("div");
     timingTwoCol.className = "mc-two-col";
@@ -3091,7 +3383,8 @@ function showOverlaySetupScreen() {
         if (!Number.isFinite(newScale)) {
             return;
         }
-        scale = Math.max(0.25, Math.min(newScale, 3));
+        scale = Math.max(0.01, Math.min(newScale, 10));
+        textScaleValue.textContent = scale.toFixed(2);
         document.documentElement.style.setProperty("--chat-scale", scale);
     });
 
@@ -3107,12 +3400,15 @@ function showOverlaySetupScreen() {
 
         emoteScale =
             Math.max(
-                0.25,
+                0.01,
                 Math.min(
                     newEmoteScale,
-                    3
+                    10
                 )
             );
+
+        emoteScaleValue.textContent =
+            emoteScale.toFixed(2);
 
         document.documentElement.style.setProperty(
             "--emote-scale",
@@ -3179,23 +3475,23 @@ function showOverlaySetupScreen() {
 
             scale:
                 Math.max(
-                    0.25,
+                    0.01,
                     Math.min(
                         Number(
                             textScaleInput.value
                         ) || 1,
-                        3
+                        10
                     )
                 ),
 
             emoteScale:
                 Math.max(
-                    0.25,
+                    0.01,
                     Math.min(
                         Number(
                             emoteScaleInput.value
                         ) || 1,
-                        3
+                        10
                     )
                 ),
 
@@ -8732,33 +9028,139 @@ function addGlobalStyle() {
         style
     );
 }
+const GITHUB_COMMIT_REPO = "marzzzdev/marz-overlay";
+const GITHUB_COMMIT_CHECK_INTERVAL_MS = 90000;
 
+let currentOverlayCommitSha = null;
+let commitCheckInterval = null;
 
+async function fetchLatestOverlayCommit() {
+    try {
+        const response = await fetch(
+            `https://api.github.com/repos/${GITHUB_COMMIT_REPO}/commits?per_page=1`,
+            { cache: "no-store" }
+        );
 
+        if (!response.ok) {
+            throw new Error(`GitHub commit check: ${response.status}`);
+        }
 
+        const data = await response.json();
+        const commit = Array.isArray(data) ? data[0] : null;
 
+        if (!commit?.sha) {
+            return null;
+        }
 
+        return {
+            sha: commit.sha,
+            message: commit.commit?.message || ""
+        };
+    } catch (error) {
+        console.warn("Overlay commit check failed:", error);
+        return null;
+    }
+}
 
+function formatOverlayCommitText(commitInfo) {
+    if (!commitInfo) {
+        return "";
+    }
 
+    const shortSha = commitInfo.sha.slice(0, 7);
+    const firstLine = commitInfo.message.split("\n")[0] || "";
+    const truncated =
+        firstLine.length > 60
+            ? `${firstLine.slice(0, 57)}...`
+            : firstLine;
 
+    return `${truncated} (${shortSha})`;
+}
 
+function showOverlayCommitIndicator(text) {
+    let indicator = document.getElementById("overlay-commit-indicator");
 
+    if (!indicator) {
+        indicator = document.createElement("div");
+        indicator.id = "overlay-commit-indicator";
 
+        indicator.style.cssText = `
+            position: fixed;
+            left: 10px;
+            bottom: 8px;
+            z-index: 999998;
 
+            max-width: 60vw;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
 
+            color: rgba(255, 255, 255, 0.35);
 
+            font-family:
+                'Open Sans',
+                Arial,
+                sans-serif;
 
+            font-size: 11px;
+            line-height: 1.3;
 
+            text-shadow:
+                0 1px 3px
+                rgba(0, 0, 0, .6);
 
+            pointer-events: none;
+        `;
 
+        document.body.appendChild(indicator);
+    }
 
+    indicator.textContent = text;
+}
 
+async function checkForNewOverlayCommit() {
+    const info = await fetchLatestOverlayCommit();
+
+    if (!info) {
+        return;
+    }
+
+    if (
+        currentOverlayCommitSha &&
+        info.sha !== currentOverlayCommitSha
+    ) {
+        console.log(
+            "New overlay commit detected, reloading:",
+            info.sha
+        );
+
+        window.location.reload();
+        return;
+    }
+
+    currentOverlayCommitSha = info.sha;
+    showOverlayCommitIndicator(
+        formatOverlayCommitText(info)
+    );
+}
+
+async function initOverlayCommitWatcher() {
+    await checkForNewOverlayCommit();
+
+    clearInterval(commitCheckInterval);
+
+    commitCheckInterval = setInterval(
+        checkForNewOverlayCommit,
+        GITHUB_COMMIT_CHECK_INTERVAL_MS
+    );
+}
 
 addGlobalStyle();
 
 async function startOverlay() {
     ensureEmoteScaleStyle();
     addGlobalStyle();
+    initOverlayCommitWatcher();
 
     if (legacySerializedRedirecting) {
         return;
