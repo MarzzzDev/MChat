@@ -21,15 +21,15 @@ const previewMessages = [
         { badges: "moderator/1,subscriber/1,pikachu/1" }
     ],
     [
-    "Muesli_Cornflake",
-    "[Seal Hey Gif by wtf]",
-    "#94FDFF",
-    "omecash",
-    {
-        badges: "vip/1,omecash/1",
-        gifs: "0-20|hey-seal|hey.gif"
-    }
-    ],
+        "Muesli_Cornflake",
+        "[Seal Hey Gif by wtf]",
+        "#94FDFF",
+        "omecash",
+        {
+            badges: "vip/1,omecash/1",
+            gifs: "0-20|hey-seal|hey.gif"
+        }
+        ],
     [
         "SkibidiDalbajobas44",
         "Fiddy ffzBounce buh_fish_",
@@ -37,7 +37,6 @@ const previewMessages = [
         "260019982",
         { badges: "moderator/1,founder/1,omecash/1" }
     ],
-,
     [
         "buh_official_",
         "lookUp FiddyWtf wtf did i do ?",
