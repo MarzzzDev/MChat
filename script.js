@@ -1025,8 +1025,8 @@ function normaliseOverlaySettings(settings = {}) {
 
     result.scale =
         Math.max(
-            0.01,
-            Math.min(result.scale, 10)
+            0.25,
+            Math.min(result.scale, 3)
         );
 
     result.emoteScale =
@@ -1040,8 +1040,8 @@ function normaliseOverlaySettings(settings = {}) {
 
     result.emoteScale =
         Math.max(
-            0.01,
-            Math.min(result.emoteScale, 10)
+            0.25,
+            Math.min(result.emoteScale, 3)
         );
 
     result.wrap =
@@ -1331,8 +1331,8 @@ if (!Number.isFinite(scale)) {
 
 scale =
     Math.max(
-        0.01,
-        Math.min(scale, 10)
+        0.25,
+        Math.min(scale, 3)
     );
 
 let emoteScale =
@@ -1346,8 +1346,8 @@ if (!Number.isFinite(emoteScale)) {
 
 emoteScale =
     Math.max(
-        0.01,
-        Math.min(emoteScale, 10)
+        0.25,
+        Math.min(emoteScale, 3)
     );
 
 document.documentElement.style.setProperty(
@@ -2384,78 +2384,6 @@ function showOverlaySetupScreen() {
             font-size: 8px;
         }
 
-        #overlay-setup-screen .mc-slider-line {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 56px;
-            gap: 10px;
-            align-items: center;
-        }
-
-        #overlay-setup-screen .mc-slider-value {
-            color: #d5d5db;
-            font-size: 10px;
-            font-weight: 700;
-            text-align: right;
-        }
-
-        #overlay-setup-screen .mc-range {
-            width: 100%;
-            height: 34px;
-            margin: 0;
-            padding: 0;
-            background: transparent;
-            -webkit-appearance: none;
-            appearance: none;
-            cursor: pointer;
-        }
-
-        #overlay-setup-screen .mc-range:focus {
-            outline: none;
-        }
-
-        #overlay-setup-screen .mc-range::-webkit-slider-runnable-track {
-            height: 4px;
-            border-radius: 999px;
-            background: #2a2a31;
-        }
-
-        #overlay-setup-screen .mc-range::-moz-range-track {
-            height: 4px;
-            border-radius: 999px;
-            background: #2a2a31;
-        }
-
-        #overlay-setup-screen .mc-range::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            margin-top: -6px;
-            border-radius: 50%;
-            background: #e8d58a;
-            border: 2px solid #0a0a0d;
-            box-shadow: 0 0 0 1px #45454f;
-            transition: transform .12s ease;
-        }
-
-        #overlay-setup-screen .mc-range::-webkit-slider-thumb:hover {
-            transform: scale(1.12);
-        }
-
-        #overlay-setup-screen .mc-range::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #e8d58a;
-            border: 2px solid #0a0a0d;
-            box-shadow: 0 0 0 1px #45454f;
-            transition: transform .12s ease;
-        }
-
-        #overlay-setup-screen .mc-range::-moz-range-thumb:hover {
-            transform: scale(1.12);
-        }
-
         #overlay-setup-screen .mc-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -3178,45 +3106,27 @@ function showOverlaySetupScreen() {
     typographyPanel.appendChild(typographyNote);
 
     const textScaleInput = document.createElement("input");
-    textScaleInput.type = "range";
-    textScaleInput.className = "mc-range";
-    textScaleInput.min = "0.01";
-    textScaleInput.max = "10";
-    textScaleInput.step = "0.01";
+    textScaleInput.type = "number";
+    textScaleInput.className = "mc-input";
+    textScaleInput.min = "0.25";
+    textScaleInput.max = "3";
+    textScaleInput.step = "0.05";
     textScaleInput.value = String(scale);
 
-    const textScaleValue = document.createElement("span");
-    textScaleValue.className = "mc-slider-value";
-    textScaleValue.textContent = Number(scale).toFixed(2);
-
-    const textScaleLine = document.createElement("div");
-    textScaleLine.className = "mc-slider-line";
-    textScaleLine.appendChild(textScaleInput);
-    textScaleLine.appendChild(textScaleValue);
-
-    addField(typographyPanel, "Text scale", textScaleLine);
+    addField(typographyPanel, "Text scale", textScaleInput);
 
     const emoteScaleInput = document.createElement("input");
-    emoteScaleInput.type = "range";
-    emoteScaleInput.className = "mc-range";
-    emoteScaleInput.min = "0.01";
-    emoteScaleInput.max = "10";
-    emoteScaleInput.step = "0.01";
+    emoteScaleInput.type = "number";
+    emoteScaleInput.className = "mc-input";
+    emoteScaleInput.min = "0.25";
+    emoteScaleInput.max = "3";
+    emoteScaleInput.step = "0.05";
     emoteScaleInput.value = String(emoteScale);
-
-    const emoteScaleValue = document.createElement("span");
-    emoteScaleValue.className = "mc-slider-value";
-    emoteScaleValue.textContent = Number(emoteScale).toFixed(2);
-
-    const emoteScaleLine = document.createElement("div");
-    emoteScaleLine.className = "mc-slider-line";
-    emoteScaleLine.appendChild(emoteScaleInput);
-    emoteScaleLine.appendChild(emoteScaleValue);
 
     addField(
         typographyPanel,
         "Emote scale",
-        emoteScaleLine
+        emoteScaleInput
     );
 
     const timingPanel = createPanel("timing", "Timing", "Tune message lifetime and fading behavior.", "04");
@@ -3383,8 +3293,7 @@ function showOverlaySetupScreen() {
         if (!Number.isFinite(newScale)) {
             return;
         }
-        scale = Math.max(0.01, Math.min(newScale, 10));
-        textScaleValue.textContent = scale.toFixed(2);
+        scale = Math.max(0.25, Math.min(newScale, 3));
         document.documentElement.style.setProperty("--chat-scale", scale);
     });
 
@@ -3400,15 +3309,12 @@ function showOverlaySetupScreen() {
 
         emoteScale =
             Math.max(
-                0.01,
+                0.25,
                 Math.min(
                     newEmoteScale,
-                    10
+                    3
                 )
             );
-
-        emoteScaleValue.textContent =
-            emoteScale.toFixed(2);
 
         document.documentElement.style.setProperty(
             "--emote-scale",
@@ -3475,23 +3381,23 @@ function showOverlaySetupScreen() {
 
             scale:
                 Math.max(
-                    0.01,
+                    0.25,
                     Math.min(
                         Number(
                             textScaleInput.value
                         ) || 1,
-                        10
+                        3
                     )
                 ),
 
             emoteScale:
                 Math.max(
-                    0.01,
+                    0.25,
                     Math.min(
                         Number(
                             emoteScaleInput.value
                         ) || 1,
-                        10
+                        3
                     )
                 ),
 
@@ -8976,7 +8882,7 @@ function addGlobalStyle() {
                 50%;
 
             width:
-                100%;   
+                100%;
 
             height:
                 100%;
@@ -9028,139 +8934,33 @@ function addGlobalStyle() {
         style
     );
 }
-const GITHUB_COMMIT_REPO = "marzzzdev/marz-overlay";
-const GITHUB_COMMIT_CHECK_INTERVAL_MS = 90000;
 
-let currentOverlayCommitSha = null;
-let commitCheckInterval = null;
 
-async function fetchLatestOverlayCommit() {
-    try {
-        const response = await fetch(
-            `https://api.github.com/repos/${GITHUB_COMMIT_REPO}/commits?per_page=1`,
-            { cache: "no-store" }
-        );
 
-        if (!response.ok) {
-            throw new Error(`GitHub commit check: ${response.status}`);
-        }
 
-        const data = await response.json();
-        const commit = Array.isArray(data) ? data[0] : null;
 
-        if (!commit?.sha) {
-            return null;
-        }
 
-        return {
-            sha: commit.sha,
-            message: commit.commit?.message || ""
-        };
-    } catch (error) {
-        console.warn("Overlay commit check failed:", error);
-        return null;
-    }
-}
 
-function formatOverlayCommitText(commitInfo) {
-    if (!commitInfo) {
-        return "";
-    }
 
-    const shortSha = commitInfo.sha.slice(0, 7);
-    const firstLine = commitInfo.message.split("\n")[0] || "";
-    const truncated =
-        firstLine.length > 60
-            ? `${firstLine.slice(0, 57)}...`
-            : firstLine;
 
-    return `${truncated} (${shortSha})`;
-}
 
-function showOverlayCommitIndicator(text) {
-    let indicator = document.getElementById("overlay-commit-indicator");
 
-    if (!indicator) {
-        indicator = document.createElement("div");
-        indicator.id = "overlay-commit-indicator";
 
-        indicator.style.cssText = `
-            position: fixed;
-            left: 10px;
-            bottom: 8px;
-            z-index: 999998;
 
-            max-width: 60vw;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
 
-            color: rgba(255, 255, 255, 0.35);
 
-            font-family:
-                'Open Sans',
-                Arial,
-                sans-serif;
 
-            font-size: 11px;
-            line-height: 1.3;
 
-            text-shadow:
-                0 1px 3px
-                rgba(0, 0, 0, .6);
 
-            pointer-events: none;
-        `;
 
-        document.body.appendChild(indicator);
-    }
 
-    indicator.textContent = text;
-}
 
-async function checkForNewOverlayCommit() {
-    const info = await fetchLatestOverlayCommit();
-
-    if (!info) {
-        return;
-    }
-
-    if (
-        currentOverlayCommitSha &&
-        info.sha !== currentOverlayCommitSha
-    ) {
-        console.log(
-            "New overlay commit detected, reloading:",
-            info.sha
-        );
-
-        window.location.reload();
-        return;
-    }
-
-    currentOverlayCommitSha = info.sha;
-    showOverlayCommitIndicator(
-        formatOverlayCommitText(info)
-    );
-}
-
-async function initOverlayCommitWatcher() {
-    await checkForNewOverlayCommit();
-
-    clearInterval(commitCheckInterval);
-
-    commitCheckInterval = setInterval(
-        checkForNewOverlayCommit,
-        GITHUB_COMMIT_CHECK_INTERVAL_MS
-    );
-}
 
 addGlobalStyle();
 
 async function startOverlay() {
     ensureEmoteScaleStyle();
     addGlobalStyle();
-    initOverlayCommitWatcher();
 
     if (legacySerializedRedirecting) {
         return;
