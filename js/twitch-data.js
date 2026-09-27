@@ -223,6 +223,10 @@ const PREVIEW_TWITCH_BADGES = {
         title: "noob",
         url: "https://static-cdn.jtvnw.net/badges/v1/d87a78f5-76d9-451f-8f31-752a369e6045/3"
     },
+    "omecash/1": {
+        title: "omecash",
+        url: "https://static-cdn.jtvnw.net/badges/v1/4cae4630-f0fd-4642-bd2d-120017968d61/3"
+    }
 };
 
 function seedPreviewTwitchBadges() {

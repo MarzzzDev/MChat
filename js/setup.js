@@ -21,6 +21,16 @@ const previewMessages = [
         { badges: "moderator/1,subscriber/1,pikachu/1" }
     ],
     [
+    "Muesli_Cornflake",
+    "[Seal Hey Gif by Muesli_Cornflake]",
+    "#94FDFF",
+    "omecash",
+    {
+        badges: "vip/1,omecash/1",
+        gifs: "0-20|hey-seal|hey.gif"
+    }
+    ],
+    [
         "Underpaid_Actor",
         "PagMan ffzSpin",
         "#DAA520",
@@ -1694,7 +1704,7 @@ function showOverlaySetupScreen() {
 
     gifsCheckbox.addEventListener("change", () => {
         gifsEnabled = gifsCheckbox.checked;
-
+        rerenderPreviewChat();
         if (!gifsEnabled) {
             previewChat
                 .querySelectorAll(
