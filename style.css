@@ -18,14 +18,14 @@ body {
     --shadow-offset-y: 3px;
     --shadow-blur: 6px;
     --shadow-color: rgba(0, 0, 0, 0.9);
+
     --shadow-filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
     --ffz-effect-filter: ;
 }
-
 .message {
     display: block;
-    width: 100%;
-    max-width: 100%;
+    width: auto;
+    max-width: 98%;
     box-sizing: border-box;
     margin: 0 0 3px 0;
     padding: 2px 12px 7px 12px;
@@ -39,14 +39,23 @@ body {
     white-space: nowrap;
     overflow-wrap: normal;
     word-break: normal;
-    overflow-x: hidden;
 }
 
 .message.wrap-message {
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
-    overflow-x: visible;
+}
+
+.message.wrap-message .text {
+    display: inline;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 body.pixel-font .message {
@@ -67,6 +76,13 @@ body.pixel-font .message.wrap-message {
 body.pixel-font .text {
     font-weight: 400;
     line-height: 68px;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+body.pixel-font .message.wrap-message .text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 body.has-background .message {
@@ -187,7 +203,11 @@ body.has-background .message.redeem-message:hover {
     position: relative;
     line-height: 68px;
     vertical-align: middle;
+    max-width: none;
+    min-width: 0;
     white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
     color: #FF0000;
     text-shadow: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
     text-rendering: geometricPrecision;
@@ -195,15 +215,21 @@ body.has-background .message.redeem-message:hover {
 }
 
 .text {
-    display: contents;
     color: #FFFFFF;
     font-family: var(--chat-font);
     font-style: normal;
     font-size: 50px;
     font-weight: 900;
     letter-spacing: 0.2px;
+    display: inline;
     line-height: 68px;
-    white-space: inherit;
+    vertical-align: middle;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
     text-shadow: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
@@ -229,7 +255,6 @@ body.has-background .message.redeem-message:hover {
         scaleX(var(--ffz-scale-x, 1))
         scaleY(var(--ffz-scale-y, 1));
 }
-
 
 .external-badges {
     margin-left: 2px;
@@ -259,7 +284,6 @@ body.shadow-disabled .username,
 body.shadow-disabled .text {
     text-shadow: none;
 }
-
 body.shadow-disabled {
     --shadow-filter: ;
 }
