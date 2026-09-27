@@ -1336,6 +1336,8 @@ function hslToHex(h, s, l) {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+const previewMessageCache = [];
+
 function addPreviewMessage(
     user,
     msg,
@@ -1349,6 +1351,14 @@ function addPreviewMessage(
     if (!previewChat) {
         return;
     }
+
+    previewMessageCache.push({
+        user,
+        msg,
+        usernameColor,
+        userId,
+        tags
+    });
 
     const result = onMsg(
         user,
@@ -1366,6 +1376,39 @@ function addPreviewMessage(
 
     return result;
 }
+
+window.addPreviewMessage = addPreviewMessage;
+
+function rerenderPreviewChat() {
+    const previewChat =
+        document.getElementById("chat");
+
+    if (!previewChat) {
+        return;
+    }
+
+    previewChat.innerHTML = "";
+    messageElements.clear();
+    userMessageElements.clear();
+
+    for (const entry of previewMessageCache) {
+        onMsg(
+            entry.user,
+            entry.msg,
+            entry.usernameColor,
+            entry.userId,
+            entry.tags,
+            previewChat
+        );
+    }
+
+    requestAnimationFrame(() => {
+        previewChat.scrollTop =
+            previewChat.scrollHeight;
+    });
+}
+
+window.rerenderPreviewChat = rerenderPreviewChat;
 
 window.addPreviewMessage = addPreviewMessage;
 

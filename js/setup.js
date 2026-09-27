@@ -1598,12 +1598,14 @@ function showOverlaySetupScreen() {
     backgroundColorInput.addEventListener("input", applyBackgroundPreview);
     backgroundColorInput.addEventListener("change", applyBackgroundPreview);
 
-    wrapCheckbox.addEventListener("change", () => {
-        wrapEnabled = wrapCheckbox.checked;
-    });
-
     badgesCheckbox.addEventListener("change", () => {
         badgesEnabled = badgesCheckbox.checked;
+        rerenderPreviewChat();
+    });
+
+    wrapCheckbox.addEventListener("change", () => {
+        wrapEnabled = wrapCheckbox.checked;
+        rerenderPreviewChat();
     });
 
     gifsCheckbox.addEventListener("change", () => {
