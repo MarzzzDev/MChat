@@ -1626,6 +1626,7 @@ function showOverlaySetupScreen() {
 
     unlistedCheckbox.addEventListener("change", () => {
         showUnlisted7TV = unlistedCheckbox.checked;
+        rerenderPreviewChat();
     });
 
     function syncShadowState() {

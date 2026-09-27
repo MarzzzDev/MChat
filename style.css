@@ -36,14 +36,13 @@ body {
     border-left: none;
     box-shadow: none;
     animation: messageIn 0.25s ease-out forwards;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
 }
 
 .message.wrap-message {
-    width: auto;
-    max-width: 98%;
+    white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
 }
@@ -62,6 +61,13 @@ body {
 body.pixel-font .message {
     display: flex;
     align-items: baseline;
+    flex-wrap: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+body.pixel-font.wrap-enabled .message,
+body.pixel-font .message.wrap-message {
     flex-wrap: wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -70,6 +76,11 @@ body.pixel-font .message {
 body.pixel-font .text {
     font-weight: 400;
     line-height: 68px;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+body.pixel-font .message.wrap-message .text {
     overflow-wrap: anywhere;
     word-break: break-word;
 }
@@ -194,9 +205,9 @@ body.has-background .message.redeem-message:hover {
     vertical-align: middle;
     max-width: none;
     min-width: 0;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    white-space: normal;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
     color: #FF0000;
     text-shadow: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
     text-rendering: geometricPrecision;
@@ -216,9 +227,9 @@ body.has-background .message.redeem-message:hover {
     width: auto;
     max-width: none;
     min-width: 0;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    white-space: normal;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
     text-shadow: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
