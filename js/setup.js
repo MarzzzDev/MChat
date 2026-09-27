@@ -39,6 +39,18 @@ const previewMessages = [
     ]
 ];
 let currentPreviewMessage = 0;
+let badgeSources = {
+    twitch: badgeTwitch,
+    ffz: badgeFfz,
+    seventv: badgeSeventv,
+    chatterino: badgeChatterino
+};
+const PLATFORM_BADGE_SOURCES = [
+    { key: "twitch", label: "Twitch", logo: "logos/twitch.png" },
+    { key: "ffz", label: "FFZ", logo: "logos/ffz.png" },
+    { key: "seventv", label: "7TV", logo: "logos/7tv.png" },
+    { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg" }
+];
 
 function runPreviewMessage() {
     const message = previewMessages[currentPreviewMessage];
@@ -660,6 +672,86 @@ function showOverlaySetupScreen() {
             transform: translateX(13px);
         }
 
+        #overlay-setup-screen .mc-platform-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 8px 10px 9px;
+            margin: -4px 0 4px;
+            border: 1px solid #24242a;
+            border-top: 0;
+            border-radius: 0 0 5px 5px;
+            background: #0e0e11;
+            transition: opacity .12s ease;
+        }
+
+        #overlay-setup-screen .mc-platform-grid.is-disabled {
+            opacity: .45;
+        }
+
+        #overlay-setup-screen .mc-platform-button {
+            display: flex;
+            flex: 0 0 auto;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            width: 40px;
+            height: 40px;
+            padding: 2px;
+            border: 1px solid #25252b;
+            border-radius: 5px;
+            background: #121216;
+            color: #8c8c96;
+            cursor: pointer;
+            user-select: none;
+            transition: border-color .12s ease, background .12s ease, color .12s ease;
+        }
+
+        #overlay-setup-screen .mc-platform-button:hover {
+            border-color: #33333a;
+            background: #151519;
+        }
+
+        #overlay-setup-screen .mc-platform-button.is-active {
+            border-color: #e8d58a;
+            background: #2a271d;
+            color: #f0e9f8;
+        }
+
+        #overlay-setup-screen .mc-platform-button:disabled {
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        #overlay-setup-screen .mc-platform-logo {
+            width: 22px;
+            height: 22px;
+            display: block;
+            object-fit: contain;
+            filter: grayscale(1) brightness(1.6);
+            opacity: .55;
+            transition: filter .12s ease, opacity .12s ease;
+            pointer-events: none;
+        }
+
+        #overlay-setup-screen .mc-platform-button.is-active .mc-platform-logo {
+            filter: none;
+            opacity: 1;
+        }
+
+        #overlay-setup-screen .mc-platform-label {
+            font-size: 8px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            pointer-events: none;
+        }
+
         #overlay-setup-screen .mc-color-row {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 86px;
@@ -955,7 +1047,8 @@ function showOverlaySetupScreen() {
 
         #overlay-setup-screen .mc-toggle-note,
         #overlay-setup-screen .mc-muted,
-        #overlay-setup-screen .mc-footnote {
+        #overlay-setup-screen .mc-footnote,
+        #overlay-setup-screen .mc-platform-label {
             font-size: 9px;
         }
 
@@ -1380,6 +1473,47 @@ function showOverlaySetupScreen() {
         return checkbox;
     }
 
+    function addPlatformToggles(parent, items, state, onToggle) {
+        const grid = document.createElement("div");
+        grid.className = "mc-platform-grid";
+
+        for (const item of items) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `mc-platform-button${state[item.key] ? " is-active" : ""}`;
+            button.dataset.platform = item.key;
+
+            const logo = document.createElement("img");
+            logo.className = "mc-platform-logo";
+            logo.src = item.logo;
+            logo.alt = item.label;
+            logo.draggable = false;
+
+            const label = document.createElement("span");
+            label.className = "mc-platform-label";
+            label.textContent = item.label;
+
+            button.appendChild(logo);
+            button.appendChild(label);
+            grid.appendChild(button);
+
+            button.addEventListener("click", () => {
+                state[item.key] = !state[item.key];
+                button.classList.toggle("is-active", state[item.key]);
+
+                if (onToggle) {
+                    onToggle(item.key, state[item.key]);
+                }
+
+                rerenderPreviewChat();
+            });
+        }
+
+        parent.appendChild(grid);
+
+        return grid;
+    }
+
     const connectionPanel = createPanel("connection", "Connection", "Choose the Twitch channel this overlay should read from anonymously.", "01");
 
     const channelInput = document.createElement("input");
@@ -1434,6 +1568,34 @@ function showOverlaySetupScreen() {
 
     const wrapCheckbox = addToggle(appearancePanel, "Wrap messages", "Allow long chat messages to continue on another line.", "wrap", wrapEnabled);
     const badgesCheckbox = addToggle(appearancePanel, "Badges", "Show Twitch, 7TV, FFZ and other supported badges.", "badges", badgesEnabled);
+
+    const platformGrid = addPlatformToggles(
+        appearancePanel,
+        PLATFORM_BADGE_SOURCES,
+        badgeSources,
+        (key, value) => {
+            if (key === "twitch") {
+                badgeTwitch = value;
+            } else if (key === "ffz") {
+                badgeFfz = value;
+            } else if (key === "seventv") {
+                badgeSeventv = value;
+            } else if (key === "chatterino") {
+                badgeChatterino = value;
+            }
+        }
+    );
+
+    function syncPlatformState() {
+        const disabled = !badgesCheckbox.checked;
+        platformGrid.classList.toggle("is-disabled", disabled);
+        for (const button of platformGrid.querySelectorAll(".mc-platform-button")) {
+            button.disabled = disabled;
+        }
+    }
+
+    syncPlatformState();
+
     const gifsCheckbox = addToggle(appearancePanel, "GIFs", "Show Twitch GIFs in chat messages.", "gifs", gifsEnabled);
     const botsCheckbox = addToggle(appearancePanel, "Bots", "Show bot messages and commands in chat.", "bots", botsEnabled);
     const unlistedCheckbox = addToggle(appearancePanel, "Unlisted 7TV emotes", "Render unlisted 7TV emotes when they are available.", "unlisted", showUnlisted7TV);
@@ -1694,6 +1856,7 @@ function showOverlaySetupScreen() {
 
     badgesCheckbox.addEventListener("change", () => {
         badgesEnabled = badgesCheckbox.checked;
+        syncPlatformState();
         rerenderPreviewChat();
     });
 
@@ -1874,6 +2037,18 @@ function showOverlaySetupScreen() {
 
             badges:
                 badgesCheckbox.checked,
+
+            badgeTwitch:
+                badgeSources.twitch,
+
+            badgeFfz:
+                badgeSources.ffz,
+
+            badgeSeventv:
+                badgeSources.seventv,
+
+            badgeChatterino:
+                badgeSources.chatterino,
 
             gifs:
                 gifsCheckbox.checked,

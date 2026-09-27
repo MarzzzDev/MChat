@@ -374,6 +374,10 @@ function createTwitchBadges(tags) {
     container.className =
         "badges twitch-badges";
 
+    if (!badgeTwitch) {
+        return container;
+    }
+
     const badgeString =
         tags.badges || "";
 
@@ -514,6 +518,10 @@ async function loadChatterinoBadges() {
 }
 
 function createFFZRoomBadge(tags) {
+    if (!badgeFfz) {
+        return null;
+    }
+
     const badgeString =
         tags.badges || "";
 
@@ -674,6 +682,19 @@ function isFFZVipBadge(
     );
 }
 
+function isBadgeProviderEnabled(provider) {
+    switch (provider) {
+        case "FFZ":
+            return badgeFfz;
+        case "7TV":
+            return badgeSeventv;
+        case "Chatterino":
+            return badgeChatterino;
+        default:
+            return true;
+    }
+}
+
 
 async function createExternalBadges(
     userId,
@@ -706,6 +727,10 @@ async function createExternalBadges(
             const badge
             of cached
         ) {
+            if (!isBadgeProviderEnabled(badge.provider)) {
+                continue;
+            }
+
             if (
                 badge.provider === "FFZ" &&
                 badge.type === "vip" &&
@@ -748,6 +773,10 @@ async function createExternalBadges(
             const badge
             of badges
         ) {
+            if (!isBadgeProviderEnabled(badge.provider)) {
+                continue;
+            }
+
             if (
                 badge.provider === "FFZ" &&
                 badge.type === "vip" &&
@@ -967,6 +996,10 @@ async function createExternalBadges(
             const badge
             of badges
         ) {
+            if (!isBadgeProviderEnabled(badge.provider)) {
+                continue;
+            }
+
             if (
                 badge.provider === "FFZ" &&
                 badge.type === "vip" &&
@@ -1182,5 +1215,3 @@ async function getFFZUser(userId) {
         return null;
     }
 }
-
-

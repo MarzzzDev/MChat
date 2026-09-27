@@ -98,6 +98,20 @@ function normaliseOverlaySettings(settings = {}) {
     result.badges =
         settings.badges !== false;
 
+    result.badgeTwitch =
+        settings.badgeTwitch !== false;
+        
+    result.badgeFfz =
+        settings.badgeFfz !== false;
+
+    result.badgeSeventv =
+        settings.badgeSeventv !== false;
+
+    result.badgeChatterino =
+        settings.badgeChatterino !== false;
+
+
+
     result.gifs =
         settings.gifs !== false;
 
@@ -334,6 +348,34 @@ function appendFlatOverlaySettings(
         ]);
     }
 
+    if (normalised.badgeTwitch !== true) {
+        query.push([
+            "badgeTwitch",
+            normalised.badgeTwitch ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.badgeFfz !== true) {
+        query.push([
+            "badgeFfz",
+            normalised.badgeFfz ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.badgeSeventv !== true) {
+        query.push([
+            "badgeSeventv",
+            normalised.badgeSeventv ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.badgeChatterino !== true) {
+        query.push([
+            "badgeChatterino",
+            normalised.badgeChatterino ? "1" : "0"
+        ]);
+    }
+
     if (normalised.gifs !== true) {
         query.push([
             "gifs",
@@ -525,6 +567,30 @@ if (
 let badgesEnabled =
     parseQueryBoolean(
         "badges",
+        true
+    );
+
+let badgeTwitch =
+    parseQueryBoolean(
+        "badgeTwitch",
+        true
+    );
+
+let badgeFfz =
+    parseQueryBoolean(
+        "badgeFfz",
+        true
+    );
+
+let badgeSeventv =
+    parseQueryBoolean(
+        "badgeSeventv",
+        true
+    );
+
+let badgeChatterino =
+    parseQueryBoolean(
+        "badgeChatterino",
         true
     );
 
