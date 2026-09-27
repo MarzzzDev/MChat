@@ -2855,7 +2855,7 @@ function showOverlaySetupScreen() {
         return checkbox;
     }
 
-    const connectionPanel = createPanel("connection", "Connection", "Choose the Twitch channel this overlay should read from anonymously.", "01");
+    const connectionPanel = createPanel("connection", "Connection", "Choose the channel!", "01");
 
     const channelInput = document.createElement("input");
     channelInput.type = "text";
