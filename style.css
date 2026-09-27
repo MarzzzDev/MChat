@@ -18,7 +18,11 @@ body {
     --shadow-offset-y: 3px;
     --shadow-blur: 6px;
     --shadow-color: rgba(0, 0, 0, 0.9);
+
+    --shadow-filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
+    --ffz-effect-filter: none;
 }
+
 .message {
     display: block;
     width: auto;
@@ -160,7 +164,7 @@ body.has-background .message.redeem-message:hover {
     gap: 3px;
     margin-right: 6px;
     position: relative;
-    filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
+    filter: var(--shadow-filter);
 }
 
 .badge {
@@ -229,7 +233,7 @@ body.has-background .message.redeem-message:hover {
     vertical-align: middle;
     margin: 0 3px;
     flex: 0 0 auto;
-    filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
+    filter: var(--ffz-effect-filter, none) var(--shadow-filter, none);
     transition: transform 0.15s ease;
 }
 
@@ -241,7 +245,6 @@ body.has-background .message.redeem-message:hover {
         scaleX(var(--ffz-scale-x, 1))
         scaleY(var(--ffz-scale-y, 1));
 }
-
 
 .external-badges {
     margin-left: 2px;
@@ -271,9 +274,6 @@ body.shadow-disabled .username,
 body.shadow-disabled .text {
     text-shadow: none;
 }
-
-body.shadow-disabled .badges,
-body.shadow-disabled .emote,
-body.shadow-disabled .twemoji {
-    filter: none;
+body.shadow-disabled {
+    --shadow-filter: none;
 }

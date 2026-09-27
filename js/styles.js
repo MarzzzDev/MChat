@@ -421,9 +421,6 @@ function addGlobalStyle() {
                 infinite;
         }
 
-        /* CHANGED: was "filter: saturate(2) hue-rotate(-20deg) contrast(1.8);"
-           Now sets the shared --ffz-effect-filter variable so it composes
-           with --shadow-filter on .emote instead of replacing it. */
         .ffz-effect-hyper-red {
             --ffz-effect-filter:
                 saturate(2)
@@ -439,9 +436,6 @@ function addGlobalStyle() {
                 infinite;
         }
 
-        /* CHANGED: was "filter: grayscale(1) contrast(3) brightness(0.75);"
-           Same fix as hyper-red above — this is the one that was breaking
-           when shadow-disabled fired. */
         .ffz-effect-cursed {
             --ffz-effect-filter:
                 grayscale(1)
