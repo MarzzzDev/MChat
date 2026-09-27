@@ -83,14 +83,18 @@ function addGlobalStyle() {
         @keyframes ffzRainbow {
             0% {
                 filter:
+                    var(--ffz-effect-filter, none)
                     hue-rotate(0deg)
-                    saturate(1.5);
+                    saturate(1.5)
+                    var(--shadow-filter, none);
             }
 
             100% {
                 filter:
+                    var(--ffz-effect-filter, none)
                     hue-rotate(360deg)
-                    saturate(1.5);
+                    saturate(1.5)
+                    var(--shadow-filter, none);
             }
         }
 
@@ -345,16 +349,20 @@ function addGlobalStyle() {
         @keyframes ffzPhotocopy {
             0%, 100% {
                 filter:
+                    var(--ffz-effect-filter, none)
                     grayscale(1)
                     contrast(1.35)
-                    brightness(1.05);
+                    brightness(1.05)
+                    var(--shadow-filter, none);
             }
 
             50% {
                 filter:
+                    var(--ffz-effect-filter, none)
                     grayscale(1)
                     contrast(1.8)
-                    brightness(0.9);
+                    brightness(0.9)
+                    var(--shadow-filter, none);
             }
         }
 
@@ -413,8 +421,11 @@ function addGlobalStyle() {
                 infinite;
         }
 
+        /* CHANGED: was "filter: saturate(2) hue-rotate(-20deg) contrast(1.8);"
+           Now sets the shared --ffz-effect-filter variable so it composes
+           with --shadow-filter on .emote instead of replacing it. */
         .ffz-effect-hyper-red {
-            filter:
+            --ffz-effect-filter:
                 saturate(2)
                 hue-rotate(-20deg)
                 contrast(1.8);
@@ -428,8 +439,11 @@ function addGlobalStyle() {
                 infinite;
         }
 
+        /* CHANGED: was "filter: grayscale(1) contrast(3) brightness(0.75);"
+           Same fix as hyper-red above — this is the one that was breaking
+           when shadow-disabled fired. */
         .ffz-effect-cursed {
-            filter:
+            --ffz-effect-filter:
                 grayscale(1)
                 contrast(3)
                 brightness(0.75);
@@ -629,4 +643,3 @@ function addGlobalStyle() {
 }
 
 addGlobalStyle();
-
