@@ -981,9 +981,15 @@ function createTwitchGif(
         "img"
     );
 
+    gif.addEventListener("error", () => {
+        const fallback =
+            document.createTextNode(alt);
+
+        gif.replaceWith(fallback);
+    });
+
     return gif;
 }
-
 function applyEffectsToPreviousEmote(
     container,
     effects
@@ -1337,6 +1343,7 @@ function hslToHex(h, s, l) {
 }
 
 const previewMessageCache = [];
+const PREVIEW_CACHE_LIMIT = 12;
 
 function addPreviewMessage(
     user,
@@ -1359,6 +1366,10 @@ function addPreviewMessage(
         userId,
         tags
     });
+
+    while (previewMessageCache.length > PREVIEW_CACHE_LIMIT) {
+        previewMessageCache.shift();
+    }
 
     const result = onMsg(
         user,

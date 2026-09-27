@@ -22,7 +22,7 @@ const previewMessages = [
     ],
     [
     "Muesli_Cornflake",
-    "[Seal Hey Gif by Muesli_Cornflake]",
+    "[Seal Hey Gif by wtf]",
     "#94FDFF",
     "omecash",
     {
