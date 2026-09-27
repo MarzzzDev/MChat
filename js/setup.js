@@ -1338,6 +1338,97 @@ function showOverlaySetupScreen() {
     const botsCheckbox = addToggle(appearancePanel, "Bots", "Show bot messages and commands in chat.", "bots", botsEnabled);
     const unlistedCheckbox = addToggle(appearancePanel, "Unlisted 7TV emotes", "Render unlisted 7TV emotes when they are available.", "unlisted", showUnlisted7TV);
 
+    const shadowDivider = document.createElement("div");
+    shadowDivider.className = "mc-divider";
+    appearancePanel.appendChild(shadowDivider);
+
+    const shadowSub = document.createElement("h2");
+    shadowSub.className = "mc-subhead";
+    shadowSub.textContent = "Text shadow";
+    appearancePanel.appendChild(shadowSub);
+
+    const shadowCheckbox = addToggle(appearancePanel, "Drop shadow", "Show a shadow behind usernames, text, emotes and badges.", "shadow", shadowEnabled);
+
+    const shadowTwoCol = document.createElement("div");
+    shadowTwoCol.className = "mc-two-col";
+
+    const shadowIntensityField = document.createElement("div");
+    shadowIntensityField.className = "mc-field";
+
+    const shadowIntensityLabel = document.createElement("label");
+    shadowIntensityLabel.className = "mc-label";
+    shadowIntensityLabel.textContent = "Intensity";
+
+    const shadowIntensityInput = document.createElement("input");
+    shadowIntensityInput.type = "number";
+    shadowIntensityInput.className = "mc-input";
+    shadowIntensityInput.min = "0";
+    shadowIntensityInput.max = "1";
+    shadowIntensityInput.step = "0.05";
+    shadowIntensityInput.value = String(shadowIntensity);
+
+    shadowIntensityField.appendChild(shadowIntensityLabel);
+    shadowIntensityField.appendChild(shadowIntensityInput);
+
+    const shadowSizeField = document.createElement("div");
+    shadowSizeField.className = "mc-field";
+
+    const shadowSizeLabel = document.createElement("label");
+    shadowSizeLabel.className = "mc-label";
+    shadowSizeLabel.textContent = "Size";
+
+    const shadowSizeLine = document.createElement("div");
+    shadowSizeLine.className = "mc-range-line";
+
+    const shadowSizeInput = document.createElement("input");
+    shadowSizeInput.type = "number";
+    shadowSizeInput.className = "mc-input";
+    shadowSizeInput.min = "0";
+    shadowSizeInput.max = "40";
+    shadowSizeInput.step = "1";
+    shadowSizeInput.value = String(shadowSize);
+
+    const shadowSizeUnit = document.createElement("span");
+    shadowSizeUnit.className = "mc-unit";
+    shadowSizeUnit.textContent = "px";
+
+    shadowSizeLine.appendChild(shadowSizeInput);
+    shadowSizeLine.appendChild(shadowSizeUnit);
+    shadowSizeField.appendChild(shadowSizeLabel);
+    shadowSizeField.appendChild(shadowSizeLine);
+
+    shadowTwoCol.appendChild(shadowIntensityField);
+    shadowTwoCol.appendChild(shadowSizeField);
+    appearancePanel.appendChild(shadowTwoCol);
+
+    const shadowOffsetField = document.createElement("div");
+    shadowOffsetField.className = "mc-field";
+
+    const shadowOffsetLabel = document.createElement("label");
+    shadowOffsetLabel.className = "mc-label";
+    shadowOffsetLabel.textContent = "Offset";
+
+    const shadowOffsetLine = document.createElement("div");
+    shadowOffsetLine.className = "mc-range-line";
+
+    const shadowOffsetInput = document.createElement("input");
+    shadowOffsetInput.type = "number";
+    shadowOffsetInput.className = "mc-input";
+    shadowOffsetInput.min = "0";
+    shadowOffsetInput.max = "20";
+    shadowOffsetInput.step = "1";
+    shadowOffsetInput.value = String(shadowOffset);
+
+    const shadowOffsetUnit = document.createElement("span");
+    shadowOffsetUnit.className = "mc-unit";
+    shadowOffsetUnit.textContent = "px";
+
+    shadowOffsetLine.appendChild(shadowOffsetInput);
+    shadowOffsetLine.appendChild(shadowOffsetUnit);
+    shadowOffsetField.appendChild(shadowOffsetLabel);
+    shadowOffsetField.appendChild(shadowOffsetLine);
+    appearancePanel.appendChild(shadowOffsetField);
+
     const typographyPanel = createPanel("typography", "Typography", "Choose the font used by the renderer. Changes are applied to the live preview immediately.", "03");
 
     const fontSelect = document.createElement("select");
@@ -1529,6 +1620,51 @@ function showOverlaySetupScreen() {
         showUnlisted7TV = unlistedCheckbox.checked;
     });
 
+    function syncShadowState() {
+        shadowIntensityInput.disabled = !shadowCheckbox.checked;
+        shadowSizeInput.disabled = !shadowCheckbox.checked;
+        shadowOffsetInput.disabled = !shadowCheckbox.checked;
+
+        const opacity = shadowCheckbox.checked ? "1" : ".45";
+        shadowIntensityInput.style.opacity = opacity;
+        shadowSizeInput.style.opacity = opacity;
+        shadowOffsetInput.style.opacity = opacity;
+    }
+
+    shadowCheckbox.addEventListener("change", () => {
+        shadowEnabled = shadowCheckbox.checked;
+        document.body.classList.toggle("shadow-disabled", !shadowEnabled);
+        syncShadowState();
+    });
+
+    shadowIntensityInput.addEventListener("input", () => {
+        const value = Number(shadowIntensityInput.value);
+        if (!Number.isFinite(value)) {
+            return;
+        }
+        shadowIntensity = Math.max(0, Math.min(value, 1));
+        document.documentElement.style.setProperty("--shadow-color", `rgba(0, 0, 0, ${shadowIntensity})`);
+    });
+
+    shadowSizeInput.addEventListener("input", () => {
+        const value = Number(shadowSizeInput.value);
+        if (!Number.isFinite(value)) {
+            return;
+        }
+        shadowSize = Math.max(0, Math.min(value, 40));
+        document.documentElement.style.setProperty("--shadow-blur", `${shadowSize}px`);
+    });
+
+    shadowOffsetInput.addEventListener("input", () => {
+        const value = Number(shadowOffsetInput.value);
+        if (!Number.isFinite(value)) {
+            return;
+        }
+        shadowOffset = Math.max(0, Math.min(value, 20));
+        document.documentElement.style.setProperty("--shadow-offset-x", `${shadowOffset}px`);
+        document.documentElement.style.setProperty("--shadow-offset-y", `${shadowOffset}px`);
+    });
+
     fontSelect.addEventListener("change", () => {
         chatFont = fontSelect.value;
         document.documentElement.style.setProperty("--chat-font", chatFont);
@@ -1671,7 +1807,43 @@ function showOverlaySetupScreen() {
                 unlistedCheckbox.checked,
 
             font:
-                fontSelect.value
+                fontSelect.value,
+
+            shadow:
+                shadowCheckbox.checked,
+
+            shadowIntensity:
+                Math.max(
+                    0,
+                    Math.min(
+                        Number(
+                            shadowIntensityInput.value
+                        ) ?? 0.9,
+                        1
+                    )
+                ),
+
+            shadowSize:
+                Math.max(
+                    0,
+                    Math.min(
+                        Number(
+                            shadowSizeInput.value
+                        ) || 6,
+                        40
+                    )
+                ),
+
+            shadowOffset:
+                Math.max(
+                    0,
+                    Math.min(
+                        Number(
+                            shadowOffsetInput.value
+                        ) || 3,
+                        20
+                    )
+                )
         };
 
         const url =

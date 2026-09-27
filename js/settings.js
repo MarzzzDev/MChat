@@ -146,6 +146,54 @@ function normaliseOverlaySettings(settings = {}) {
             ? settings.font
             : "'Open Sans', sans-serif";
 
+    result.shadow =
+        settings.shadow !== false;
+
+    result.shadowIntensity =
+        Number(
+            settings.shadowIntensity ?? 0.9
+        );
+
+    if (!Number.isFinite(result.shadowIntensity)) {
+        result.shadowIntensity = 0.9;
+    }
+
+    result.shadowIntensity =
+        Math.max(
+            0,
+            Math.min(result.shadowIntensity, 1)
+        );
+
+    result.shadowSize =
+        Number(
+            settings.shadowSize ?? 6
+        );
+
+    if (!Number.isFinite(result.shadowSize)) {
+        result.shadowSize = 6;
+    }
+
+    result.shadowSize =
+        Math.max(
+            0,
+            Math.min(result.shadowSize, 40)
+        );
+
+    result.shadowOffset =
+        Number(
+            settings.shadowOffset ?? 3
+        );
+
+    if (!Number.isFinite(result.shadowOffset)) {
+        result.shadowOffset = 3;
+    }
+
+    result.shadowOffset =
+        Math.max(
+            0,
+            Math.min(result.shadowOffset, 20)
+        );
+
     return result;
 }
 
@@ -311,6 +359,34 @@ function appendFlatOverlaySettings(
         query.push([
             "bots",
             normalised.bots ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.shadow !== true) {
+        query.push([
+            "shadow",
+            normalised.shadow ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.shadowIntensity !== 0.9) {
+        query.push([
+            "shadowIntensity",
+            String(normalised.shadowIntensity)
+        ]);
+    }
+
+    if (normalised.shadowSize !== 6) {
+        query.push([
+            "shadowSize",
+            String(normalised.shadowSize)
+        ]);
+    }
+
+    if (normalised.shadowOffset !== 3) {
+        query.push([
+            "shadowOffset",
+            String(normalised.shadowOffset)
         ]);
     }
 
@@ -487,6 +563,86 @@ emoteScale =
         0.25,
         Math.min(emoteScale, 3)
     );
+
+let shadowEnabled =
+    parseQueryBoolean(
+        "shadow",
+        true
+    );
+
+let shadowIntensity =
+    Number(
+        params.get("shadowIntensity") ?? 0.9
+    );
+
+if (!Number.isFinite(shadowIntensity)) {
+    shadowIntensity = 0.9;
+}
+
+shadowIntensity =
+    Math.max(
+        0,
+        Math.min(shadowIntensity, 1)
+    );
+
+let shadowSize =
+    Number(
+        params.get("shadowSize") ?? 6
+    );
+
+if (!Number.isFinite(shadowSize)) {
+    shadowSize = 6;
+}
+
+shadowSize =
+    Math.max(
+        0,
+        Math.min(shadowSize, 40)
+    );
+
+let shadowOffset =
+    Number(
+        params.get("shadowOffset") ?? 3
+    );
+
+if (!Number.isFinite(shadowOffset)) {
+    shadowOffset = 3;
+}
+
+shadowOffset =
+    Math.max(
+        0,
+        Math.min(shadowOffset, 20)
+    );
+
+function applyShadowSettings() {
+    document.documentElement.style.setProperty(
+        "--shadow-blur",
+        `${shadowSize}px`
+    );
+
+    document.documentElement.style.setProperty(
+        "--shadow-offset-x",
+        `${shadowOffset}px`
+    );
+
+    document.documentElement.style.setProperty(
+        "--shadow-offset-y",
+        `${shadowOffset}px`
+    );
+
+    document.documentElement.style.setProperty(
+        "--shadow-color",
+        `rgba(0, 0, 0, ${shadowIntensity})`
+    );
+
+    document.body.classList.toggle(
+        "shadow-disabled",
+        !shadowEnabled
+    );
+}
+
+applyShadowSettings();
 
 document.documentElement.style.setProperty(
     "--chat-scale",

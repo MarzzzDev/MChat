@@ -14,8 +14,11 @@ body {
     --chat-font: 'Open Sans', sans-serif;
     --bg-color-1: rgba(45, 12, 18, 0.9);
     --bg-color-2: rgba(65, 18, 25, 0.75);
+    --shadow-offset-x: 3px;
+    --shadow-offset-y: 3px;
+    --shadow-blur: 6px;
+    --shadow-color: rgba(0, 0, 0, 0.9);
 }
-
 .message {
     display: block;
     width: auto;
@@ -157,7 +160,7 @@ body.has-background .message.redeem-message:hover {
     gap: 3px;
     margin-right: 6px;
     position: relative;
-    filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.9));
+    filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
 }
 
 .badge {
@@ -192,7 +195,7 @@ body.has-background .message.redeem-message:hover {
     word-break: break-word;
     white-space: normal;
     color: #FF0000;
-    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
+    text-shadow: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
 }
@@ -213,7 +216,7 @@ body.has-background .message.redeem-message:hover {
     overflow-wrap: anywhere;
     word-break: break-word;
     white-space: normal;
-    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
+    text-shadow: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
 }
@@ -226,7 +229,7 @@ body.has-background .message.redeem-message:hover {
     vertical-align: middle;
     margin: 0 3px;
     flex: 0 0 auto;
-    filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.9));
+    filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
     transition: transform 0.15s ease;
 }
 
@@ -262,4 +265,15 @@ body.has-background .message:hover {
     box-shadow:
         0 4px 18px rgba(0, 0, 0, 0.5),
         0 0 15px rgba(255, 50, 50, 0.14);
+}
+
+body.shadow-disabled .username,
+body.shadow-disabled .text {
+    text-shadow: none;
+}
+
+body.shadow-disabled .badges,
+body.shadow-disabled .emote,
+body.shadow-disabled .twemoji {
+    filter: none;
 }
