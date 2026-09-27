@@ -1,7 +1,7 @@
 const previewMessages = [
     [
         "Dodorej",
-        "订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK",
+        "订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK",
         "#FF0000",
         "504585840",
         { badges: "vip/1,founder/1,48hgold/1" }
@@ -43,6 +43,37 @@ function runPreviewMessage() {
     setTimeout(runPreviewMessage, delay);
 }
 
+async function loadCommitInfo(target) {
+    if (!target) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            "https://api.github.com/repos/marzzzdev/marz-overlay/commits/main"
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `GitHub API returned ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+        const shortSha = data.sha.slice(0, 7);
+
+        target.textContent = shortSha;
+        target.href = data.html_url;
+        target.title = data.commit.message.split("\n")[0];
+    } catch (error) {
+        console.warn(
+            "Could not load latest commit info:",
+            error
+        );
+
+        target.textContent = "unknown";
+    }
+}
 
 function showOverlaySetupScreen() {
     ensureEmoteScaleStyle();
@@ -390,6 +421,7 @@ function showOverlaySetupScreen() {
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-wrap: wrap;
             gap: 7px;
             color: #666670;
             font-size: 8px;
@@ -407,6 +439,30 @@ function showOverlaySetupScreen() {
 
         #overlay-setup-screen .mc-attribution-disclaimer {
             color: #4f4f58;
+        }
+
+        #overlay-setup-screen .mc-attribution-github {
+            color: #868690;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        #overlay-setup-screen .mc-attribution-github:hover {
+            color: #fff;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        #overlay-setup-screen .mc-attribution-commit {
+            color: #5c5c66;
+            text-decoration: none;
+            font-family: monospace;
+        }
+
+        #overlay-setup-screen .mc-attribution-commit:hover {
+            color: #d4d4db;
+            text-decoration: underline;
+            text-underline-offset: 2px;
         }
 
         #overlay-setup-screen .mc-help-list {
@@ -1110,13 +1166,41 @@ function showOverlaySetupScreen() {
     attributionDisclaimer.className = "mc-attribution-disclaimer";
     attributionDisclaimer.textContent = "Not affiliated with Twitch";
 
+    const attributionSeparator2 = document.createElement("span");
+    attributionSeparator2.className = "mc-attribution-separator";
+    attributionSeparator2.textContent = "•";
+
+    const attributionGithub = document.createElement("a");
+    attributionGithub.className = "mc-attribution-github";
+    attributionGithub.href = "https://github.com/marzzzdev/marz-overlay";
+    attributionGithub.target = "_blank";
+    attributionGithub.rel = "noopener noreferrer";
+    attributionGithub.textContent = "GitHub";
+
+    const attributionSeparator3 = document.createElement("span");
+    attributionSeparator3.className = "mc-attribution-separator";
+    attributionSeparator3.textContent = "•";
+
+    const attributionCommit = document.createElement("a");
+    attributionCommit.className = "mc-attribution-commit";
+    attributionCommit.href = "https://github.com/marzzzdev/marz-overlay/commits/main";
+    attributionCommit.target = "_blank";
+    attributionCommit.rel = "noopener noreferrer";
+    attributionCommit.textContent = "loading commit…";
+
     attribution.appendChild(attributionBrand);
     attribution.appendChild(attributionSeparator);
     attribution.appendChild(attributionDisclaimer);
+    attribution.appendChild(attributionSeparator2);
+    attribution.appendChild(attributionGithub);
+    attribution.appendChild(attributionSeparator3);
+    attribution.appendChild(attributionCommit);
 
     setupFooter.appendChild(feedback);
     setupFooter.appendChild(attribution);
     controls.appendChild(setupFooter);
+
+    loadCommitInfo(attributionCommit);
 
     const stage = document.createElement("section");
     stage.className = "mc-stage";
