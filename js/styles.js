@@ -83,18 +83,18 @@ function addGlobalStyle() {
         @keyframes ffzRainbow {
             0% {
                 filter:
-                    var(--ffz-effect-filter, none)
+                    var(--ffz-effect-filter, )
                     hue-rotate(0deg)
                     saturate(1.5)
-                    var(--shadow-filter, none);
+                    var(--shadow-filter, );
             }
 
             100% {
                 filter:
-                    var(--ffz-effect-filter, none)
+                    var(--ffz-effect-filter, )
                     hue-rotate(360deg)
                     saturate(1.5)
-                    var(--shadow-filter, none);
+                    var(--shadow-filter, );
             }
         }
 
@@ -349,20 +349,20 @@ function addGlobalStyle() {
         @keyframes ffzPhotocopy {
             0%, 100% {
                 filter:
-                    var(--ffz-effect-filter, none)
+                    var(--ffz-effect-filter, )
                     grayscale(1)
                     contrast(1.35)
                     brightness(1.05)
-                    var(--shadow-filter, none);
+                    var(--shadow-filter, );
             }
 
             50% {
                 filter:
-                    var(--ffz-effect-filter, none)
+                    var(--ffz-effect-filter, )
                     grayscale(1)
                     contrast(1.8)
                     brightness(0.9)
-                    var(--shadow-filter, none);
+                    var(--shadow-filter, );
             }
         }
 
@@ -637,3 +637,4 @@ function addGlobalStyle() {
 }
 
 addGlobalStyle();
+

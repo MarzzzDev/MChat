@@ -20,9 +20,8 @@ body {
     --shadow-color: rgba(0, 0, 0, 0.9);
 
     --shadow-filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
-    --ffz-effect-filter: none;
+    --ffz-effect-filter: ;
 }
-
 .message {
     display: block;
     width: auto;
@@ -164,7 +163,7 @@ body.has-background .message.redeem-message:hover {
     gap: 3px;
     margin-right: 6px;
     position: relative;
-    filter: var(--shadow-filter);
+    filter: var(--shadow-filter, );
 }
 
 .badge {
@@ -233,7 +232,7 @@ body.has-background .message.redeem-message:hover {
     vertical-align: middle;
     margin: 0 3px;
     flex: 0 0 auto;
-    filter: var(--ffz-effect-filter, none) var(--shadow-filter, none);
+    filter: var(--ffz-effect-filter, ) var(--shadow-filter, );
     transition: transform 0.15s ease;
 }
 
@@ -275,5 +274,5 @@ body.shadow-disabled .text {
     text-shadow: none;
 }
 body.shadow-disabled {
-    --shadow-filter: none;
+    --shadow-filter: ;
 }
