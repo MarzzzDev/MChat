@@ -19,9 +19,15 @@ const previewMessages = [
         "#DAA520",
         "195845559",
         { badges: "moderator/1,subscriber/1,pikachu/1" }
+    ],
+    [
+        "Underpaid_Actor",
+        "PagMan ffzSpin",
+        "#DAA520",
+        "406239629",
+        { badges: "founder/1,noob/1" }
     ]
 ];
-
 let currentPreviewMessage = 0;
 
 function runPreviewMessage() {

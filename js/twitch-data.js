@@ -219,6 +219,10 @@ const PREVIEW_TWITCH_BADGES = {
         title: "pikachu",
         url: "https://static-cdn.jtvnw.net/badges/v1/20f214cf-36b0-4b42-8992-3b769bcb0461/3"
     },
+    "noob/1": {
+        title: "noob",
+        url: "https://static-cdn.jtvnw.net/badges/v1/d87a78f5-76d9-451f-8f31-752a369e6045/3"
+    },
 };
 
 function seedPreviewTwitchBadges() {
