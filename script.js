@@ -92,6 +92,7 @@ const LOADING_TASKS = [
     { label: "Chatterino badges", run: loadChatterinoBadges }
 ];
 
+loadFFZBotBadgeList();
 function showLoadingIndicator() {
     loadGoogleFontIfNeeded(
         "'Open Sans', sans-serif"
@@ -190,6 +191,54 @@ function showLoadingIndicator() {
     );
 
     return indicator;
+}
+
+const ffzBotBadgeUsers = new Set();
+
+async function loadFFZBotBadgeList() {
+    try {
+        const response =
+            await fetch(
+                "https://api.frankerfacez.com/v1/badge/bot"
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                `FFZ bot badge list: ${response.status}`
+            );
+        }
+
+        const data =
+            await response.json();
+
+        for (
+            const login
+            of Object.values(data.users || {}).flat()
+        ) {
+            ffzBotBadgeUsers.add(
+                String(login || "")
+                    .trim()
+                    .toLowerCase()
+            );
+        }
+
+        console.log(
+            `Loaded ${ffzBotBadgeUsers.size} FFZ-badged bots.`
+        );
+
+    } catch (error) {
+        console.error(
+            "FFZ bot badge list error:",
+            error
+        );
+    }
+}
+
+function isKnownBot(login) {
+    login = String(login || "").trim().toLowerCase();
+    return (
+        ffzBotBadgeUsers.has(login)
+    );
 }
 
 async function runLoadingTasks(tasks) {
@@ -1014,6 +1063,9 @@ function normaliseOverlaySettings(settings = {}) {
     result.gifs =
         settings.gifs !== false;
 
+    result.bots =
+        settings.bots !== false;
+
     result.scale =
         Number(
             settings.scale ?? 0.5
@@ -1132,54 +1184,97 @@ function appendFlatOverlaySettings(
                 .trim()
                 .toLowerCase()
                 .replace(/^#/, "")
-        ],
-        [
+        ]
+    ];
+
+    if (normalised.scale !== 0.5) {
+        query.push([
             "scale",
             String(normalised.scale)
-        ],
-        [
+        ]);
+    }
+
+    if (normalised.emoteScale !== 1) {
+        query.push([
             "emoteScale",
             String(normalised.emoteScale)
-        ],
-        [
+        ]);
+    }
+
+    const fontKey =
+        fontValueToQueryKey(
+            normalised.font
+        );
+
+    if (fontKey !== "opensans") {
+        query.push([
             "font",
-            fontValueToQueryKey(
-                normalised.font
-            )
-        ],
-        [
+            fontKey
+        ]);
+    }
+
+    if (normalised.background !== false) {
+        query.push([
             "background",
             normalised.background ? "1" : "0"
-        ],
-        [
+        ]);
+    }
+
+    const cleanedBgColor =
+        cleanQueryColor(
+            normalised.backgroundColor
+        );
+
+    if (cleanedBgColor !== "2d0c12") {
+        query.push([
             "backgroundColor",
-            cleanQueryColor(
-                normalised.backgroundColor
-            )
-        ],
-        [
+            cleanedBgColor
+        ]);
+    }
+
+    if (normalised.fade !== 15) {
+        query.push([
             "fade",
             normalised.fade === false
                 ? "off"
                 : String(normalised.fade)
-        ],
-        [
+        ]);
+    }
+
+    if (normalised.badges !== true) {
+        query.push([
             "badges",
             normalised.badges ? "1" : "0"
-        ],
-        [
+        ]);
+    }
+
+    if (normalised.gifs !== true) {
+        query.push([
             "gifs",
             normalised.gifs ? "1" : "0"
-        ],
-        [
+        ]);
+    }
+
+    if (normalised.wrap !== false) {
+        query.push([
             "wrap",
             normalised.wrap ? "1" : "0"
-        ],
-        [
+        ]);
+    }
+
+    if (normalised.unlisted !== true) {
+        query.push([
             "unlisted",
             normalised.unlisted ? "1" : "0"
-        ]
-    ];
+        ]);
+    }
+
+    if (normalised.bots !== true) {
+        query.push([
+            "bots",
+            normalised.bots ? "1" : "0"
+        ]);
+    }
 
     url.search =
         "?" +
@@ -1192,7 +1287,6 @@ function appendFlatOverlaySettings(
 
     return url;
 }
-
 function migrateLegacySerializedLink() {
     const encoded =
         params.get("settings");
@@ -1263,6 +1357,12 @@ let backgroundEnabled =
     parseQueryBoolean(
         "background",
         false
+    );
+
+let botsEnabled =
+    parseQueryBoolean(
+        "bots",
+        true
     );
 
 let backgroundColor = (() => {
@@ -1700,6 +1800,7 @@ async function loadPreviewEmotes() {
     ];
 
     tasks.push(loadTwitchBadges());
+    tasks.push(loadFFZBotBadgeList());
 
     await Promise.allSettled(tasks);
 
@@ -3081,6 +3182,7 @@ function showOverlaySetupScreen() {
     const wrapCheckbox = addToggle(appearancePanel, "Wrap messages", "Allow long chat messages to continue on another line.", "wrap", wrapEnabled);
     const badgesCheckbox = addToggle(appearancePanel, "Badges", "Show Twitch, 7TV, FFZ and other supported badges.", "badges", badgesEnabled);
     const gifsCheckbox = addToggle(appearancePanel, "GIFs", "Show Twitch GIFs in chat messages.", "gifs", gifsEnabled);
+    const botsCheckbox = addToggle(appearancePanel, "Bots", "Show bot messages and commands in chat.", "bots", botsEnabled);
     const unlistedCheckbox = addToggle(appearancePanel, "Unlisted 7TV emotes", "Render unlisted 7TV emotes when they are available.", "unlisted", showUnlisted7TV);
 
     const typographyPanel = createPanel("typography", "Typography", "Choose the font used by the renderer. Changes are applied to the live preview immediately.", "03");
@@ -3137,6 +3239,7 @@ function showOverlaySetupScreen() {
         "MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
         "7TV Paints, FFZ, BTTV and Twitch badges are supported.",
         "GIFs are supported, but can be disabled for performance.",
+        "Bots and commands can be hidden from the overlay.",
         "Unlisted 7TV emotes can be enabled or disabled.",
         "You can choose from a variety of fonts for the chat.",
         "You can scale the text and emotes independently.",
@@ -3265,6 +3368,10 @@ function showOverlaySetupScreen() {
         }
     });
 
+    botsCheckbox.addEventListener("change", () => {
+        botsEnabled = botsCheckbox.checked;
+    });
+
     unlistedCheckbox.addEventListener("change", () => {
         showUnlisted7TV = unlistedCheckbox.checked;
     });
@@ -3378,6 +3485,9 @@ function showOverlaySetupScreen() {
 
             gifs:
                 gifsCheckbox.checked,
+
+            bots:
+                botsCheckbox.checked,
 
             scale:
                 Math.max(
@@ -8148,6 +8258,25 @@ function handleTwitchIRCPrivmsg(message) {
     const rawText =
         message.trailing || "";
 
+    const login =
+        (tags.login || prefixUser || "").toLowerCase();
+
+    if (!botsEnabled && isKnownBot(login)) {
+        return;
+    }
+
+    if (!botsEnabled) {
+        const bareText =
+            rawText
+                .replace(/^\x01?ACTION /, "")
+                .replace(/\x01$/, "")
+                .trim();
+
+        if (bareText.startsWith("!")) {
+            return;
+        }
+    }
+
     const actionMatch =
         rawText.match(
             /^\x01?ACTION /
@@ -8934,27 +9063,6 @@ function addGlobalStyle() {
         style
     );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 addGlobalStyle();
 
