@@ -1344,6 +1344,84 @@ function hslToHex(h, s, l) {
 
 const previewMessageCache = [];
 const PREVIEW_CACHE_LIMIT = 12;
+const PREVIEW_FADE_OUT_MS = 1000;
+
+function removePreviewEntry(entry) {
+    clearTimeout(entry.fadeTimer);
+    clearTimeout(entry.removeTimer);
+
+    const index = previewMessageCache.indexOf(entry);
+
+    if (index !== -1) {
+        previewMessageCache.splice(index, 1);
+    }
+
+    const element = entry.element;
+    entry.element = null;
+
+    if (!element) {
+        return;
+    }
+
+    element.remove();
+
+    const set = userMessageElements.get(entry.userId);
+
+    if (set) {
+        set.delete(element);
+
+        if (set.size === 0) {
+            userMessageElements.delete(entry.userId);
+        }
+    }
+}
+
+function schedulePreviewFade(entry) {
+    clearTimeout(entry.fadeTimer);
+    clearTimeout(entry.removeTimer);
+
+    const element = entry.element;
+
+    if (!element) {
+        return;
+    }
+
+    element.style.animation = "";
+
+    if (fade === false) {
+        return;
+    }
+
+    const life = entry.createdAt + fade * 1000 - Date.now();
+
+    if (life <= 0) {
+        removePreviewEntry(entry);
+        return;
+    }
+
+    entry.fadeTimer = setTimeout(() => {
+        const left = Math.max(
+            0,
+            entry.createdAt + fade * 1000 - Date.now()
+        );
+
+        const duration = Math.min(left, PREVIEW_FADE_OUT_MS);
+        const offset = PREVIEW_FADE_OUT_MS - duration;
+
+        element.style.animation =
+            `messageFadeOut ${PREVIEW_FADE_OUT_MS}ms ease-in ${-offset}ms forwards`;
+
+        entry.removeTimer = setTimeout(() => {
+            removePreviewEntry(entry);
+        }, duration);
+    }, Math.max(0, life - PREVIEW_FADE_OUT_MS));
+}
+
+function reschedulePreviewFades() {
+    for (const entry of [...previewMessageCache]) {
+        schedulePreviewFade(entry);
+    }
+}
 
 function addPreviewMessage(
     user,
@@ -1359,16 +1437,22 @@ function addPreviewMessage(
         return;
     }
 
-    previewMessageCache.push({
+    const entry = {
         user,
         msg,
         usernameColor,
         userId,
-        tags
-    });
+        tags,
+        createdAt: Date.now(),
+        element: null,
+        fadeTimer: null,
+        removeTimer: null
+    };
+
+    previewMessageCache.push(entry);
 
     while (previewMessageCache.length > PREVIEW_CACHE_LIMIT) {
-        previewMessageCache.shift();
+        removePreviewEntry(previewMessageCache[0]);
     }
 
     const result = onMsg(
@@ -1377,7 +1461,9 @@ function addPreviewMessage(
         usernameColor,
         userId,
         tags,
-        previewChat
+        previewChat,
+        null,
+        entry
     );
 
     requestAnimationFrame(() => {
@@ -1388,8 +1474,6 @@ function addPreviewMessage(
     return result;
 }
 
-window.addPreviewMessage = addPreviewMessage;
-
 function rerenderPreviewChat() {
     const previewChat =
         document.getElementById("chat");
@@ -1398,18 +1482,33 @@ function rerenderPreviewChat() {
         return;
     }
 
+    for (const entry of previewMessageCache) {
+        clearTimeout(entry.fadeTimer);
+        clearTimeout(entry.removeTimer);
+        entry.element = null;
+    }
+
     previewChat.innerHTML = "";
     messageElements.clear();
     userMessageElements.clear();
 
-    for (const entry of previewMessageCache) {
+    const now = Date.now();
+
+    for (const entry of [...previewMessageCache]) {
+        if (fade !== false && now - entry.createdAt >= fade * 1000) {
+            removePreviewEntry(entry);
+            continue;
+        }
+
         onMsg(
             entry.user,
             entry.msg,
             entry.usernameColor,
             entry.userId,
             entry.tags,
-            previewChat
+            previewChat,
+            null,
+            entry
         );
     }
 
@@ -1419,10 +1518,9 @@ function rerenderPreviewChat() {
     });
 }
 
-window.rerenderPreviewChat = rerenderPreviewChat;
-
 window.addPreviewMessage = addPreviewMessage;
-
+window.rerenderPreviewChat = rerenderPreviewChat;
+window.reschedulePreviewFades = reschedulePreviewFades;
 async function onMsg(
     user,
     msg,
@@ -1430,7 +1528,8 @@ async function onMsg(
     userId,
     tags,
     targetChat = null,
-    messageId = null
+    messageId = null,
+    previewEntry = null
 ) {
     const chat =
         targetChat ||
@@ -1620,7 +1719,10 @@ async function onMsg(
             }
     }
 
-    if (fade != false) {
+    if (previewEntry) {
+        previewEntry.element = message;
+        schedulePreviewFade(previewEntry);
+    } else if (fade !== false) {
         setTimeout(() => {
             message.style.animation =
                 "messageFadeOut 1s ease-in forwards";

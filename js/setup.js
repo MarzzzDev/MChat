@@ -66,7 +66,14 @@ const PLATFORM_BADGE_SOURCES = [
     { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg" }
 ];
 
+let previewTimer = null;
+let previewActive = false;
+
 function runPreviewMessage() {
+    if (!previewActive) {
+        return;
+    }
+
     const message = previewMessages[currentPreviewMessage];
 
     addPreviewMessage(...message);
@@ -76,9 +83,30 @@ function runPreviewMessage() {
 
     const delay = Math.random() * 1000 + 3000;
 
-    setTimeout(runPreviewMessage, delay);
+    previewTimer = setTimeout(runPreviewMessage, delay);
 }
 
+async function startPreviewMessages() {
+    previewActive = true;
+
+    try {
+        await loadPreviewEmotes();
+    } catch (error) {
+        console.warn("Preview emotes failed to load:", error);
+    }
+
+    if (!previewActive) {
+        return;
+    }
+
+    previewTimer = setTimeout(runPreviewMessage, 500);
+}
+
+function stopPreviewMessages() {
+    previewActive = false;
+    clearTimeout(previewTimer);
+    previewTimer = null;
+}
 async function loadCommitInfo(target) {
     if (!target) {
         return;
@@ -1006,8 +1034,17 @@ function showOverlaySetupScreen() {
             scrollbar-width: none;
         }
 
+        #overlay-setup-screen #chat.mc-preview-chat > .message {
+            flex: 0 0 auto;
+            height: auto;
+            min-height: min-content;
+        }
+        
         #overlay-setup-screen #chat.mc-preview-chat::-webkit-scrollbar {
             display: none;
+        }
+        #overlay-setup-screen #chat.mc-preview-chat > * {
+            flex-shrink: 0;
         }
 
         #overlay-setup-screen .mc-preview-note {
@@ -1882,15 +1919,7 @@ function showOverlaySetupScreen() {
     gifsCheckbox.addEventListener("change", () => {
         gifsEnabled = gifsCheckbox.checked;
         rerenderPreviewChat();
-        if (!gifsEnabled) {
-            previewChat
-                .querySelectorAll(
-                    ".twitch-gif, .twitch-gif-break"
-                )
-                .forEach(element => element.remove());
-        }
     });
-
     botsCheckbox.addEventListener("change", () => {
         botsEnabled = botsCheckbox.checked;
     });
@@ -1953,17 +1982,30 @@ function showOverlaySetupScreen() {
         document.body.classList.toggle("pixel-font", chatFont === "'Minecraft', sans-serif");
     });
 
+    let fadeApplyTimer = null;
+
+    function applyFadeChange() {
+        clearTimeout(fadeApplyTimer);
+
+        fadeApplyTimer = setTimeout(() => {
+            fade = noFade.checked
+                ? false
+                : Math.max(1, Number(fadeInput.value) || 15);
+
+            reschedulePreviewFades();
+        }, 400);
+    }
+
     fadeInput.addEventListener("input", () => {
         if (!noFade.checked) {
-            fade = Math.max(1, Number(fadeInput.value) || 15);
+            applyFadeChange();
         }
     });
 
     noFade.addEventListener("change", () => {
-        fade = noFade.checked ? false : Math.max(1, Number(fadeInput.value) || 15);
         syncFadeState();
+        applyFadeChange();
     });
-
     textScaleInput.addEventListener("input", () => {
         const newScale = Number(textScaleInput.value);
         if (!Number.isFinite(newScale)) {
@@ -2181,13 +2223,8 @@ function showOverlaySetupScreen() {
     });
 
     syncFadeState();
-    loadPreviewEmotes();
-
-    window.setTimeout(() => {
-        runPreviewMessage();
-    }, 6000);
+    startPreviewMessages();
 }
-
 function showChannelError(message) {
     const screen =
         document.getElementById(
@@ -2221,6 +2258,8 @@ function hideOverlaySetupScreen() {
     if (!screen) {
         return;
     }
+
+    stopPreviewMessages();
 
     const chat =
         document.getElementById("chat");
