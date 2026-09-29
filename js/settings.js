@@ -76,7 +76,7 @@ function normaliseOverlaySettings(settings = {}) {
             settings.backgroundColor
         )
             ? settings.backgroundColor
-            : "#2d0c12";
+            : "#000000";
 
     result.textColor =
         typeof settings.textColor === "string" &&
@@ -217,6 +217,55 @@ function normaliseOverlaySettings(settings = {}) {
             Math.min(result.shadowOffset, 20)
         );
 
+    result.bold =
+        settings.bold !== false;
+
+    result.uppercase =
+        settings.uppercase === true;
+
+    result.customFont =
+        sanitizeFontName(
+            settings.customFont
+        );
+
+    result.gifScale =
+        Number(
+            settings.gifScale ?? 1
+        );
+
+    if (!Number.isFinite(result.gifScale)) {
+        result.gifScale = 1;
+    }
+
+    result.gifScale =
+        Math.max(
+            0.25,
+            Math.min(result.gifScale, 3)
+        );
+
+    result.strokeWidth =
+        Number(
+            settings.strokeWidth ?? 0
+        );
+
+    if (!Number.isFinite(result.strokeWidth)) {
+        result.strokeWidth = 0;
+    }
+
+    result.strokeWidth =
+        Math.max(
+            0,
+            Math.min(result.strokeWidth, 20)
+        );
+
+    result.strokeColor =
+        typeof settings.strokeColor === "string" &&
+        /^#[0-9a-fA-F]{6}$/.test(
+            settings.strokeColor
+        )
+            ? settings.strokeColor
+            : "#000000";
+
     return result;
 }
 
@@ -227,7 +276,8 @@ function fontValueToQueryKey(value) {
         "'Comic Sans MS', sans-serif": "comicsans",
         "'Roboto', sans-serif": "roboto",
         "'Montserrat', sans-serif": "montserrat",
-        "'Minecraft', sans-serif": "minecraft"
+        "'Minecraft', sans-serif": "minecraft",
+        "custom": "custom"
     };
 
     return (
@@ -252,7 +302,8 @@ function fontQueryKeyToValue(value) {
 
         montserrat: "'Montserrat', sans-serif",
 
-        minecraft: "'Minecraft', sans-serif"
+        minecraft: "'Minecraft', sans-serif",
+        custom: "custom"
     };
 
     return (
@@ -273,7 +324,7 @@ function cleanQueryColor(value) {
 
     return /^[0-9a-fA-F]{6}$/.test(color)
         ? color.toLowerCase()
-        : "2d0c12";
+        : "000000";
 }
 
 function cleanQueryTextColor(value) {
@@ -334,6 +385,52 @@ function appendFlatOverlaySettings(
         ]);
     }
 
+    if (
+        fontKey === "custom" &&
+        normalised.customFont
+    ) {
+        query.push([
+            "customFont",
+            encodeURIComponent(
+                normalised.customFont
+            )
+        ]);
+    }
+
+    if (normalised.bold !== true) {
+        query.push(["bold", "0"]);
+    }
+
+    if (normalised.uppercase === true) {
+        query.push(["uppercase", "1"]);
+    }
+
+    if (normalised.gifScale !== 1) {
+        query.push([
+            "gifScale",
+            String(normalised.gifScale)
+        ]);
+    }
+
+    if (normalised.strokeWidth !== 0) {
+        query.push([
+            "strokeWidth",
+            String(normalised.strokeWidth)
+        ]);
+    }
+
+    const cleanedStrokeColor =
+        String(normalised.strokeColor)
+            .replace(/^#/, "")
+            .toLowerCase();
+
+    if (cleanedStrokeColor !== "000000") {
+        query.push([
+            "strokeColor",
+            cleanedStrokeColor
+        ]);
+    }
+
     if (normalised.background !== false) {
         query.push([
             "background",
@@ -346,7 +443,7 @@ function appendFlatOverlaySettings(
             normalised.backgroundColor
         );
 
-    if (cleanedBgColor !== "2d0c12") {
+    if (cleanedBgColor !== "000000") {
         query.push([
             "backgroundColor",
             cleanedBgColor
@@ -567,7 +664,7 @@ let backgroundColor = (() => {
 
     return /^[0-9a-fA-F]{6}$/.test(value)
         ? `#${value}`
-        : "#2d0c12";
+        : "#000000";
 })();
 
 let textColor = (() => {
@@ -818,7 +915,8 @@ const CHAT_FONTS = [
     { label: "Comic Sans MS", value: "'Comic Sans MS', sans-serif" },
     { label: "Roboto", value: "'Roboto', sans-serif" },
     { label: "Montserrat", value: "'Montserrat', sans-serif" },
-    { label: "Minecraft", value: "'Minecraft', sans-serif" }
+    { label: "Minecraft", value: "'Minecraft', sans-serif" },
+    { label: "Custom (Google Font)", value: "custom" }
 ];
 
 const GOOGLE_FONT_FAMILIES = {
@@ -885,10 +983,163 @@ let chatFont =
         params.get("font")
     );
 
-document.documentElement.style.setProperty(
-    "--chat-font",
-    chatFont
-);
+function sanitizeFontName(name) {
+    return String(name || "")
+        .replace(/[^a-zA-Z0-9 ]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+let customFontName =
+    sanitizeFontName(
+        params.get("customFont")
+    );
+
+function resolveChatFont() {
+    if (chatFont === "custom") {
+        return customFontName
+            ? `'${customFontName}', sans-serif`
+            : "'Open Sans', sans-serif";
+    }
+
+    return chatFont;
+}
+
+function loadCustomGoogleFont(name) {
+    const key = `custom:${name}`;
+
+    if (!name || loadedGoogleFonts.has(key)) {
+        return;
+    }
+
+    loadedGoogleFonts.add(key);
+
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = `https://fonts.googleapis.com/css2?family=${name.replace(/ /g, "+")}&display=swap`;
+    document.head.appendChild(link);
+}
+
+function applyChatFont() {
+    const resolved = resolveChatFont();
+
+    document.documentElement.style.setProperty(
+        "--chat-font",
+        resolved
+    );
+
+    if (chatFont === "custom") {
+        loadCustomGoogleFont(customFontName);
+    } else {
+        loadGoogleFontIfNeeded(resolved);
+        loadCustomFontIfNeeded(resolved);
+    }
+
+    document.body.classList.toggle(
+        "pixel-font",
+        resolved === "'Minecraft', sans-serif"
+    );
+}
+
+applyChatFont();
+
+let boldEnabled =
+    parseQueryBoolean(
+        "bold",
+        true
+    );
+
+let uppercaseEnabled =
+    parseQueryBoolean(
+        "uppercase",
+        false
+    );
+
+let gifScale =
+    Number(
+        params.get("gifScale") ?? 1
+    );
+
+if (!Number.isFinite(gifScale)) {
+    gifScale = 1;
+}
+
+gifScale =
+    Math.max(
+        0.25,
+        Math.min(gifScale, 3)
+    );
+
+let strokeWidth =
+    Number(
+        params.get("strokeWidth") ?? 0
+    );
+
+if (!Number.isFinite(strokeWidth)) {
+    strokeWidth = 0;
+}
+
+strokeWidth =
+    Math.max(
+        0,
+        Math.min(strokeWidth, 20)
+    );
+
+let strokeColor = (() => {
+    const value =
+        String(
+            params.get("strokeColor") ||
+            ""
+        )
+            .trim()
+            .replace(/^#/, "");
+
+    return /^[0-9a-fA-F]{6}$/.test(value)
+        ? `#${value}`
+        : "#000000";
+})();
+
+function buildStrokeShadow(width, color) {
+    if (!(width > 0)) {
+        return "0 0 0 transparent";
+    }
+
+    const shadows = [];
+    const outerSteps = Math.min(72, Math.max(16, Math.ceil(width * 6)));
+
+    for (let i = 0; i < outerSteps; i++) {
+        const angle = (i / outerSteps) * Math.PI * 2;
+        const x = (Math.cos(angle) * width).toFixed(2);
+        const y = (Math.sin(angle) * width).toFixed(2);
+        shadows.push(`${x}px ${y}px 0 ${color}`);
+    }
+
+    if (width > 2) {
+        const innerSteps = Math.min(36, Math.max(8, Math.ceil(width * 3)));
+        const innerRadius = width / 2;
+
+        for (let i = 0; i < innerSteps; i++) {
+            const angle = (i / innerSteps) * Math.PI * 2;
+            const x = (Math.cos(angle) * innerRadius).toFixed(2);
+            const y = (Math.sin(angle) * innerRadius).toFixed(2);
+            shadows.push(`${x}px ${y}px 0 ${color}`);
+        }
+    }
+
+    return shadows.join(", ");
+}
+
+function applyTextStyleSettings() {
+    const root = document.documentElement.style;
+
+    root.setProperty("--chat-weight", boldEnabled ? "900" : "400");
+    root.setProperty("--gif-scale", String(gifScale));
+    root.setProperty("--stroke-shadow", buildStrokeShadow(strokeWidth, strokeColor));
+
+    document.body.classList.toggle("uppercase", uppercaseEnabled);
+}
+
+applyTextStyleSettings();
 
 loadGoogleFontIfNeeded(chatFont);
 loadCustomFontIfNeeded(chatFont);

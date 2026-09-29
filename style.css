@@ -18,7 +18,9 @@ body {
     --shadow-offset-y: 3px;
     --shadow-blur: 6px;
     --shadow-color: rgba(0, 0, 0, 0.9);
-
+    --chat-weight: 900;
+    --gif-scale: 1;
+    --stroke-shadow: 0 0 0 transparent;
     --shadow-filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
     --ffz-effect-filter: ;
 }
@@ -192,7 +194,7 @@ body.has-background .message.redeem-message:hover {
     word-break: break-word;
     white-space: normal;
     color: #FF0000;
-    text-shadow: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
+    text-shadow: var(--stroke-shadow), var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
 }
@@ -213,7 +215,7 @@ body.has-background .message.redeem-message:hover {
     overflow-wrap: anywhere;
     word-break: break-word;
     white-space: normal;
-    text-shadow: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
+    text-shadow: var(--stroke-shadow), var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
 }
@@ -258,8 +260,29 @@ body.has-background .message.redeem-message:hover {
 
 body.shadow-disabled .username,
 body.shadow-disabled .text {
-    text-shadow: none;
+    text-shadow: var(--stroke-shadow);
 }
 body.shadow-disabled {
     --shadow-filter: ;
+}
+
+.username,
+.text {
+    -webkit-text-stroke: calc(var(--stroke-width) * 2) var(--stroke-color);
+    paint-order: stroke fill;
+}
+
+body.uppercase #chat,
+body.uppercase .username,
+body.uppercase .text,
+body.uppercase .reply-to {
+    text-transform: uppercase;
+}
+
+.gif,
+.gif-image,
+.twitch-gif,
+.chat-gif,
+img[src*=".gif" i] {
+    zoom: var(--gif-scale, 1);
 }

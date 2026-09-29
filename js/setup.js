@@ -1905,6 +1905,22 @@ function showOverlaySetupScreen() {
 
     addField(typographyPanel, "Chat font", fontSelect);
 
+    const customFontInput = document.createElement("input");
+    customFontInput.type = "text";
+    customFontInput.className = "mc-input";
+    customFontInput.placeholder = "e.g. Press Start 2P";
+    customFontInput.value = customFontName;
+    customFontInput.autocomplete = "off";
+    customFontInput.spellcheck = false;
+
+    const customFontField = addField(typographyPanel, "Google Font name", customFontInput);
+
+    function syncCustomFontField() {
+        customFontField.style.display = fontSelect.value === "custom" ? "" : "none";
+    }
+
+    syncCustomFontField();
+    
     const typographyNote = document.createElement("div");
     typographyNote.className = "mc-muted";
     typographyNote.textContent = "Settings are included directly in the generated overlay URL.";
@@ -1933,6 +1949,77 @@ function showOverlaySetupScreen() {
         "Emote scale",
         emoteScaleInput
     );
+
+    const gifScaleInput = document.createElement("input");
+    gifScaleInput.type = "number";
+    gifScaleInput.className = "mc-input";
+    gifScaleInput.min = "0.25";
+    gifScaleInput.max = "3";
+    gifScaleInput.step = "0.05";
+    gifScaleInput.value = String(gifScale);
+
+    addField(typographyPanel, "GIF scale", gifScaleInput);
+
+    const uppercaseCheckbox = addToggle(typographyPanel, "All uppercase", "Convert usernames, messages and replies to uppercase.", "uppercase", uppercaseEnabled);
+
+    const strokeDivider = document.createElement("div");
+    strokeDivider.className = "mc-divider";
+    typographyPanel.appendChild(strokeDivider);
+
+    const strokeSub = document.createElement("h2");
+    strokeSub.className = "mc-subhead";
+    strokeSub.textContent = "Text stroke";
+    typographyPanel.appendChild(strokeSub);
+
+    const strokeTwoCol = document.createElement("div");
+    strokeTwoCol.className = "mc-two-col";
+
+    const strokeWidthField = document.createElement("div");
+    strokeWidthField.className = "mc-field";
+
+    const strokeWidthLabel = document.createElement("label");
+    strokeWidthLabel.className = "mc-label";
+    strokeWidthLabel.textContent = "Thickness";
+
+    const strokeWidthLine = document.createElement("div");
+    strokeWidthLine.className = "mc-range-line";
+
+    const strokeWidthInput = document.createElement("input");
+    strokeWidthInput.type = "number";
+    strokeWidthInput.className = "mc-input";
+    strokeWidthInput.min = "0";
+    strokeWidthInput.max = "20";
+    strokeWidthInput.step = "0.5";
+    strokeWidthInput.value = String(strokeWidth);
+
+    const strokeWidthUnit = document.createElement("span");
+    strokeWidthUnit.className = "mc-unit";
+    strokeWidthUnit.textContent = "px";
+
+    strokeWidthLine.appendChild(strokeWidthInput);
+    strokeWidthLine.appendChild(strokeWidthUnit);
+    strokeWidthField.appendChild(strokeWidthLabel);
+    strokeWidthField.appendChild(strokeWidthLine);
+
+    const strokeColorField = document.createElement("div");
+    strokeColorField.className = "mc-field";
+
+    const strokeColorLabel = document.createElement("label");
+    strokeColorLabel.className = "mc-label";
+    strokeColorLabel.textContent = "Color";
+
+    const strokeColorInput = document.createElement("input");
+    strokeColorInput.type = "color";
+    strokeColorInput.className = "mc-color";
+    strokeColorInput.value = strokeColor;
+    strokeColorInput.setAttribute("aria-label", "Stroke color");
+
+    strokeColorField.appendChild(strokeColorLabel);
+    strokeColorField.appendChild(strokeColorInput);
+
+    strokeTwoCol.appendChild(strokeWidthField);
+    strokeTwoCol.appendChild(strokeColorField);
+    typographyPanel.appendChild(strokeTwoCol);
 
     const timingPanel = createPanel("timing", "Timing", "Tune message lifetime and fading behavior.", "04");
 
@@ -2161,6 +2248,51 @@ function showOverlaySetupScreen() {
         document.body.classList.toggle("pixel-font", chatFont === "'Minecraft', sans-serif");
     });
 
+    fontSelect.addEventListener("change", () => {
+        chatFont = fontSelect.value;
+        syncCustomFontField();
+        applyChatFont();
+    });
+
+    let customFontTimer = null;
+
+    customFontInput.addEventListener("input", () => {
+        clearTimeout(customFontTimer);
+
+        customFontTimer = setTimeout(() => {
+            customFontName = sanitizeFontName(customFontInput.value);
+            applyChatFont();
+        }, 500);
+    });
+
+    uppercaseCheckbox.addEventListener("change", () => {
+        uppercaseEnabled = uppercaseCheckbox.checked;
+        applyTextStyleSettings();
+    });
+
+    gifScaleInput.addEventListener("input", () => {
+        const value = Number(gifScaleInput.value);
+        if (!Number.isFinite(value)) {
+            return;
+        }
+        gifScale = Math.max(0.25, Math.min(value, 3));
+        applyTextStyleSettings();
+    });
+
+    strokeWidthInput.addEventListener("input", () => {
+        const value = Number(strokeWidthInput.value);
+        if (!Number.isFinite(value)) {
+            return;
+        }
+        strokeWidth = Math.max(0, Math.min(value, 20));
+        applyTextStyleSettings();
+    });
+
+    strokeColorInput.addEventListener("input", () => {
+        strokeColor = strokeColorInput.value;
+        applyTextStyleSettings();
+    });
+
     let fadeApplyTimer = null;
 
     function applyFadeChange() {
@@ -2327,6 +2459,36 @@ function showOverlaySetupScreen() {
 
             font:
                 fontSelect.value,
+
+            customFont:
+                sanitizeFontName(
+                    customFontInput.value
+                ),
+
+
+            uppercase:
+                uppercaseCheckbox.checked,
+
+            gifScale:
+                Math.max(
+                    0.25,
+                    Math.min(
+                        Number(gifScaleInput.value) || 1,
+                        3
+                    )
+                ),
+
+            strokeWidth:
+                Math.max(
+                    0,
+                    Math.min(
+                        Number(strokeWidthInput.value) || 0,
+                        20
+                    )
+                ),
+
+            strokeColor:
+                strokeColorInput.value,
 
             shadow:
                 shadowCheckbox.checked,
