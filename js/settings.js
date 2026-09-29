@@ -78,6 +78,14 @@ function normaliseOverlaySettings(settings = {}) {
             ? settings.backgroundColor
             : "#2d0c12";
 
+    result.textColor =
+        typeof settings.textColor === "string" &&
+        /^#[0-9a-fA-F]{6}$/.test(
+            settings.textColor
+        )
+            ? settings.textColor
+            : "#ffffff";
+
     result.fade =
         settings.fade === false
             ? false
@@ -268,6 +276,18 @@ function cleanQueryColor(value) {
         : "2d0c12";
 }
 
+function cleanQueryTextColor(value) {
+    const color =
+        String(value || "")
+            .trim()
+            .replace(/^#/, "");
+
+    return /^[0-9a-fA-F]{6}$/.test(color)
+        ? color.toLowerCase()
+        : "ffffff";
+}
+
+
 function appendFlatOverlaySettings(
     url,
     channel,
@@ -330,6 +350,18 @@ function appendFlatOverlaySettings(
         query.push([
             "backgroundColor",
             cleanedBgColor
+        ]);
+    }
+
+    const cleanedTextColor =
+        cleanQueryTextColor(
+            normalised.textColor
+        );
+
+    if (cleanedTextColor !== "ffffff") {
+        query.push([
+            "textColor",
+            cleanedTextColor
         ]);
     }
 
@@ -536,6 +568,20 @@ let backgroundColor = (() => {
     return /^[0-9a-fA-F]{6}$/.test(value)
         ? `#${value}`
         : "#2d0c12";
+})();
+
+let textColor = (() => {
+    const value =
+        String(
+            params.get("textColor") ||
+            ""
+        )
+            .trim()
+            .replace(/^#/, "");
+
+    return /^[0-9a-fA-F]{6}$/.test(value)
+        ? `#${value}`
+        : "#ffffff";
 })();
 
 let fade;
@@ -756,6 +802,15 @@ function applyBackgroundColor(hex) {
 }
 
 applyBackgroundColor(backgroundColor);
+
+function applyTextColor(hex) {
+    document.documentElement.style.setProperty(
+        "--text-color",
+        hexToRgbaString(hex, 1)
+    );
+}
+
+applyTextColor(textColor);
 
 const CHAT_FONTS = [
     { label: "Open Sans", value: "'Open Sans', sans-serif" },

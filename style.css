@@ -12,8 +12,8 @@ body {
 :root {
     --chat-scale: 1;
     --chat-font: 'Open Sans', sans-serif;
-    --bg-color-1: rgba(45, 12, 18, 0.9);
-    --bg-color-2: rgba(65, 18, 25, 0.75);
+    --chat-bg: transparent;
+    --text-color: rgb(255, 255, 255);
     --shadow-offset-x: 3px;
     --shadow-offset-y: 3px;
     --shadow-blur: 6px;
@@ -74,17 +74,8 @@ body.pixel-font .text {
     word-break: break-word;
 }
 
-body.has-background .message {
-    background: linear-gradient(
-        90deg,
-        var(--bg-color-1),
-        var(--bg-color-2)
-    );
-
-    box-shadow:
-        0 4px 14px rgba(0, 0, 0, 0.45),
-        inset 0 0 18px rgba(255, 50, 50, 0.06);
-}
+/* Messages themselves never have a background anymore.
+   The background lives on #chat (see --chat-bg). */
 
 .message.redeem-message {
     background: transparent;
@@ -116,16 +107,19 @@ body.has-background .message.redeem-message:hover {
     box-sizing: border-box;
     padding: 18px;
     position: absolute;
+    top: 0;
     bottom: 0;
     left: 0;
     overflow: hidden;
-    color: white;
+    background: var(--chat-bg, transparent);
+    color: var(--text-color);
     font-weight: 900;
     word-break: break-word;
     overflow-wrap: anywhere;
     white-space: normal;
     display: flex;
     flex-direction: column;
+    justify-content: flex-end;
     align-items: flex-start;
     zoom: var(--chat-scale);
 }
@@ -204,7 +198,7 @@ body.has-background .message.redeem-message:hover {
 }
 
 .text {
-    color: #FFFFFF;
+    color: var(--text-color);
     font-family: var(--chat-font);
     font-style: normal;
     font-size: 50px;
@@ -260,13 +254,6 @@ body.has-background .message.redeem-message:hover {
     max-width: 100%;
     overflow-wrap: anywhere;
     word-break: break-word;
-}
-
-
-body.has-background .message:hover {
-    box-shadow:
-        0 4px 18px rgba(0, 0, 0, 0.5),
-        0 0 15px rgba(255, 50, 50, 0.14);
 }
 
 body.shadow-disabled .username,

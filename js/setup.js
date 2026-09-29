@@ -73,6 +73,57 @@ const PLATFORM_BADGE_SOURCES = [
     { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg" }
 ];
 
+/* ------------------------------------------------------------------
+   Chat-wide background (single layer behind the whole chat).
+   Default: fully transparent (opacity 0). Opacity is stored as 0..1
+   and travels in the overlay URL as ?backgroundOpacity=
+------------------------------------------------------------------ */
+let backgroundOpacity = (() => {
+    const raw = parseFloat(
+        new URLSearchParams(window.location.search).get("backgroundOpacity")
+    );
+    return Number.isFinite(raw) ? Math.max(0, Math.min(raw, 1)) : 0;
+})();
+
+function hexToRgba(hex, alpha) {
+    let h = String(hex || "#000000").replace("#", "").trim();
+
+    if (h.length === 3) {
+        h = h.split("").map(c => c + c).join("");
+    }
+
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) {
+        h = "000000";
+    }
+
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyChatBackground() {
+    const enabled =
+        typeof backgroundEnabled !== "undefined"
+            ? !!backgroundEnabled
+            : true;
+
+    const color =
+        typeof backgroundColor !== "undefined" && backgroundColor
+            ? backgroundColor
+            : "#000000";
+
+    document.documentElement.style.setProperty(
+        "--chat-bg",
+        enabled ? hexToRgba(color, backgroundOpacity) : "transparent"
+    );
+
+    document.body.classList.toggle("has-background", enabled);
+}
+
+document.addEventListener("DOMContentLoaded", applyChatBackground);
+
 let previewTimer = null;
 let previewActive = false;
 
@@ -674,6 +725,11 @@ function showOverlaySetupScreen() {
             background: #151519;
         }
 
+        /* Same look as a toggle row, but no switch (used for Text color) */
+        #overlay-setup-screen .mc-toggle-row.mc-static-row {
+            cursor: default;
+        }
+
         #overlay-setup-screen .mc-toggle-copy {
             min-width: 0;
         }
@@ -820,6 +876,11 @@ function showOverlaySetupScreen() {
             border-top: 0;
             border-radius: 0 0 5px 5px;
             background: #0e0e11;
+            transition: opacity .12s ease;
+        }
+
+        #overlay-setup-screen .mc-color-row.is-disabled {
+            opacity: .45;
         }
 
         #overlay-setup-screen .mc-muted {
@@ -837,9 +898,33 @@ function showOverlaySetupScreen() {
             cursor: pointer;
         }
 
+        #overlay-setup-screen .mc-toggle-row .mc-color {
+            width: 56px;
+            flex: 0 0 auto;
+        }
+
         #overlay-setup-screen .mc-color::-webkit-color-swatch-wrapper { padding: 0; }
         #overlay-setup-screen .mc-color::-webkit-color-swatch { border: 0; border-radius: 3px; }
         #overlay-setup-screen .mc-color::-moz-color-swatch { border: 0; border-radius: 3px; }
+
+        #overlay-setup-screen .mc-range {
+            width: 100%;
+            height: 18px;
+            margin: 0;
+            accent-color: #e8d58a;
+            cursor: pointer;
+        }
+
+        #overlay-setup-screen .mc-range:disabled {
+            cursor: not-allowed;
+        }
+
+        #overlay-setup-screen .mc-percent {
+            color: #b9b9c1;
+            font-size: 10px;
+            font-weight: 700;
+            text-align: right;
+        }
 
         #overlay-setup-screen .mc-two-col {
             display: grid;
@@ -1047,6 +1132,7 @@ function showOverlaySetupScreen() {
             overflow-y: auto;
             padding: 22px;
             scrollbar-width: none;
+            background: var(--chat-bg, transparent);
         }
 
         #overlay-setup-screen #chat.mc-preview-chat > .message {
@@ -1613,10 +1699,41 @@ function showOverlaySetupScreen() {
 
     const appearancePanel = createPanel("appearance", "Appearance", "Control the visual density of messages, the backdrop, badges and 7TV visibility.", "02");
 
-    const backgroundCheckbox = addToggle(appearancePanel, "Background", "Use the configured overlay backdrop.", "background", backgroundEnabled);
+    /* ---- Text color: same look as a toggle row, but with a swatch instead of the switch ---- */
+    const textColorRow = document.createElement("div");
+    textColorRow.className = "mc-toggle-row mc-static-row";
+
+    const textColorCopy = document.createElement("div");
+    textColorCopy.className = "mc-toggle-copy";
+
+    const textColorTitle = document.createElement("div");
+    textColorTitle.className = "mc-toggle-title";
+    textColorTitle.textContent = "Text color";
+
+    const textColorText = document.createElement("div");
+    textColorText.className = "mc-toggle-note";
+    textColorText.textContent = textColor;
+
+    textColorCopy.appendChild(textColorTitle);
+    textColorCopy.appendChild(textColorText);
+
+    const textColorInput = document.createElement("input");
+    textColorInput.type = "color";
+    textColorInput.className = "mc-color";
+    textColorInput.value = textColor;
+    textColorInput.setAttribute("aria-label", "Text color");
+
+    textColorRow.appendChild(textColorCopy);
+    textColorRow.appendChild(textColorInput);
+    appearancePanel.appendChild(textColorRow);
+
+    /* ---- Background: toggle + color + opacity (one layer behind the whole chat) ---- */
+    const backgroundCheckbox = addToggle(appearancePanel, "Background", "One backdrop behind the whole chat, not per message.", "background", backgroundEnabled);
 
     const backgroundColorRow = document.createElement("div");
     backgroundColorRow.className = "mc-color-row";
+    backgroundColorRow.style.borderRadius = "0";
+    backgroundColorRow.style.marginBottom = "0";
 
     const backgroundColorText = document.createElement("span");
     backgroundColorText.className = "mc-muted";
@@ -1631,6 +1748,28 @@ function showOverlaySetupScreen() {
     backgroundColorRow.appendChild(backgroundColorText);
     backgroundColorRow.appendChild(backgroundColorInput);
     appearancePanel.appendChild(backgroundColorRow);
+
+    const backgroundOpacityRow = document.createElement("div");
+    backgroundOpacityRow.className = "mc-color-row";
+    backgroundOpacityRow.style.marginTop = "0";
+    backgroundOpacityRow.style.borderTop = "1px solid #24242a";
+
+    const backgroundOpacityInput = document.createElement("input");
+    backgroundOpacityInput.type = "range";
+    backgroundOpacityInput.className = "mc-range";
+    backgroundOpacityInput.min = "0";
+    backgroundOpacityInput.max = "100";
+    backgroundOpacityInput.step = "1";
+    backgroundOpacityInput.value = String(Math.round(backgroundOpacity * 100));
+    backgroundOpacityInput.setAttribute("aria-label", "Background opacity");
+
+    const backgroundOpacityText = document.createElement("span");
+    backgroundOpacityText.className = "mc-percent";
+    backgroundOpacityText.textContent = `${Math.round(backgroundOpacity * 100)}%`;
+
+    backgroundOpacityRow.appendChild(backgroundOpacityInput);
+    backgroundOpacityRow.appendChild(backgroundOpacityText);
+    appearancePanel.appendChild(backgroundOpacityRow);
 
     const wrapCheckbox = addToggle(appearancePanel, "Wrap messages", "Allow long chat messages to continue on another line.", "wrap", wrapEnabled);
     const badgesCheckbox = addToggle(appearancePanel, "Badges", "Show Twitch, 7TV, FFZ and other supported badges.", "badges", badgesEnabled);
@@ -1818,7 +1957,7 @@ function showOverlaySetupScreen() {
         "You can enable highlighting of usernames with the 7TV Paint/Color.",
         "You can scale the text and emotes independently.",
         "You can set a fade time for messages or disable fading.",
-        "You can choose a background color or disable the background.",
+        "You can choose a background color and opacity for the whole chat, or disable the background.",
         "Once adjusted to your liking, you may copy the link.",
     ];
 
@@ -1909,18 +2048,46 @@ function showOverlaySetupScreen() {
         fadeInput.title = noFade.checked ? "Disable fading is enabled" : "Fade time in seconds";
     }
 
+    function syncBackgroundState() {
+        const disabled = !backgroundCheckbox.checked;
+
+        backgroundColorRow.classList.toggle("is-disabled", disabled);
+        backgroundOpacityRow.classList.toggle("is-disabled", disabled);
+        backgroundColorInput.disabled = disabled;
+        backgroundOpacityInput.disabled = disabled;
+    }
+
     function applyBackgroundPreview() {
-        backgroundColor = backgroundColorInput.value;
-        backgroundColorText.textContent = backgroundColor;
-        applyBackgroundColor(backgroundColor);
         backgroundEnabled = backgroundCheckbox.checked;
-        document.body.classList.toggle("has-background", backgroundEnabled);
+        backgroundColor = backgroundColorInput.value;
+        backgroundOpacity = Number(backgroundOpacityInput.value) / 100;
+
+        backgroundColorText.textContent = backgroundColor;
+        backgroundOpacityText.textContent = `${Math.round(backgroundOpacity * 100)}%`;
+
+        syncBackgroundState();
+        applyChatBackground();
+
         previewChat.classList.toggle("has-background", backgroundEnabled);
+    }
+
+    function applyTextColorPreview() {
+        textColor = textColorInput.value;
+        textColorText.textContent = textColor;
+        applyTextColor(textColor);
     }
 
     backgroundCheckbox.addEventListener("change", applyBackgroundPreview);
     backgroundColorInput.addEventListener("input", applyBackgroundPreview);
     backgroundColorInput.addEventListener("change", applyBackgroundPreview);
+    backgroundOpacityInput.addEventListener("input", applyBackgroundPreview);
+    backgroundOpacityInput.addEventListener("change", applyBackgroundPreview);
+    textColorInput.addEventListener("input", applyTextColorPreview);
+    textColorInput.addEventListener("change", applyTextColorPreview);
+
+    /* initial state so the preview matches the current settings */
+    syncBackgroundState();
+    applyChatBackground();
 
     badgesCheckbox.addEventListener("change", () => {
         badgesEnabled = badgesCheckbox.checked;
@@ -2103,6 +2270,9 @@ function showOverlaySetupScreen() {
             backgroundColor:
                 backgroundColorInput.value,
 
+            textColor:
+                textColorInput.value,
+
             fade:
                 noFade.checked
                     ? false
@@ -2218,6 +2388,20 @@ function showOverlaySetupScreen() {
             overlaySettings
         );
 
+        /* background opacity (0..1), read back at load time by this file */
+        url.searchParams.set(
+            "backgroundOpacity",
+            String(
+                Math.max(
+                    0,
+                    Math.min(
+                        Number(backgroundOpacityInput.value) / 100,
+                        1
+                    )
+                )
+            )
+        );
+
         return url.toString();
     }
 
@@ -2250,6 +2434,7 @@ function showOverlaySetupScreen() {
     syncFadeState();
     startPreviewMessages();
 }
+
 function showChannelError(message) {
     const screen =
         document.getElementById(
@@ -2331,4 +2516,5 @@ function hideOverlaySetupScreen() {
     }
 
     screen.remove();
+    applyChatBackground();
 }
