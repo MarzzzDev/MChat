@@ -73,11 +73,6 @@ const PLATFORM_BADGE_SOURCES = [
     { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg" }
 ];
 
-/* ------------------------------------------------------------------
-   Chat-wide background (single layer behind the whole chat).
-   Default: fully transparent (opacity 0). Opacity is stored as 0..1
-   and travels in the overlay URL as ?backgroundOpacity=
------------------------------------------------------------------- */
 let backgroundOpacity = (() => {
     const raw = parseFloat(
         new URLSearchParams(window.location.search).get("backgroundOpacity")
@@ -724,8 +719,6 @@ function showOverlaySetupScreen() {
             border-color: #33333a;
             background: #151519;
         }
-
-        /* Same look as a toggle row, but no switch (used for Text color) */
         #overlay-setup-screen .mc-toggle-row.mc-static-row {
             cursor: default;
         }
@@ -1699,35 +1692,6 @@ function showOverlaySetupScreen() {
 
     const appearancePanel = createPanel("appearance", "Appearance", "Control the visual density of messages, the backdrop, badges and 7TV visibility.", "02");
 
-    /* ---- Text color: same look as a toggle row, but with a swatch instead of the switch ---- */
-    const textColorRow = document.createElement("div");
-    textColorRow.className = "mc-toggle-row mc-static-row";
-
-    const textColorCopy = document.createElement("div");
-    textColorCopy.className = "mc-toggle-copy";
-
-    const textColorTitle = document.createElement("div");
-    textColorTitle.className = "mc-toggle-title";
-    textColorTitle.textContent = "Text color";
-
-    const textColorText = document.createElement("div");
-    textColorText.className = "mc-toggle-note";
-    textColorText.textContent = textColor;
-
-    textColorCopy.appendChild(textColorTitle);
-    textColorCopy.appendChild(textColorText);
-
-    const textColorInput = document.createElement("input");
-    textColorInput.type = "color";
-    textColorInput.className = "mc-color";
-    textColorInput.value = textColor;
-    textColorInput.setAttribute("aria-label", "Text color");
-
-    textColorRow.appendChild(textColorCopy);
-    textColorRow.appendChild(textColorInput);
-    appearancePanel.appendChild(textColorRow);
-
-    /* ---- Background: toggle + color + opacity (one layer behind the whole chat) ---- */
     const backgroundCheckbox = addToggle(appearancePanel, "Background", "One backdrop behind the whole chat, not per message.", "background", backgroundEnabled);
 
     const backgroundColorRow = document.createElement("div");
@@ -1770,6 +1734,33 @@ function showOverlaySetupScreen() {
     backgroundOpacityRow.appendChild(backgroundOpacityInput);
     backgroundOpacityRow.appendChild(backgroundOpacityText);
     appearancePanel.appendChild(backgroundOpacityRow);
+
+    const textColorRow = document.createElement("div");
+    textColorRow.className = "mc-toggle-row mc-static-row";
+
+    const textColorCopy = document.createElement("div");
+    textColorCopy.className = "mc-toggle-copy";
+
+    const textColorTitle = document.createElement("div");
+    textColorTitle.className = "mc-toggle-title";
+    textColorTitle.textContent = "Text color";
+
+    const textColorText = document.createElement("div");
+    textColorText.className = "mc-toggle-note";
+    textColorText.textContent = textColor;
+
+    textColorCopy.appendChild(textColorTitle);
+    textColorCopy.appendChild(textColorText);
+
+    const textColorInput = document.createElement("input");
+    textColorInput.type = "color";
+    textColorInput.className = "mc-color";
+    textColorInput.value = textColor;
+    textColorInput.setAttribute("aria-label", "Text color");
+
+    textColorRow.appendChild(textColorCopy);
+    textColorRow.appendChild(textColorInput);
+    appearancePanel.appendChild(textColorRow);
 
     const wrapCheckbox = addToggle(appearancePanel, "Wrap messages", "Allow long chat messages to continue on another line.", "wrap", wrapEnabled);
     const badgesCheckbox = addToggle(appearancePanel, "Badges", "Show Twitch, 7TV, FFZ and other supported badges.", "badges", badgesEnabled);
@@ -2085,7 +2076,6 @@ function showOverlaySetupScreen() {
     textColorInput.addEventListener("input", applyTextColorPreview);
     textColorInput.addEventListener("change", applyTextColorPreview);
 
-    /* initial state so the preview matches the current settings */
     syncBackgroundState();
     applyChatBackground();
 
@@ -2387,8 +2377,6 @@ function showOverlaySetupScreen() {
             channel,
             overlaySettings
         );
-
-        /* background opacity (0..1), read back at load time by this file */
         url.searchParams.set(
             "backgroundOpacity",
             String(
