@@ -226,6 +226,10 @@ const PREVIEW_TWITCH_BADGES = {
     "omecash/1": {
         title: "omecash",
         url: "https://static-cdn.jtvnw.net/badges/v1/4cae4630-f0fd-4642-bd2d-120017968d61/3"
+    },
+    "bot/1": {
+        title: "bot",
+        url: "https://static-cdn.jtvnw.net/badges/v1/3ffa9565-c35b-4cad-800b-041e60659cf2/3"
     }
 };
 

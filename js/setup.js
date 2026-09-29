@@ -45,9 +45,16 @@ const previewMessages = [
         { badges: "vip/1,omecash/1" }
     ],
     [
+        "JamiMeow",
+        "waga",
+        "#FF69B4",
+        "458139207",
+        { badges: "vip/1,bot/1,omecash/1" }
+    ],
+    [
         "Underpaid_Actor",
         "PagMan ffzSpin",
-        "#DAA520",
+        "#FF69B4",
         "406239629",
         { badges: "founder/1,noob/1" }
     ]
@@ -75,6 +82,14 @@ function runPreviewMessage() {
     }
 
     const message = previewMessages[currentPreviewMessage];
+
+    if (message[0] === "JamiMeow" && !botsEnabled) {
+        currentPreviewMessage =
+            (currentPreviewMessage + 1) % previewMessages.length;
+
+        previewTimer = setTimeout(runPreviewMessage, 0);
+        return;
+    }
 
     addPreviewMessage(...message);
 
@@ -1922,6 +1937,7 @@ function showOverlaySetupScreen() {
     });
     botsCheckbox.addEventListener("change", () => {
         botsEnabled = botsCheckbox.checked;
+        rerenderPreviewChat();
     });
 
     unlistedCheckbox.addEventListener("change", () => {

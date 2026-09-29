@@ -1500,6 +1500,10 @@ function rerenderPreviewChat() {
             continue;
         }
 
+        if (entry.user === "JamiMeow" && !botsEnabled) {
+            continue;
+        }
+
         onMsg(
             entry.user,
             entry.msg,
