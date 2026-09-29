@@ -1,5 +1,6 @@
 const knownChatters = new Map();
 
+
 function registerChatter(user, color, userId) {
     if (!user) {
         return;
@@ -1591,6 +1592,7 @@ function rerenderPreviewChat() {
 window.addPreviewMessage = addPreviewMessage;
 window.rerenderPreviewChat = rerenderPreviewChat;
 window.reschedulePreviewFades = reschedulePreviewFades;
+
 async function onMsg(
     user,
     msg,
