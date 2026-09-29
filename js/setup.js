@@ -1664,6 +1664,7 @@ function showOverlaySetupScreen() {
 
     const gifsCheckbox = addToggle(appearancePanel, "GIFs", "Show Twitch GIFs in chat messages.", "gifs", gifsEnabled);
     const botsCheckbox = addToggle(appearancePanel, "Bots", "Show bot messages and commands in chat.", "bots", botsEnabled);
+    const highlightsCheckbox = addToggle(appearancePanel, "Highlights", "Highlight usernames with the 7TV Paint/Color", "highlights", highlightsEnabled);
     const unlistedCheckbox = addToggle(appearancePanel, "Unlisted 7TV emotes", "Render unlisted 7TV emotes when they are available.", "unlisted", showUnlisted7TV);
 
     const shadowDivider = document.createElement("div");
@@ -1814,10 +1815,11 @@ function showOverlaySetupScreen() {
         "Bots and commands can be hidden from the overlay.",
         "Unlisted 7TV emotes can be enabled or disabled.",
         "You can choose from a variety of fonts for the chat.",
+        "You can enable highlighting of usernames with the 7TV Paint/Color.",
         "You can scale the text and emotes independently.",
         "You can set a fade time for messages or disable fading.",
         "You can choose a background color or disable the background.",
-        "Once adjusted to your liking, you can copy the link.",
+        "Once adjusted to your liking, you may copy the link.",
     ];
 
     const helpList = document.createElement("ul");
@@ -1937,6 +1939,10 @@ function showOverlaySetupScreen() {
     });
     botsCheckbox.addEventListener("change", () => {
         botsEnabled = botsCheckbox.checked;
+        rerenderPreviewChat();
+    });
+    highlightsCheckbox.addEventListener("change", () => {
+        highlightsEnabled = highlightsCheckbox.checked;
         rerenderPreviewChat();
     });
 
@@ -2127,6 +2133,9 @@ function showOverlaySetupScreen() {
 
             bots:
                 botsCheckbox.checked,
+
+            highlights:
+                highlightsCheckbox.checked,
 
             scale:
                 Math.max(

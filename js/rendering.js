@@ -1,3 +1,38 @@
+const knownChatters = new Map();
+
+function registerChatter(user, color, userId) {
+    if (!user) {
+        return;
+    }
+
+    knownChatters.set(
+        String(user).toLowerCase(),
+        { name: user, color, userId }
+    );
+}
+
+function createMention(chatter, prefix = "") {
+    const login = String(chatter.name).toLowerCase();
+    const color = getTwitchDisplayColor(chatter.color, login);
+
+    const mention = document.createElement("span");
+    mention.className = "mention";
+    mention.textContent = prefix + chatter.name;
+    mention.style.color = color;
+    mention.style.webkitTextFillColor = color;
+
+    if (chatter.userId) {
+        Promise.resolve(get7TVPaint(chatter.userId))
+            .then(paint => {
+                if (paint) {
+                    applyPaint(mention, paint);
+                }
+            })
+            .catch(error => console.error("Mention paint error:", error));
+    }
+
+    return mention;
+}
 function createEmote(
     url,
     alt
@@ -763,6 +798,37 @@ function renderExternalText(
             continue;
         }
 
+                if (highlightsEnabled) {
+            try {
+                const mentionMatch = part.match(/^(@?)(\w{2,25})(\W*)$/);
+
+                if (mentionMatch) {
+                    const [, prefix, name, trailing] = mentionMatch;
+
+                    const chatter = knownChatters.get(name.toLowerCase());
+
+                    const isEmote =
+                        !prefix &&
+                        findThirdPartyEmote(name, username);
+
+                    if (chatter && !isEmote) {
+                        container.appendChild(
+                            createMention(chatter, prefix)
+                        );
+
+                        if (trailing) {
+                            container.appendChild(
+                                document.createTextNode(trailing)
+                            );
+                        }
+
+                        continue;
+                    }
+                }
+            } catch (error) {
+                console.error("Mention error:", error);
+            }
+        }
         container.appendChild(
             document.createTextNode(
                 part
@@ -1544,6 +1610,7 @@ async function onMsg(
     if (!chat) {
         return;
     }
+    registerChatter(user, usernameColor, userId);
 
     const replyInfo =
         getReplyInfo(

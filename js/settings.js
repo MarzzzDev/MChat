@@ -110,10 +110,11 @@ function normaliseOverlaySettings(settings = {}) {
     result.badgeChatterino =
         settings.badgeChatterino !== false;
 
-
-
     result.gifs =
         settings.gifs !== false;
+
+    result.highlights =
+        settings.highlights === true;
 
     result.bots =
         settings.bots !== false;
@@ -382,7 +383,9 @@ function appendFlatOverlaySettings(
             normalised.gifs ? "1" : "0"
         ]);
     }
-
+    if (normalised.highlights === true) {
+        query.push(["highlights", "1"]);
+    }
     if (normalised.wrap !== false) {
         query.push([
             "wrap",
@@ -598,6 +601,12 @@ let gifsEnabled =
     parseQueryBoolean(
         "gifs",
         true
+    );
+
+let highlightsEnabled =
+    parseQueryBoolean(
+        "highlights",
+        false
     );
 
 let scale =
