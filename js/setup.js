@@ -1,317 +1,3 @@
-let channelEmoteData = { seventv: [], bttv: [], ffz: [] };
-let liveChannelActive = false;
-let previewChannelDataPromise = null;
-const appliedEmoteBackup = { seventv: new Map(), bttv: new Map(), ffz: new Map() };
-
-function fixUrl(url) {
-    if (!url) return "";
-    return url.startsWith("//") ? `https:${url}` : url;
-}
-async function fetchJson(url) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-    return response.json();
-}
-async function resolveChannelId(channel, rawMessages) {
-    for (const line of rawMessages) {
-        const m = line.match(/room-id=(\d+)/);
-        if (m) return m[1];
-    }
-    try {
-        const data = await fetchJson(`https://api.ivr.fi/v2/twitch/user?login=${encodeURIComponent(channel)}`);
-        return data?.[0]?.id || null;
-    } catch (error) {
-        console.warn("Could not resolve channel id:", error);
-        return null;
-    }
-}
-
-function getEmoteMaps() {
-    return { seventv: sevenTVEmotes, bttv: bttvEmotes, ffz: ffzEmotes };
-}
-
-function backupEmote(type, map, name) {
-    const backup = appliedEmoteBackup[type];
-    if (!backup.has(name)) {
-        backup.set(name, { had: map.has(name), value: map.get(name) });
-    }
-}
-
-function restoreAppliedEmotes() {
-    const maps = getEmoteMaps();
-    for (const type of Object.keys(maps)) {
-        for (const [name, b] of appliedEmoteBackup[type]) {
-            if (b.had) maps[type].set(name, b.value);
-            else maps[type].delete(name);
-        }
-        appliedEmoteBackup[type].clear();
-    }
-}
-
-function applyChannelEmotes() {
-    restoreAppliedEmotes();
-    const maps = getEmoteMaps();
-
-    if (!liveChannelActive) return;
-
-    const preview = previewChannelDataPromise?.__data;
-    if (preview) {
-        for (const type of Object.keys(maps)) {
-            for (const [name] of preview[type]) {
-                backupEmote(type, maps[type], name);
-                maps[type].delete(name);
-            }
-        }
-    }
-
-    for (const type of Object.keys(maps)) {
-        for (const [name, value] of channelEmoteData[type]) {
-            backupEmote(type, maps[type], name);
-            maps[type].set(name, value);
-        }
-    }
-}
-
-function clearChannelEmotes() {
-    channelEmoteData = { seventv: [], bttv: [], ffz: [] };
-    liveChannelActive = false;
-    applyChannelEmotes();
-}
-
-function add7TVSet(emotes, target) {
-    for (const e of emotes || []) {
-        const data = e.data;
-        if (!data?.host?.url) continue;
-        target.seventv.push([e.name, {
-            id: e.id,
-            name: e.name,
-            url: `${fixUrl(data.host.url)}/2x.webp`,
-            listed: data.listed !== false,
-            zeroWidth: Boolean((e.flags || 0) & 1),
-            animated: Boolean(data.animated)
-        }]);
-    }
-}
-
-function addBTTVList(list, target) {
-    for (const e of list || []) {
-        target.bttv.push([e.code, {
-            id: e.id,
-            name: e.code,
-            url: `https://cdn.betterttv.net/emote/${e.id}/2x.webp`
-        }]);
-    }
-}
-
-function addFFZSets(sets, target) {
-    for (const set of Object.values(sets || {})) {
-        for (const e of set.emoticons || []) {
-            const url = fixUrl(e.urls?.["2"] || e.urls?.["1"]);
-            if (!url) continue;
-            target.ffz.push([e.name, {
-                id: e.id,
-                name: e.name,
-                url,
-                modifier: Boolean(e.modifier),
-                modifierFlags: Number(e.modifier_flags || 0)
-            }]);
-        }
-    }
-}
-
-async function fetchChannelEmoteData(channelId) {
-    const target = { seventv: [], bttv: [], ffz: [] };
-    if (!channelId) return target;
-
-    const results = await Promise.allSettled([
-        fetchJson(`https://7tv.io/v3/users/twitch/${channelId}`)
-            .then(d => add7TVSet(d.emote_set?.emotes, target)),
-        fetchJson(`https://api.betterttv.net/3/cached/users/twitch/${channelId}`)
-            .then(d => {
-                addBTTVList(d.channelEmotes, target);
-                addBTTVList(d.sharedEmotes, target);
-            }),
-        fetchJson(`https://api.frankerfacez.com/v1/room/id/${channelId}`)
-            .then(d => addFFZSets(d.sets, target))
-    ]);
-
-    const names = ["7TV", "BTTV", "FFZ"];
-    results.forEach((r, i) => {
-        if (r.status === "rejected") {
-            console.warn(`${names[i]} channel emotes failed:`, r.reason);
-        }
-    });
-    return target;
-}
-
-function ensurePreviewChannelData() {
-    if (!previewChannelDataPromise) {
-        previewChannelDataPromise = fetchChannelEmoteData(PREVIEW_TWITCH_USER_ID)
-            .then(d => { previewChannelDataPromise.__data = d; return d; });
-    }
-    return previewChannelDataPromise;
-}
-
-async function loadChannelEmotes(channelId, token) {
-    const [data] = await Promise.all([
-        fetchChannelEmoteData(channelId),
-        ensurePreviewChannelData().catch(() => null)
-    ]);
-    if (token !== livePreviewToken) return;
-
-    channelEmoteData = data;
-    liveChannelActive = true;
-    applyChannelEmotes();
-
-    console.log(
-        `Channel emotes loaded: 7TV ${data.seventv.length}, ` +
-        `BTTV ${data.bttv.length}, FFZ ${data.ffz.length}`
-    );
-}
-
-let livePreviewLoading = false;
-
-function setPreviewLoading(on) {
-    livePreviewLoading = on;
-    const loader = document.getElementById("preview-loader");
-    if (loader) loader.classList.toggle("is-visible", on);
-}
-
-let livePreviewMessages = null;
-let livePreviewToken = 0;
-
-function parseIrcTags(raw) {
-    const tags = {};
-    for (const part of raw.split(";")) {
-        const i = part.indexOf("=");
-        if (i === -1) continue;
-        tags[part.slice(0, i)] = part
-            .slice(i + 1)
-            .replace(/\\s/g, " ")
-            .replace(/\\:/g, ";")
-            .replace(/\\\\/g, "\\");
-    }
-    return tags;
-}
-
-function remapEmoteIndices(text, emotesTag) {
-    const map = [];
-    let u = 0;
-    for (const ch of text) {
-        map.push(u);
-        u += ch.length;
-    }
-    map.push(u);
-
-    return emotesTag
-        .split("/")
-        .map(group => {
-            const [id, ranges = ""] = group.split(":");
-            const fixed = ranges
-                .split(",")
-                .map(range => {
-                    const [s, e] = range.split("-").map(Number);
-                    if (!Number.isFinite(s) || !Number.isFinite(e) || map[e + 1] === undefined) {
-                        return null;
-                    }
-                    return `${map[s]}-${map[e + 1] - 1}`;
-                })
-                .filter(Boolean);
-            return fixed.length ? `${id}:${fixed.join(",")}` : null;
-        })
-        .filter(Boolean)
-        .join("/");
-}
-
-function clearPreviewChat() {
-    for (const entry of [...previewMessageCache]) {
-        removePreviewEntry(entry);
-    }
-    const chat = document.getElementById("chat");
-    if (chat) chat.innerHTML = "";
-    messageElements.clear();
-    userMessageElements.clear();
-}
-
-function parseRecentLine(line) {
-    const match = line.match(/^@(\S+) :([^!]+)![^ ]+ PRIVMSG #\S+ :(.*)$/);
-    if (!match) return null;
-
-    const tags = parseIrcTags(match[1]);
-    let text = match[3];
-    const login = match[2];
-
-    const action = text.match(/^\x01ACTION (.*)\x01$/);
-    if (action) text = action[1];
-
-    if (!text.trim()) return null;
-
-    const options = { badges: tags["badges"] || "" };
-
-    if (tags["emotes"]) {
-        options.emotes = remapEmoteIndices(text, tags["emotes"]);
-    }
-    if (action) options["is-action"] = true;
-    if (tags["reply-parent-display-name"]) {
-        options["reply-parent-display-name"] = tags["reply-parent-display-name"];
-    }
-    if (tags["custom-reward-id"]) {
-        options["custom-reward-id"] = tags["custom-reward-id"];
-    }
-
-    const color = getTwitchDisplayColor(tags["color"], login);
-
-    return [
-        tags["display-name"] || login,
-        text,
-        color,
-        tags["user-id"] || "",
-        options
-    ];
-}
-
-async function loadLivePreviewMessages(channel) {
-    const token = ++livePreviewToken;
-    channel = String(channel || "").trim().toLowerCase().replace(/^#/, "");
-
-    if (!channel) {
-        livePreviewMessages = null;
-        currentPreviewMessage = 0;
-        clearChannelEmotes();
-        clearPreviewChat();
-        return;
-    }
-
-    try {
-        const response = await fetch(
-            `https://recent-messages.robotty.de/api/v2/recent-messages/${encodeURIComponent(channel)}?limit=20`
-        );
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const data = await response.json();
-        if (token !== livePreviewToken) return;
-
-        const raw = data.messages || [];
-
-        const parsed = raw
-            .map(parseRecentLine)
-            .filter(Boolean)
-            .slice(-20);
-
-        const channelId = await resolveChannelId(channel, raw);
-        await loadChannelEmotes(channelId);
-        if (token !== livePreviewToken) return;
-
-        livePreviewMessages = parsed.length ? parsed : null;
-    } catch (error) {
-        if (token !== livePreviewToken) return;
-        console.warn("Could not load recent messages:", error);
-        livePreviewMessages = null;
-    }
-
-    currentPreviewMessage = 0;
-    clearPreviewChat();
-}
 const previewMessages = [
     [
         "Dodorej",
@@ -441,24 +127,26 @@ function runPreviewMessage() {
         return;
     }
 
-    const list = livePreviewMessages || previewMessages;
-    currentPreviewMessage %= list.length;
+    const message = previewMessages[currentPreviewMessage];
 
-    const message = list[currentPreviewMessage];
+    if (message[0] === "JamiMeow" && !botsEnabled) {
+        currentPreviewMessage =
+            (currentPreviewMessage + 1) % previewMessages.length;
 
-    if (!livePreviewMessages && message[0] === "JamiMeow" && !botsEnabled) {
-        currentPreviewMessage = (currentPreviewMessage + 1) % list.length;
         previewTimer = setTimeout(runPreviewMessage, 0);
         return;
     }
 
     addPreviewMessage(...message);
 
-    currentPreviewMessage = (currentPreviewMessage + 1) % list.length;
+    currentPreviewMessage =
+        (currentPreviewMessage + 1) % previewMessages.length;
 
     const delay = Math.random() * 1000 + 3000;
+
     previewTimer = setTimeout(runPreviewMessage, delay);
 }
+
 async function startPreviewMessages() {
     previewActive = true;
 
@@ -2337,7 +2025,6 @@ function showOverlaySetupScreen() {
 
     const helpFeatures = [
         "MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
-        "Inputting a channel shows the past 20 messages from that channel in the preview.",
         "7TV Paints, FFZ, BTTV and Twitch badges are supported.",
         "GIFs are supported, but can be disabled for performance.",
         "Bots and commands can be hidden from the overlay.",
@@ -2672,19 +2359,6 @@ function showOverlaySetupScreen() {
             copyButton.click();
         }
     });
-
-        let liveChannelTimer = null;
-
-    channelInput.addEventListener("input", () => {
-        clearTimeout(liveChannelTimer);
-        liveChannelTimer = setTimeout(() => {
-            loadLivePreviewMessages(channelInput.value);
-        }, 800);
-    });
-    if (channelInput.value.trim()) {
-        loadLivePreviewMessages(channelInput.value);
-    }
-
 
     function getOverlayUrl() {
         const channel =
