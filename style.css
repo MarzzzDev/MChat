@@ -76,9 +76,6 @@ body.pixel-font .text {
     word-break: break-word;
 }
 
-/* Messages themselves never have a background anymore.
-   The background lives on #chat (see --chat-bg). */
-
 .message.redeem-message {
     background: transparent;
     box-shadow: none;

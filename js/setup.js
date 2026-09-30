@@ -779,78 +779,122 @@ function showOverlaySetupScreen() {
         }
 
         #overlay-setup-screen .mc-platform-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            padding: 8px 10px 9px;
-            margin: -4px 0 4px;
-            border: 1px solid #24242a;
-            border-top: 0;
-            border-radius: 0 0 5px 5px;
-            background: #0e0e11;
-            transition: opacity .12s ease;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            padding: 12px;
+            margin: -2px 0 8px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            background: var(--bg-1);
+            transition: opacity .2s var(--ease);
         }
-
+ 
         #overlay-setup-screen .mc-platform-grid.is-disabled {
-            opacity: .45;
+            opacity: .4;
+            filter: saturate(.4);
         }
-
+ 
         #overlay-setup-screen .mc-platform-button {
+            position: relative;
             display: flex;
-            flex: 0 0 auto;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 3px;
-            width: 40px;
-            height: 40px;
-            padding: 2px;
-            border: 1px solid #25252b;
-            border-radius: 5px;
-            background: #121216;
-            color: #8c8c96;
+            gap: 7px;
+            min-width: 0;
+            height: 70px;
+            padding: 8px 4px 7px;
+            border: 1px solid var(--line-2);
+            border-radius: var(--radius-md);
+            background: var(--bg-2);
+            color: var(--text-3);
             cursor: pointer;
             user-select: none;
-            transition: border-color .12s ease, background .12s ease, color .12s ease;
+            overflow: hidden;
+            transition:
+                border-color .18s var(--ease),
+                background .18s var(--ease),
+                color .18s var(--ease),
+                transform .18s var(--ease),
+                box-shadow .18s var(--ease);
         }
-
+ 
         #overlay-setup-screen .mc-platform-button:hover {
-            border-color: #33333a;
-            background: #151519;
+            border-color: var(--line-3);
+            background: var(--bg-3);
+            color: var(--text-1);
+            transform: translateY(-1px);
         }
-
+ 
+        #overlay-setup-screen .mc-platform-button:active {
+            transform: translateY(0) scale(.97);
+        }
+ 
         #overlay-setup-screen .mc-platform-button.is-active {
-            border-color: #e8d58a;
-            background: #2a271d;
-            color: #f0e9f8;
+            border-color: var(--accent-line);
+            background:
+                radial-gradient(120% 90% at 50% 0%, rgba(232, 213, 138, .16) 0%, rgba(232, 213, 138, 0) 70%),
+                var(--bg-3);
+            color: var(--text-0);
+            box-shadow:
+                0 0 0 1px rgba(232, 213, 138, .08),
+                0 6px 18px -8px rgba(232, 213, 138, .4);
         }
-
+ 
+        #overlay-setup-screen .mc-platform-button::after {
+            content: "";
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1.5px solid var(--line-3);
+            background-color: transparent;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 8px 8px;
+            transition: background-color .18s var(--ease), border-color .18s var(--ease), transform .2s var(--ease);
+        }
+ 
+        #overlay-setup-screen .mc-platform-button.is-active::after {
+            border-color: var(--accent);
+            background-color: var(--accent);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M1.5 4.2 3.2 5.8 6.5 2.3' fill='none' stroke='%2317140a' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            transform: scale(1.05);
+        }
+ 
         #overlay-setup-screen .mc-platform-button:disabled {
             cursor: not-allowed;
             pointer-events: none;
         }
-
+ 
         #overlay-setup-screen .mc-platform-logo {
-            width: 22px;
-            height: 22px;
+            width: 28px;
+            height: 28px;
             display: block;
             object-fit: contain;
-            filter: grayscale(1) brightness(1.6);
-            opacity: .55;
-            transition: filter .12s ease, opacity .12s ease;
+            filter: grayscale(1) brightness(1.5);
+            opacity: .5;
+            transition: filter .2s var(--ease), opacity .2s var(--ease), transform .2s var(--ease);
             pointer-events: none;
         }
-
+ 
+        #overlay-setup-screen .mc-platform-button:hover .mc-platform-logo {
+            opacity: .8;
+        }
+ 
         #overlay-setup-screen .mc-platform-button.is-active .mc-platform-logo {
             filter: none;
             opacity: 1;
+            transform: scale(1.06);
         }
-
+ 
         #overlay-setup-screen .mc-platform-label {
-            font-size: 8px;
-            font-weight: 800;
-            letter-spacing: .04em;
-            text-transform: none;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .02em;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -977,8 +1021,17 @@ function showOverlaySetupScreen() {
 
         #overlay-setup-screen .mc-button-full {
             grid-column: 1 / -1;
+            border-color: rgba(232, 213, 138, .5);
+            background: linear-gradient(180deg, #f3e3a3, #e8d58a);
+            color: #1a1608;
+            box-shadow: 0 10px 24px -12px rgba(232, 213, 138, .7);
         }
-
+ 
+        #overlay-setup-screen .mc-button-full:hover {
+            background: linear-gradient(180deg, #f8ebb8, #efdc93);
+            border-color: rgba(232, 213, 138, .8);
+            color: #1a1608;
+        }
         #overlay-setup-screen .mc-footnote {
             margin-top: 9px;
             color: #55555e;
