@@ -1,3 +1,317 @@
+let channelEmoteData = { seventv: [], bttv: [], ffz: [] };
+let liveChannelActive = false;
+let previewChannelDataPromise = null;
+const appliedEmoteBackup = { seventv: new Map(), bttv: new Map(), ffz: new Map() };
+
+function fixUrl(url) {
+    if (!url) return "";
+    return url.startsWith("//") ? `https:${url}` : url;
+}
+async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+    return response.json();
+}
+async function resolveChannelId(channel, rawMessages) {
+    for (const line of rawMessages) {
+        const m = line.match(/room-id=(\d+)/);
+        if (m) return m[1];
+    }
+    try {
+        const data = await fetchJson(`https://api.ivr.fi/v2/twitch/user?login=${encodeURIComponent(channel)}`);
+        return data?.[0]?.id || null;
+    } catch (error) {
+        console.warn("Could not resolve channel id:", error);
+        return null;
+    }
+}
+
+function getEmoteMaps() {
+    return { seventv: sevenTVEmotes, bttv: bttvEmotes, ffz: ffzEmotes };
+}
+
+function backupEmote(type, map, name) {
+    const backup = appliedEmoteBackup[type];
+    if (!backup.has(name)) {
+        backup.set(name, { had: map.has(name), value: map.get(name) });
+    }
+}
+
+function restoreAppliedEmotes() {
+    const maps = getEmoteMaps();
+    for (const type of Object.keys(maps)) {
+        for (const [name, b] of appliedEmoteBackup[type]) {
+            if (b.had) maps[type].set(name, b.value);
+            else maps[type].delete(name);
+        }
+        appliedEmoteBackup[type].clear();
+    }
+}
+
+function applyChannelEmotes() {
+    restoreAppliedEmotes();
+    const maps = getEmoteMaps();
+
+    if (!liveChannelActive) return;
+
+    const preview = previewChannelDataPromise?.__data;
+    if (preview) {
+        for (const type of Object.keys(maps)) {
+            for (const [name] of preview[type]) {
+                backupEmote(type, maps[type], name);
+                maps[type].delete(name);
+            }
+        }
+    }
+
+    for (const type of Object.keys(maps)) {
+        for (const [name, value] of channelEmoteData[type]) {
+            backupEmote(type, maps[type], name);
+            maps[type].set(name, value);
+        }
+    }
+}
+
+function clearChannelEmotes() {
+    channelEmoteData = { seventv: [], bttv: [], ffz: [] };
+    liveChannelActive = false;
+    applyChannelEmotes();
+}
+
+function add7TVSet(emotes, target) {
+    for (const e of emotes || []) {
+        const data = e.data;
+        if (!data?.host?.url) continue;
+        target.seventv.push([e.name, {
+            id: e.id,
+            name: e.name,
+            url: `${fixUrl(data.host.url)}/2x.webp`,
+            listed: data.listed !== false,
+            zeroWidth: Boolean((e.flags || 0) & 1),
+            animated: Boolean(data.animated)
+        }]);
+    }
+}
+
+function addBTTVList(list, target) {
+    for (const e of list || []) {
+        target.bttv.push([e.code, {
+            id: e.id,
+            name: e.code,
+            url: `https://cdn.betterttv.net/emote/${e.id}/2x.webp`
+        }]);
+    }
+}
+
+function addFFZSets(sets, target) {
+    for (const set of Object.values(sets || {})) {
+        for (const e of set.emoticons || []) {
+            const url = fixUrl(e.urls?.["2"] || e.urls?.["1"]);
+            if (!url) continue;
+            target.ffz.push([e.name, {
+                id: e.id,
+                name: e.name,
+                url,
+                modifier: Boolean(e.modifier),
+                modifierFlags: Number(e.modifier_flags || 0)
+            }]);
+        }
+    }
+}
+
+async function fetchChannelEmoteData(channelId) {
+    const target = { seventv: [], bttv: [], ffz: [] };
+    if (!channelId) return target;
+
+    const results = await Promise.allSettled([
+        fetchJson(`https://7tv.io/v3/users/twitch/${channelId}`)
+            .then(d => add7TVSet(d.emote_set?.emotes, target)),
+        fetchJson(`https://api.betterttv.net/3/cached/users/twitch/${channelId}`)
+            .then(d => {
+                addBTTVList(d.channelEmotes, target);
+                addBTTVList(d.sharedEmotes, target);
+            }),
+        fetchJson(`https://api.frankerfacez.com/v1/room/id/${channelId}`)
+            .then(d => addFFZSets(d.sets, target))
+    ]);
+
+    const names = ["7TV", "BTTV", "FFZ"];
+    results.forEach((r, i) => {
+        if (r.status === "rejected") {
+            console.warn(`${names[i]} channel emotes failed:`, r.reason);
+        }
+    });
+    return target;
+}
+
+function ensurePreviewChannelData() {
+    if (!previewChannelDataPromise) {
+        previewChannelDataPromise = fetchChannelEmoteData(PREVIEW_TWITCH_USER_ID)
+            .then(d => { previewChannelDataPromise.__data = d; return d; });
+    }
+    return previewChannelDataPromise;
+}
+
+async function loadChannelEmotes(channelId, token) {
+    const [data] = await Promise.all([
+        fetchChannelEmoteData(channelId),
+        ensurePreviewChannelData().catch(() => null)
+    ]);
+    if (token !== livePreviewToken) return;
+
+    channelEmoteData = data;
+    liveChannelActive = true;
+    applyChannelEmotes();
+
+    console.log(
+        `Channel emotes loaded: 7TV ${data.seventv.length}, ` +
+        `BTTV ${data.bttv.length}, FFZ ${data.ffz.length}`
+    );
+}
+
+let livePreviewLoading = false;
+
+function setPreviewLoading(on) {
+    livePreviewLoading = on;
+    const loader = document.getElementById("preview-loader");
+    if (loader) loader.classList.toggle("is-visible", on);
+}
+
+let livePreviewMessages = null;
+let livePreviewToken = 0;
+
+function parseIrcTags(raw) {
+    const tags = {};
+    for (const part of raw.split(";")) {
+        const i = part.indexOf("=");
+        if (i === -1) continue;
+        tags[part.slice(0, i)] = part
+            .slice(i + 1)
+            .replace(/\\s/g, " ")
+            .replace(/\\:/g, ";")
+            .replace(/\\\\/g, "\\");
+    }
+    return tags;
+}
+
+function remapEmoteIndices(text, emotesTag) {
+    const map = [];
+    let u = 0;
+    for (const ch of text) {
+        map.push(u);
+        u += ch.length;
+    }
+    map.push(u);
+
+    return emotesTag
+        .split("/")
+        .map(group => {
+            const [id, ranges = ""] = group.split(":");
+            const fixed = ranges
+                .split(",")
+                .map(range => {
+                    const [s, e] = range.split("-").map(Number);
+                    if (!Number.isFinite(s) || !Number.isFinite(e) || map[e + 1] === undefined) {
+                        return null;
+                    }
+                    return `${map[s]}-${map[e + 1] - 1}`;
+                })
+                .filter(Boolean);
+            return fixed.length ? `${id}:${fixed.join(",")}` : null;
+        })
+        .filter(Boolean)
+        .join("/");
+}
+
+function clearPreviewChat() {
+    for (const entry of [...previewMessageCache]) {
+        removePreviewEntry(entry);
+    }
+    const chat = document.getElementById("chat");
+    if (chat) chat.innerHTML = "";
+    messageElements.clear();
+    userMessageElements.clear();
+}
+
+function parseRecentLine(line) {
+    const match = line.match(/^@(\S+) :([^!]+)![^ ]+ PRIVMSG #\S+ :(.*)$/);
+    if (!match) return null;
+
+    const tags = parseIrcTags(match[1]);
+    let text = match[3];
+    const login = match[2];
+
+    const action = text.match(/^\x01ACTION (.*)\x01$/);
+    if (action) text = action[1];
+
+    if (!text.trim()) return null;
+
+    const options = { badges: tags["badges"] || "" };
+
+    if (tags["emotes"]) {
+        options.emotes = remapEmoteIndices(text, tags["emotes"]);
+    }
+    if (action) options["is-action"] = true;
+    if (tags["reply-parent-display-name"]) {
+        options["reply-parent-display-name"] = tags["reply-parent-display-name"];
+    }
+    if (tags["custom-reward-id"]) {
+        options["custom-reward-id"] = tags["custom-reward-id"];
+    }
+
+    const color = getTwitchDisplayColor(tags["color"], login);
+
+    return [
+        tags["display-name"] || login,
+        text,
+        color,
+        tags["user-id"] || "",
+        options
+    ];
+}
+
+async function loadLivePreviewMessages(channel) {
+    const token = ++livePreviewToken;
+    channel = String(channel || "").trim().toLowerCase().replace(/^#/, "");
+
+    if (!channel) {
+        livePreviewMessages = null;
+        currentPreviewMessage = 0;
+        clearChannelEmotes();
+        clearPreviewChat();
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `https://recent-messages.robotty.de/api/v2/recent-messages/${encodeURIComponent(channel)}?limit=20`
+        );
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (token !== livePreviewToken) return;
+
+        const raw = data.messages || [];
+
+        const parsed = raw
+            .map(parseRecentLine)
+            .filter(Boolean)
+            .slice(-20);
+
+        const channelId = await resolveChannelId(channel, raw);
+        await loadChannelEmotes(channelId);
+        if (token !== livePreviewToken) return;
+
+        livePreviewMessages = parsed.length ? parsed : null;
+    } catch (error) {
+        if (token !== livePreviewToken) return;
+        console.warn("Could not load recent messages:", error);
+        livePreviewMessages = null;
+    }
+
+    currentPreviewMessage = 0;
+    clearPreviewChat();
+}
 const previewMessages = [
     [
         "Dodorej",
@@ -127,26 +441,24 @@ function runPreviewMessage() {
         return;
     }
 
-    const message = previewMessages[currentPreviewMessage];
+    const list = livePreviewMessages || previewMessages;
+    currentPreviewMessage %= list.length;
 
-    if (message[0] === "JamiMeow" && !botsEnabled) {
-        currentPreviewMessage =
-            (currentPreviewMessage + 1) % previewMessages.length;
+    const message = list[currentPreviewMessage];
 
+    if (!livePreviewMessages && message[0] === "JamiMeow" && !botsEnabled) {
+        currentPreviewMessage = (currentPreviewMessage + 1) % list.length;
         previewTimer = setTimeout(runPreviewMessage, 0);
         return;
     }
 
     addPreviewMessage(...message);
 
-    currentPreviewMessage =
-        (currentPreviewMessage + 1) % previewMessages.length;
+    currentPreviewMessage = (currentPreviewMessage + 1) % list.length;
 
     const delay = Math.random() * 1000 + 3000;
-
     previewTimer = setTimeout(runPreviewMessage, delay);
 }
-
 async function startPreviewMessages() {
     previewActive = true;
 
@@ -271,7 +583,7 @@ function showOverlaySetupScreen() {
             align-items: center;
             justify-content: space-between;
             padding: 0 18px;
-            border-bottom: 1px solid #27272d;
+            border-bottom: 1px solid #050505;
             background: #111114;
         }
 
@@ -341,7 +653,7 @@ function showOverlaySetupScreen() {
             display: flex;
             flex-direction: column;
             padding: 13px 10px;
-            border-right: 1px solid #27272d;
+            border-right: 1px solid #050505;
             background: #101013;
         }
 
@@ -438,12 +750,12 @@ function showOverlaySetupScreen() {
             display: flex;
             flex-direction: column;
             background: #0f0f12;
-            border-right: 1px solid #27272d;
+            border-right: 1px solid #050505;
         }
 
         #overlay-setup-screen .mc-controls-head {
             padding: 18px 18px 15px;
-            border-bottom: 1px solid #27272d;
+            border-bottom: 1px solid #050505;
         }
 
         #overlay-setup-screen .mc-control-title {
@@ -473,7 +785,7 @@ function showOverlaySetupScreen() {
         #overlay-setup-screen .mc-setup-footer {
             flex: 0 0 auto;
             padding: 11px 14px 12px;
-            border-top: 1px solid #27272d;
+            border-top: 1px solid #050505;
             background: #0c0c0f;
         }
 
@@ -484,7 +796,7 @@ function showOverlaySetupScreen() {
             min-height: 40px;
             padding: 7px 9px;
             margin-bottom: 10px;
-            border: 1px solid #25252c;
+            border: 1px solid #050505;
             border-radius: 7px;
             background: #111116;
             color: #777781;
@@ -521,7 +833,6 @@ function showOverlaySetupScreen() {
             font-size: 8px;
             font-weight: 700;
             letter-spacing: .06em;
-            text-transform: uppercase;
         }
 
         #overlay-setup-screen .mc-feedback-link {
@@ -600,7 +911,7 @@ function showOverlaySetupScreen() {
             position: relative;
             margin-bottom: 7px;
             padding: 9px 10px 9px 24px;
-            border: 1px solid #25252b;
+            border: 1px solid #050505;
             border-radius: 5px;
             background: #121216;
             color: #c7c7ce;
@@ -687,7 +998,7 @@ function showOverlaySetupScreen() {
         #overlay-setup-screen .mc-divider {
             height: 1px;
             margin: 17px 0;
-            background: #24242a;
+            background: #050505;
         }
 
         #overlay-setup-screen .mc-subhead {
@@ -707,7 +1018,7 @@ function showOverlaySetupScreen() {
             min-height: 40px;
             padding: 0 10px;
             margin-bottom: 4px;
-            border: 1px solid #25252b;
+            border: 1px solid #050505;
             border-radius: 5px;
             background: #121216;
             cursor: pointer;
@@ -784,7 +1095,7 @@ function showOverlaySetupScreen() {
             gap: 4px;
             padding: 8px 10px 9px;
             margin: -4px 0 4px;
-            border: 1px solid #24242a;
+            border: 1px solid #050505;
             border-top: 0;
             border-radius: 0 0 5px 5px;
             background: #0e0e11;
@@ -805,7 +1116,7 @@ function showOverlaySetupScreen() {
             width: 40px;
             height: 40px;
             padding: 2px;
-            border: 1px solid #25252b;
+            border: 1px solid #050505;
             border-radius: 5px;
             background: #121216;
             color: #8c8c96;
@@ -865,7 +1176,7 @@ function showOverlaySetupScreen() {
             gap: 10px;
             padding: 8px 10px 9px;
             margin: -4px 0 4px;
-            border: 1px solid #24242a;
+            border: 1px solid #050505;
             border-top: 0;
             border-radius: 0 0 5px 5px;
             background: #0e0e11;
@@ -943,7 +1254,7 @@ function showOverlaySetupScreen() {
             gap: 8px;
             padding-top: 15px;
             margin-top: 15px;
-            border-top: 1px solid #25252b;
+            border-top: 1px solid #050505;
         }
 
         #overlay-setup-screen .mc-button {
@@ -1014,7 +1325,7 @@ function showOverlaySetupScreen() {
             align-items: center;
             justify-content: space-between;
             padding: 0 15px;
-            border-bottom: 1px solid #27272d;
+            border-bottom: 1px solid #050505;
             background: #0e0e11;
         }
 
@@ -1022,7 +1333,6 @@ function showOverlaySetupScreen() {
             color: #a6a6af;
             font-size: 8px;
             font-weight: 800;
-            letter-spacing: .13em;
             text-transform: none;
         }
 
@@ -1123,7 +1433,7 @@ function showOverlaySetupScreen() {
             flex-direction: column;
             justify-content: flex-end;
             overflow-y: auto;
-            padding: 22px;
+            padding: 12px;
             scrollbar-width: none;
             background: var(--chat-bg, transparent);
         }
@@ -1217,7 +1527,7 @@ function showOverlaySetupScreen() {
             #overlay-setup-screen .mc-sidebar {
                 min-height: auto;
                 border-right: 0;
-                border-bottom: 1px solid #27272d;
+                border-bottom: 1px solid #050505;
             }
 
             #overlay-setup-screen .mc-nav {
@@ -1249,7 +1559,7 @@ function showOverlaySetupScreen() {
 
             #overlay-setup-screen .mc-controls {
                 border-right: 0;
-                border-bottom: 1px solid #27272d;
+                border-bottom: 1px solid #050505;
             }
 
             #overlay-setup-screen .mc-panel-stack {
@@ -1338,7 +1648,7 @@ function showOverlaySetupScreen() {
 
     const hint = document.createElement("div");
     hint.className = "mc-side-hint";
-    hint.textContent = "Changes update the renderer immediately. Preview will look 1:1 in your stream. (unless you change the aspect ratio in obs)";
+    hint.textContent = "Changes update the preview immediately. Take a look at the preview to see how your overlay will look on stream.";
     sidebar.appendChild(hint);
 
     const controls = document.createElement("main");
@@ -1353,7 +1663,7 @@ function showOverlaySetupScreen() {
 
     const controlSubtitle = document.createElement("p");
     controlSubtitle.className = "mc-control-subtitle";
-    controlSubtitle.textContent = "Tune the renderer without leaving the preview.";
+    controlSubtitle.textContent = "Tune the overlay without leaving the preview.";
 
     controlsHead.appendChild(controlTitle);
     controlsHead.appendChild(controlSubtitle);
@@ -1458,7 +1768,7 @@ function showOverlaySetupScreen() {
 
     const stageTitle = document.createElement("div");
     stageTitle.className = "mc-stage-title";
-    stageTitle.textContent = "Renderer preview";
+    stageTitle.textContent = "Preview Chat";
 
     const stageMeta = document.createElement("div");
     stageMeta.className = "mc-stage-meta";
@@ -1659,7 +1969,7 @@ function showOverlaySetupScreen() {
         return grid;
     }
 
-    const connectionPanel = createPanel("connection", "Connection", "Choose the Twitch channel this overlay should read from anonymously.", "01");
+    const connectionPanel = createPanel("connection", "Connection", "Choose the Twitch channel this overlay should read from.", "01");
 
     const channelInput = document.createElement("input");
     channelInput.type = "text";
@@ -1686,13 +1996,13 @@ function showOverlaySetupScreen() {
 
     const connectionText = document.createElement("div");
     connectionText.className = "mc-muted";
-    connectionText.textContent = "Generate one URL with the current overlay settings. Paste it into an OBS Browser Source.";
+    connectionText.textContent = "Generate the URL with the current overlay settings. Paste it into an OBS Browser Source.";
     connectionText.style.lineHeight = "1.55";
     connectionPanel.appendChild(connectionText);
 
-    const appearancePanel = createPanel("appearance", "Appearance", "Control the visual density of messages, the backdrop, badges and 7TV visibility.", "02");
+    const appearancePanel = createPanel("appearance", "Appearance", "Control any setting of the appearance to your liking.", "02");
 
-    const backgroundCheckbox = addToggle(appearancePanel, "Background", "One backdrop behind the whole chat, not per message.", "background", backgroundEnabled);
+    const backgroundCheckbox = addToggle(appearancePanel, "Background", "Adjustable backdrop behind every message.", "background", backgroundEnabled);
 
     const backgroundColorRow = document.createElement("div");
     backgroundColorRow.className = "mc-color-row";
@@ -1716,7 +2026,7 @@ function showOverlaySetupScreen() {
     const backgroundOpacityRow = document.createElement("div");
     backgroundOpacityRow.className = "mc-color-row";
     backgroundOpacityRow.style.marginTop = "0";
-    backgroundOpacityRow.style.borderTop = "1px solid #24242a";
+    backgroundOpacityRow.style.borderTop = "1px solid #050505";
 
     const backgroundOpacityInput = document.createElement("input");
     backgroundOpacityInput.type = "range";
@@ -1762,7 +2072,7 @@ function showOverlaySetupScreen() {
     textColorRow.appendChild(textColorInput);
     appearancePanel.appendChild(textColorRow);
 
-    const wrapCheckbox = addToggle(appearancePanel, "Wrap messages", "Allow long chat messages to continue on another line.", "wrap", wrapEnabled);
+    const wrapCheckbox = addToggle(appearancePanel, "Wrap messages", "Make messages wrap under the username.", "wrap", wrapEnabled);
     const badgesCheckbox = addToggle(appearancePanel, "Badges", "Show Twitch, 7TV, FFZ and other supported badges.", "badges", badgesEnabled);
 
     const platformGrid = addPlatformToggles(
@@ -1795,7 +2105,7 @@ function showOverlaySetupScreen() {
     const gifsCheckbox = addToggle(appearancePanel, "GIFs", "Show Twitch GIFs in chat messages.", "gifs", gifsEnabled);
     const botsCheckbox = addToggle(appearancePanel, "Bots", "Show bot messages and commands in chat.", "bots", botsEnabled);
     const highlightsCheckbox = addToggle(appearancePanel, "Highlights", "Highlight usernames with the 7TV Paint/Color", "highlights", highlightsEnabled);
-    const unlistedCheckbox = addToggle(appearancePanel, "Unlisted 7TV emotes", "Render unlisted 7TV emotes when they are available.", "unlisted", showUnlisted7TV);
+    const unlistedCheckbox = addToggle(appearancePanel, "Unlisted 7TV emotes", "Render unlisted 7TV emotes.", "unlisted", showUnlisted7TV);
 
     const shadowDivider = document.createElement("div");
     shadowDivider.className = "mc-divider";
@@ -1888,7 +2198,7 @@ function showOverlaySetupScreen() {
     shadowOffsetField.appendChild(shadowOffsetLine);
     appearancePanel.appendChild(shadowOffsetField);
 
-    const typographyPanel = createPanel("typography", "Typography", "Choose the font used by the renderer. Changes are applied to the live preview immediately.", "03");
+    const typographyPanel = createPanel("typography", "Typography", "Choose the font. Changes are applied to the live preview immediately.", "03");
 
     const fontSelect = document.createElement("select");
     fontSelect.className = "mc-select";
@@ -2027,6 +2337,7 @@ function showOverlaySetupScreen() {
 
     const helpFeatures = [
         "MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
+        "Inputting a channel shows the past 20 messages from that channel in the preview.",
         "7TV Paints, FFZ, BTTV and Twitch badges are supported.",
         "GIFs are supported, but can be disabled for performance.",
         "Bots and commands can be hidden from the overlay.",
@@ -2090,7 +2401,7 @@ function showOverlaySetupScreen() {
     timingTwoCol.appendChild(fadeField);
     timingPanel.appendChild(timingTwoCol);
 
-    const noFade = addToggle(timingPanel, "Disable fading", "Keep messages visible until the renderer removes them.", "disable-fading", fade === false);
+    const noFade = addToggle(timingPanel, "Disable fading", "Keep messages always visible.", "disable-fading", fade === false);
 
     const actions = document.createElement("div");
     actions.className = "mc-actions";
@@ -2361,6 +2672,19 @@ function showOverlaySetupScreen() {
             copyButton.click();
         }
     });
+
+        let liveChannelTimer = null;
+
+    channelInput.addEventListener("input", () => {
+        clearTimeout(liveChannelTimer);
+        liveChannelTimer = setTimeout(() => {
+            loadLivePreviewMessages(channelInput.value);
+        }, 800);
+    });
+    if (channelInput.value.trim()) {
+        loadLivePreviewMessages(channelInput.value);
+    }
+
 
     function getOverlayUrl() {
         const channel =
