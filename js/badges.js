@@ -1,16 +1,34 @@
 const homiesBadges = new Map();
 
-async function loadHomiesBadges() {
-    try {
-        const response = await fetch("https://itzalex.github.io/badges2");
+const HOMIES_BADGE_URLS = [
+    "https://chatterinohomies.com/api/badges/list", // personal badges
+    "https://itzalex.github.io/badges",
+    "https://itzalex.github.io/badges2"             // global badges
+];
 
-        if (!response.ok) {
-            throw new Error(`Homies badges: ${response.status}`);
+async function loadHomiesBadges() {
+    homiesBadges.clear();
+
+    const results = await Promise.allSettled(
+        HOMIES_BADGE_URLS.map(async url => {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`${url}: ${response.status}`);
+            }
+
+            return response.json();
+        })
+    );
+
+
+    results.forEach((result, index) => {
+        if (result.status !== "fulfilled") {
+            console.error("Homies badge source failed:", HOMIES_BADGE_URLS[index], result.reason);
+            return;
         }
 
-        const data = await response.json();
-
-        for (const badge of data.badges || []) {
+        for (const badge of result.value?.badges || []) {
             const url = normalizeImageUrl(
                 badge.image3 || badge.image2 || badge.image1
             );
@@ -21,7 +39,12 @@ async function loadHomiesBadges() {
 
             const title = badge.tooltip || "Homies Badge";
 
-            for (const rawId of badge.users || []) {
+            const ids = [
+                ...(Array.isArray(badge.users) ? badge.users : []),
+                ...(badge.userId ? [badge.userId] : [])
+            ];
+
+            for (const rawId of ids) {
                 const id = String(rawId).trim();
 
                 if (!id) {
@@ -35,13 +58,9 @@ async function loadHomiesBadges() {
                 homiesBadges.get(id).push({ url, title });
             }
         }
+    });
 
-        console.log(
-            `Loaded Homies badges for ${homiesBadges.size} users.`
-        );
-    } catch (error) {
-        console.error("Homies badge error:", error);
-    }
+    console.log(`Loaded Homies badges for ${homiesBadges.size} users.`);
 }
 
 function normalizeFFZRoomBadge(
@@ -220,10 +239,7 @@ async function loadExternalBadges() {
     await Promise.allSettled([
         loadFFZBadges(),
         loadChatterinoBadges(),
-        loadHomiesBadges(),
-        loadBTTVBadges(),
-        loadDankChatBadges(),
-        loadMoltorinoBadges()
+        loadHomiesBadges()
     ]);
 }
 
@@ -679,12 +695,6 @@ function isBadgeProviderEnabled(provider) {
             return badgeChatterino;
         case "Homies":
             return badgeHomies;
-        case "BTTV":
-            return badgeBttv;
-        case "DankChat":
-            return badgeDankchat;
-        case "Moltorino":
-            return badgeMoltorino;
         default:
             return true;
     }
@@ -995,16 +1005,7 @@ async function createExternalBadges(
                 });
             }
 
-            pushProviderBadges(badges, bttvBadges, userId, "BTTV");
-            pushProviderBadges(badges, dankchatBadges, userId, "DankChat");
-            pushProviderBadges(badges, moltorinoBadges, userId, "Moltorino");
-
-            // make sure every pushed image actually like loads  lmao
-            return (await Promise.all(
-                badges.map(async badge =>
-                    (await preloadBadgeImage(badge.url)) ? badge : null
-                )
-            )).filter(Boolean);
+            return badges;
         })();
 
 
@@ -1245,241 +1246,5 @@ async function getFFZUser(userId) {
 
     } catch {
         return null;
-    }
-}
-
-const bttvBadges = new Map();
-const dankchatBadges = new Map();
-const moltorinoBadges = new Map();
-
-const BTTV_BADGES_URL = "https://api.betterttv.net/3/cached/badges";
-
-const DANKCHAT_BADGES_URLS = [
-    "data/dankchat-badges.json",
-    "https://flxrs.com/api/badges"
-];
-const CUSTOM_CORS_PROXY = "";
-
-const CORS_PROXIES = [
-    ...(CUSTOM_CORS_PROXY
-        ? [url => `${CUSTOM_CORS_PROXY}${encodeURIComponent(url)}`]
-        : []),
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-];
-const MOLTORINO_BADGES_URL = "https://api.moltorino.com/v2/badges";
-
-function addProviderBadge(map, userId, url, title) {
-    const id = String(userId ?? "").trim();
-
-    if (!id || !url) {
-        return;
-    }
-
-    if (!map.has(id)) {
-        map.set(id, []);
-    }
-
-    const list = map.get(id);
-
-    if (!list.some(entry => entry.url === url)) {
-        list.push({ url, title });
-    }
-}
-
-function pickBadgeImage(badge) {
-    return normalizeImageUrl(
-        badge?.image4 ||
-        badge?.image3 ||
-        badge?.image2 ||
-        badge?.image1 ||
-        badge?.url ||
-        badge?.image_url ||
-        badge?.imageUrl ||
-        badge?.image ||
-        badge?.svg ||
-        badge?.icon ||
-        badge?.asset ||
-        null
-    );
-}
-
-function pickBadgeTitle(badge, fallback) {
-    return (
-        badge?.tooltip ||
-        badge?.title ||
-        badge?.description ||
-        badge?.name ||
-        fallback
-    );
-}
-
-async function loadBTTVBadges() {
-    try {
-        const response = await fetch(BTTV_BADGES_URL);
-
-        if (!response.ok) {
-            throw new Error(`BTTV badges: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const list = Array.isArray(data) ? data : (data?.badges || []);
-
-        bttvBadges.clear();
-
-        for (const entry of list) {
-            const url = pickBadgeImage(entry?.badge || entry);
-
-            addProviderBadge(
-                bttvBadges,
-                entry?.providerId ?? entry?.userId ?? entry?.id,
-                url,
-                pickBadgeTitle(entry?.badge || entry, "BTTV Badge")
-            );
-        }
-
-        console.log(`Loaded BTTV badges for ${bttvBadges.size} users.`);
-
-    } catch (error) {
-        console.error("BTTV badge error:", error);
-    }
-}
-
-function ingestBadgeBundle(map, data, defaultTitle) {
-    const list = Array.isArray(data)
-        ? data
-        : (data?.badges || data?.data || []);
-
-    const byId = new Map();
-
-    for (const badge of list) {
-        const url = pickBadgeImage(badge);
-
-        if (!url) {
-            continue;
-        }
-
-        const title = pickBadgeTitle(badge, defaultTitle);
-
-        if (badge?.id != null) {
-            byId.set(String(badge.id), { url, title });
-        }
-
-        const ids = [
-            ...(Array.isArray(badge?.users) ? badge.users : []),
-            ...(badge?.userId != null ? [badge.userId] : []),
-            ...(badge?.user_id != null ? [badge.user_id] : [])
-        ];
-
-        for (const id of ids) {
-            addProviderBadge(map, id, url, title);
-        }
-    }
-
-    if (
-        data &&
-        !Array.isArray(data) &&
-        data.users &&
-        typeof data.users === "object" &&
-        !Array.isArray(data.users)
-    ) {
-        for (const [userId, value] of Object.entries(data.users)) {
-            const badgeIds = Array.isArray(value) ? value : [value];
-
-            for (const badgeId of badgeIds) {
-                const badge = byId.get(String(badgeId?.id ?? badgeId));
-
-                if (badge) {
-                    addProviderBadge(map, userId, badge.url, badge.title);
-                }
-            }
-        }
-    }
-}
-
-async function fetchJsonWithCorsFallback(url) {
-    const isRemote = /^https?:\/\//i.test(url);
-    const attempts = isRemote
-        ? [url, ...CORS_PROXIES.map(make => make(url))]
-        : [url];
-    let lastError = null;
-
-    for (const attempt of attempts) {
-        try {
-            const response = await fetch(attempt);
-
-            if (!response.ok) {
-                throw new Error(`${attempt}: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            lastError = error;
-        }
-    }
-
-    throw lastError || new Error(`Could not fetch ${url}`);
-}
-
-async function loadDankChatBadges() {
-    dankchatBadges.clear();
-
-    for (const url of DANKCHAT_BADGES_URLS) {
-        try {
-            const data = await fetchJsonWithCorsFallback(url);
-
-            ingestBadgeBundle(dankchatBadges, data, "DankChat Badge");
-
-            console.log(
-                `Loaded DankChat badges for ${dankchatBadges.size} users.`
-            );
-
-            if (!dankchatBadges.size) {
-                console.warn("DankChat response had an unexpected shape:", data);
-            }
-
-            return;
-        } catch (error) {
-            console.warn("DankChat badge source failed:", error.message);
-        }
-    }
-
-    console.error("DankChat badges: no working source found.");
-}
-
-async function loadMoltorinoBadges() {
-    try {
-        const response = await fetch(MOLTORINO_BADGES_URL);
-
-        if (!response.ok) {
-            throw new Error(`Moltorino badges: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        moltorinoBadges.clear();
-        ingestBadgeBundle(moltorinoBadges, data, "Moltorino Badge");
-
-        console.log(`Loaded Moltorino badges for ${moltorinoBadges.size} users.`);
-
-        if (!moltorinoBadges.size) {
-            console.warn(
-                "Moltorino badge response had an unexpected shape. Raw data:",
-                data
-            );
-        }
-
-    } catch (error) {
-        console.error("Moltorino badge error:", error);
-    }
-}
-
-function pushProviderBadges(target, map, userId, provider) {
-    for (const badge of map.get(userId) || []) {
-        target.push({
-            url: badge.url,
-            title: badge.title,
-            provider,
-            type: null
-        });
     }
 }
