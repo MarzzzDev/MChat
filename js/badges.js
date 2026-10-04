@@ -1,16 +1,33 @@
 const homiesBadges = new Map();
 
-async function loadHomiesBadges() {
-    try {
-        const response = await fetch("https://itzalex.github.io/badges2");
+const HOMIES_BADGE_URLS = [
+    "https://chatterinohomies.com/api/badges/list", // personal badges
+    "https://itzalex.github.io/badges",
+    "https://itzalex.github.io/badges2"             // global badges
+];
 
-        if (!response.ok) {
-            throw new Error(`Homies badges: ${response.status}`);
+async function loadHomiesBadges() {
+    homiesBadges.clear();
+
+    const results = await Promise.allSettled(
+        HOMIES_BADGE_URLS.map(async url => {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`${url}: ${response.status}`);
+            }
+
+            return response.json();
+        })
+    );
+
+    results.forEach((result, index) => {
+        if (result.status !== "fulfilled") {
+            console.error("Homies badge source failed:", HOMIES_BADGE_URLS[index], result.reason);
+            return;
         }
 
-        const data = await response.json();
-
-        for (const badge of data.badges || []) {
+        for (const badge of result.value?.badges || []) {
             const url = normalizeImageUrl(
                 badge.image3 || badge.image2 || badge.image1
             );
@@ -21,7 +38,12 @@ async function loadHomiesBadges() {
 
             const title = badge.tooltip || "Homies Badge";
 
-            for (const rawId of badge.users || []) {
+            const ids = [
+                ...(Array.isArray(badge.users) ? badge.users : []),
+                ...(badge.userId ? [badge.userId] : [])
+            ];
+
+            for (const rawId of ids) {
                 const id = String(rawId).trim();
 
                 if (!id) {
@@ -35,13 +57,9 @@ async function loadHomiesBadges() {
                 homiesBadges.get(id).push({ url, title });
             }
         }
+    });
 
-        console.log(
-            `Loaded Homies badges for ${homiesBadges.size} users.`
-        );
-    } catch (error) {
-        console.error("Homies badge error:", error);
-    }
+    console.log(`Loaded Homies badges for ${homiesBadges.size} users.`);
 }
 
 function normalizeFFZRoomBadge(
