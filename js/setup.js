@@ -65,14 +65,20 @@ let badgeSources = {
     ffz: badgeFfz,
     seventv: badgeSeventv,
     chatterino: badgeChatterino,
-    homies: badgeHomies
+    homies: badgeHomies,
+    bttv: badgeBttv,
+    dankchat: badgeDankchat,
+    moltorino: badgeMoltorino
 };
 const PLATFORM_BADGE_SOURCES = [
     { key: "twitch", label: "Twitch", logo: "logos/twitch.png" },
     { key: "ffz", label: "FFZ", logo: "logos/ffz.png" },
     { key: "seventv", label: "7TV", logo: "logos/7tv.png" },
     { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg" },
-    { key: "homies", label: "Homies", logo: "logos/homies.svg" }
+    { key: "homies", label: "Homies", logo: "logos/homies.svg" },
+    { key: "bttv", label: "BTTV", logo: "logos/bttv.png" },
+    { key: "dankchat", label: "DankChat", logo: "logos/dankchat.png" },
+    { key: "moltorino", label: "Moltorino", logo: "logos/moltorino.png" }
 ];
 
 let backgroundOpacity = (() => {
@@ -1644,6 +1650,9 @@ function showOverlaySetupScreen() {
             logo.src = item.logo;
             logo.alt = item.label;
             logo.draggable = false;
+            logo.addEventListener("error", () => {
+                logo.style.display = "none";
+            });
 
             const label = document.createElement("span");
             label.className = "mc-platform-label";
@@ -1791,6 +1800,12 @@ function showOverlaySetupScreen() {
                 badgeChatterino = value;
             } else if (key === "homies") {
                 badgeHomies = value;
+            } else if (key === "bttv") {
+                badgeBttv = value;
+            } else if (key === "dankchat") {
+                badgeDankchat = value;
+            } else if (key === "moltorino") {
+                badgeMoltorino = value;
             }
         }
     );
@@ -2042,6 +2057,7 @@ function showOverlaySetupScreen() {
         "MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
         "7TV Paints, FFZ, BTTV and Twitch badges are supported.",
         "MChat is the only overlay that supports all effects, including FFZ and BTTV effect (ffzCursed, h!, etc)",
+        "We have support for badges from every single platform available, and if there's a platform we're missing let us know!",
         "GIFs are supported, but can be disabled for performance.",
         "Bots and commands can be hidden from the overlay.",
         "Unlisted 7TV emotes can be enabled or disabled.",
@@ -2436,6 +2452,15 @@ function showOverlaySetupScreen() {
 
             badgeHomies:
                 badgeSources.homies,
+
+            badgeBttv:
+                badgeSources.bttv,
+
+            badgeDankchat:
+                badgeSources.dankchat,
+
+            badgeMoltorino:
+                badgeSources.moltorino,
 
             gifs:
                 gifsCheckbox.checked,

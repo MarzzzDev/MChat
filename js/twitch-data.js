@@ -187,7 +187,10 @@ async function loadPreviewEmotes() {
         loadBTTVEmotes(),
         loadFFZBadges(),
         loadChatterinoBadges(),
-        loadHomiesBadges()
+        loadHomiesBadges(),
+        loadBTTVBadges(),
+        loadDankChatBadges(),
+        loadMoltorinoBadges()
     ];
 
     tasks.push(loadTwitchBadges());
@@ -247,4 +250,3 @@ function seedPreviewTwitchBadges() {
 
 const PREVIEW_CHANNEL = "marz_dev";
 const PREVIEW_TWITCH_USER_ID = "1208634685";
-

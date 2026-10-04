@@ -6,7 +6,10 @@ const LOADING_TASKS = [
     { label: "Twitch badges", run: loadTwitchBadges },
     { label: "FFZ badges", run: loadFFZBadges },
     { label: "Chatterino badges", run: loadChatterinoBadges },
-    { label: "Homies badges", run: loadHomiesBadges }
+    { label: "Homies badges", run: loadHomiesBadges },
+    { label: "BTTV badges", run: loadBTTVBadges },
+    { label: "DankChat badges", run: loadDankChatBadges },
+    { label: "Moltorino badges", run: loadMoltorinoBadges }
 ];
 
 loadFFZBotBadgeList();

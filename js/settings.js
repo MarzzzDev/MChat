@@ -121,6 +121,15 @@ function normaliseOverlaySettings(settings = {}) {
     result.badgeHomies =
         settings.badgeHomies !== false;
 
+    result.badgeBttv =
+        settings.badgeBttv !== false;
+
+    result.badgeDankchat =
+        settings.badgeDankchat !== false;
+
+    result.badgeMoltorino =
+        settings.badgeMoltorino !== false;
+
     result.gifs =
         settings.gifs !== false;
 
@@ -516,6 +525,27 @@ function appendFlatOverlaySettings(
         ]);
     }
 
+    if (normalised.badgeBttv !== true) {
+        query.push([
+            "badgeBttv",
+            normalised.badgeBttv ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.badgeDankchat !== true) {
+        query.push([
+            "badgeDankchat",
+            normalised.badgeDankchat ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.badgeMoltorino !== true) {
+        query.push([
+            "badgeMoltorino",
+            normalised.badgeMoltorino ? "1" : "0"
+        ]);
+    }
+
     if (normalised.gifs !== true) {
         query.push([
             "gifs",
@@ -753,6 +783,24 @@ let badgeChatterino =
 let badgeHomies =
     parseQueryBoolean(
         "badgeHomies",
+        true
+    );
+
+let badgeBttv =
+    parseQueryBoolean(
+        "badgeBttv",
+        true
+    );
+
+let badgeDankchat =
+    parseQueryBoolean(
+        "badgeDankchat",
+        true
+    );
+
+let badgeMoltorino =
+    parseQueryBoolean(
+        "badgeMoltorino",
         true
     );
 
@@ -1176,26 +1224,3 @@ let showUnlisted7TV =
         "unlisted",
         true
     );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
