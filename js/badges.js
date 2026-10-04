@@ -63,6 +63,220 @@ async function loadHomiesBadges() {
     console.log(`Loaded Homies badges for ${homiesBadges.size} users.`);
 }
 
+const bttvBadges = new Map();
+const dankchatBadges = new Map();
+const moltorinoBadges = new Map();
+
+const DANKCHAT_BADGE_API = "https://flxrs.com/api/badges";
+
+const DANKCHAT_BADGE_PROXY = "https://dank-chat-badges.marseceva.workers.dev";
+
+const DANKCHAT_BADGE_URLS = [
+    DANKCHAT_BADGE_PROXY,
+    DANKCHAT_BADGE_API,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(DANKCHAT_BADGE_API)}`
+].filter(Boolean);
+
+async function loadBTTVBadges() {
+    try {
+        const response = await fetch(
+            "https://api.betterttv.net/3/cached/badges/twitch"
+        );
+
+        if (!response.ok) {
+            throw new Error(`BTTV badges: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        bttvBadges.clear();
+
+        for (const entry of Array.isArray(data) ? data : []) {
+            const id = String(entry?.providerId || "").trim();
+
+            const url = normalizeImageUrl(
+                entry?.badge?.svg
+            );
+
+            if (!id || !url) {
+                continue;
+            }
+
+            if (!bttvBadges.has(id)) {
+                bttvBadges.set(id, []);
+            }
+
+            bttvBadges.get(id).push({
+                url,
+                title:
+                    entry?.badge?.description ||
+                    "BTTV Badge"
+            });
+        }
+
+        console.log(
+            `Loaded BTTV badges for ${bttvBadges.size} users.`
+        );
+
+    } catch (error) {
+        console.error("BTTV badge error:", error);
+    }
+}
+
+async function loadDankChatBadges() {
+    try {
+        let data = null;
+
+        for (const url of DANKCHAT_BADGE_URLS) {
+            try {
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`${response.status}`);
+                }
+
+                data = await response.json();
+                break;
+
+            } catch (error) {
+                console.warn("DankChat badge source failed:", url, error);
+            }
+        }
+
+        if (!data) {
+            throw new Error("DankChat badges: all sources failed");
+        }
+
+        dankchatBadges.clear();
+
+        for (const badge of Array.isArray(data) ? data : []) {
+            const url = normalizeImageUrl(badge?.url);
+
+            if (!url) {
+                continue;
+            }
+
+            const title =
+                badge?.tooltip ||
+                "DankChat Badge";
+
+            for (const rawId of badge?.users || []) {
+                const id = String(rawId).trim();
+
+                if (!id) {
+                    continue;
+                }
+
+                if (!dankchatBadges.has(id)) {
+                    dankchatBadges.set(id, []);
+                }
+
+                dankchatBadges.get(id).push({ url, title });
+            }
+        }
+
+        console.log(
+            `Loaded DankChat badges for ${dankchatBadges.size} users.`
+        );
+
+    } catch (error) {
+        console.error("DankChat badge error:", error);
+    }
+}
+
+async function loadMoltorinoBadges() {
+    try {
+        const response = await fetch(
+            "https://api.moltorino.com/v2/badges"
+        );
+
+        if (!response.ok) {
+            throw new Error(`Moltorino badges: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const definitions = new Map();
+
+        for (const badge of data?.badges || []) {
+            const url = normalizeImageUrl(
+                badge?.images?.["4x"] ||
+                badge?.images?.["3x"] ||
+                badge?.images?.["2x"] ||
+                badge?.images?.["1x"]
+            );
+
+            if (!badge?.id || !url) {
+                continue;
+            }
+
+            definitions.set(String(badge.id), {
+                url,
+                title: badge.tooltip || "Moltorino Badge",
+                priority: Number(badge.priority) || 0
+            });
+        }
+
+        moltorinoBadges.clear();
+
+        for (const [rawId, user] of Object.entries(data?.users || {})) {
+            const id = String(rawId).trim();
+
+            if (!id || !user) {
+                continue;
+            }
+
+            let definition = null;
+
+            if (Object.prototype.hasOwnProperty.call(user, "activeBadge")) {
+                if (user.activeBadge === null) {
+                    continue;
+                }
+
+                definition = definitions.get(
+                    String(user.activeBadge)
+                );
+            }
+
+            if (!definition) {
+                for (const badgeId of user.badges || []) {
+                    const candidate = definitions.get(
+                        String(badgeId)
+                    );
+
+                    if (
+                        candidate &&
+                        (
+                            !definition ||
+                            candidate.priority < definition.priority
+                        )
+                    ) {
+                        definition = candidate;
+                    }
+                }
+            }
+
+            if (!definition) {
+                continue;
+            }
+
+            moltorinoBadges.set(id, [
+                {
+                    url: definition.url,
+                    title: definition.title
+                }
+            ]);
+        }
+
+        console.log(
+            `Loaded Moltorino badges for ${moltorinoBadges.size} users.`
+        );
+
+    } catch (error) {
+        console.error("Moltorino badge error:", error);
+    }
+}
+
 function normalizeFFZRoomBadge(
     badge,
     title
@@ -239,7 +453,10 @@ async function loadExternalBadges() {
     await Promise.allSettled([
         loadFFZBadges(),
         loadChatterinoBadges(),
-        loadHomiesBadges()
+        loadHomiesBadges(),
+        loadBTTVBadges(),
+        loadDankChatBadges(),
+        loadMoltorinoBadges()
     ]);
 }
 
@@ -695,6 +912,12 @@ function isBadgeProviderEnabled(provider) {
             return badgeChatterino;
         case "Homies":
             return badgeHomies;
+        case "BTTV":
+            return badgeBttv;
+        case "DankChat":
+            return badgeDankchat;
+        case "Moltorino":
+            return badgeMoltorino;
         default:
             return true;
     }
@@ -999,6 +1222,90 @@ async function createExternalBadges(
 
                     provider:
                         "Homies",
+
+                    type:
+                        null
+                });
+            }
+
+            const bttv =
+                bttvBadges.get(userId) || [];
+
+            for (const badge of bttv) {
+                const image =
+                    await preloadBadgeImage(
+                        badge.url
+                    );
+
+                if (!image) {
+                    continue;
+                }
+
+                badges.push({
+                    url:
+                        badge.url,
+
+                    title:
+                        badge.title,
+
+                    provider:
+                        "BTTV",
+
+                    type:
+                        null
+                });
+            }
+
+            const dankchat =
+                dankchatBadges.get(userId) || [];
+
+            for (const badge of dankchat) {
+                const image =
+                    await preloadBadgeImage(
+                        badge.url
+                    );
+
+                if (!image) {
+                    continue;
+                }
+
+                badges.push({
+                    url:
+                        badge.url,
+
+                    title:
+                        badge.title,
+
+                    provider:
+                        "DankChat",
+
+                    type:
+                        null
+                });
+            }
+
+            const moltorino =
+                moltorinoBadges.get(userId) || [];
+
+            for (const badge of moltorino) {
+                const image =
+                    await preloadBadgeImage(
+                        badge.url
+                    );
+
+                if (!image) {
+                    continue;
+                }
+
+                badges.push({
+                    url:
+                        badge.url,
+
+                    title:
+                        badge.title,
+
+                    provider:
+                        "Moltorino",
 
                     type:
                         null

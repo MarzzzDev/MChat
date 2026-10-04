@@ -71,14 +71,14 @@ let badgeSources = {
     moltorino: badgeMoltorino
 };
 const PLATFORM_BADGE_SOURCES = [
-    { key: "twitch", label: "Twitch", logo: "logos/twitch.png" },
-    { key: "ffz", label: "FFZ", logo: "logos/ffz.png" },
-    { key: "seventv", label: "7TV", logo: "logos/7tv.png" },
-    { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg" },
-    { key: "homies", label: "Homies", logo: "logos/homies.svg" },
-    { key: "bttv", label: "BTTV", logo: "logos/bttv.png" },
-    { key: "dankchat", label: "DankChat", logo: "logos/dankchat.png" },
-    { key: "moltorino", label: "Moltorino", logo: "logos/moltorino.png" }
+    { key: "twitch", label: "Twitch", logo: "logos/twitch.png", color: "#9147ff" },
+    { key: "ffz", label: "FFZ", logo: "logos/ffz.svg", color: "#755000" },
+    { key: "seventv", label: "7TV", logo: "logos/7tv.svg", color: "#29b6f6" },
+    { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg", color: "#a7efff" },
+    { key: "homies", label: "Homies", logo: "logos/homies.svg", color: "#d400ff" },
+    { key: "bttv", label: "BTTV", logo: "logos/bttv.svg", color: "#ff0000" },
+    { key: "dankchat", label: "DankChat", logo: "logos/dankchat.png", color: "#efe08a" },
+    { key: "moltorino", label: "Moltorino", logo: "logos/moltorino.png", color: "#ff6a00" }
 ];
 
 let backgroundOpacity = (() => {
@@ -788,7 +788,8 @@ function showOverlaySetupScreen() {
         #overlay-setup-screen .mc-platform-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            justify-content: center;
+            gap: 8px;
             padding: 8px 10px 9px;
             margin: -4px 0 4px;
             border: 1px solid #050505;
@@ -809,9 +810,10 @@ function showOverlaySetupScreen() {
             align-items: center;
             justify-content: center;
             gap: 3px;
-            width: 40px;
+            width: auto;
+            min-width: 40px;
             height: 40px;
-            padding: 2px;
+            padding: 2px 5px;
             border: 1px solid #050505;
             border-radius: 5px;
             background: #121216;
@@ -827,9 +829,9 @@ function showOverlaySetupScreen() {
         }
 
         #overlay-setup-screen .mc-platform-button.is-active {
-            border-color: #e8d58a;
-            background: #2a271d;
-            color: #f0e9f8;
+            border-color: var(--pc, #e8d58a);
+            background: color-mix(in srgb, var(--pc, #e8d58a) 20%, #121216);
+            color: var(--pc, #f0e9f8);
         }
 
         #overlay-setup-screen .mc-platform-button:disabled {
@@ -854,9 +856,9 @@ function showOverlaySetupScreen() {
         }
 
         #overlay-setup-screen .mc-platform-label {
-            font-size: 8px;
+            font-size: 7px;
             font-weight: 800;
-            letter-spacing: .04em;
+            letter-spacing: 0;
             text-transform: none;
             white-space: nowrap;
             overflow: hidden;
@@ -1199,10 +1201,6 @@ function showOverlaySetupScreen() {
         #overlay-setup-screen .mc-toggle-note,
         #overlay-setup-screen .mc-muted,
         #overlay-setup-screen .mc-footnote,
-        #overlay-setup-screen .mc-platform-label {
-            font-size: 9px;
-        }
-
         @media (max-width: 1020px) {
             #overlay-setup-screen {
                 grid-template-columns: 176px minmax(330px, 420px) minmax(0, 1fr);
@@ -1644,6 +1642,7 @@ function showOverlaySetupScreen() {
             button.type = "button";
             button.className = `mc-platform-button${state[item.key] ? " is-active" : ""}`;
             button.dataset.platform = item.key;
+            button.style.setProperty("--pc", item.color);
 
             const logo = document.createElement("img");
             logo.className = "mc-platform-logo";
@@ -2056,6 +2055,7 @@ function showOverlaySetupScreen() {
     const helpFeatures = [
         "MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
         "7TV Paints, FFZ, BTTV and Twitch badges are supported.",
+        "We also have badges from every platform available, such as BTTV, Moltorino and Dankchat",
         "MChat is the only overlay that supports all effects, including FFZ and BTTV effect (ffzCursed, h!, etc)",
         "We have support for badges from every single platform available, and if there's a platform we're missing let us know!",
         "GIFs are supported, but can be disabled for performance.",
