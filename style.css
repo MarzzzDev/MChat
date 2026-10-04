@@ -13,10 +13,10 @@ body {
     --chat-font: 'Open Sans', sans-serif;
     --chat-bg: transparent;
     --text-color: rgb(255, 255, 255);
-    --shadow-offset-x: 3px;
-    --shadow-offset-y: 3px;
-    --shadow-blur: 6px;
-    --shadow-color: rgba(0, 0, 0, 0.9);
+    --shadow-offset-x: 2px;
+    --shadow-offset-y: 2px;
+    --shadow-blur: 8px;
+    --shadow-color: black;
     --chat-weight: 900;
     --gif-scale: 1;
     --stroke-shadow: 0 0 0 transparent;
@@ -122,6 +122,7 @@ body.has-background .message.redeem-message:hover {
     justify-content: flex-end;
     align-items: flex-start;
     zoom: var(--chat-scale);
+    filter: var(--shadow-filter, );
 }
 
 @keyframes messageIn {
@@ -157,7 +158,6 @@ body.has-background .message.redeem-message:hover {
     gap: 3px;
     margin-right: 6px;
     position: relative;
-    filter: var(--shadow-filter, );
 }
 
 .badge {
@@ -175,7 +175,6 @@ body.has-background .message.redeem-message:hover {
 .badges.no-badges {
     display: none;
 }
-
 .username {
     font-family: var(--chat-font);
     font-style: normal;
@@ -192,7 +191,7 @@ body.has-background .message.redeem-message:hover {
     word-break: break-word;
     white-space: normal;
     color: #FF0000;
-    text-shadow: var(--stroke-shadow), var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
+    text-shadow: var(--stroke-shadow);
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
 }
@@ -213,7 +212,7 @@ body.has-background .message.redeem-message:hover {
     overflow-wrap: anywhere;
     word-break: break-word;
     white-space: normal;
-    text-shadow: var(--stroke-shadow), var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color);
+    text-shadow: var(--stroke-shadow);
     text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
 }
@@ -225,7 +224,7 @@ body.has-background .message.redeem-message:hover {
     vertical-align: middle;
     margin: 0 3px;
     flex: 0 0 auto;
-    filter: var(--ffz-effect-filter, ) var(--shadow-filter, );
+    filter: var(--ffz-effect-filter, );
     transition: transform 0.15s ease;
 }
 
@@ -237,7 +236,6 @@ body.has-background .message.redeem-message:hover {
     vertical-align: middle !important;
     margin: 0 0.05em !important;
     flex: 0 0 auto;
-    filter: var(--shadow-filter, );
 }
 
 .emote.ffz-effect-transform {
@@ -275,11 +273,11 @@ body.has-background .message.redeem-message:hover {
 
 @keyframes bttvParty {
     from {
-        filter: var(--ffz-effect-filter, ) hue-rotate(0deg) var(--shadow-filter, );
+        filter: var(--ffz-effect-filter, ) hue-rotate(0deg);
     }
 
     to {
-        filter: var(--ffz-effect-filter, ) hue-rotate(360deg) var(--shadow-filter, );
+        filter: var(--ffz-effect-filter, ) hue-rotate(360deg);
     }
 }
 
@@ -340,6 +338,16 @@ body.shadow-disabled {
 .text {
     -webkit-text-stroke: calc(var(--stroke-width) * 2) var(--stroke-color);
     paint-order: stroke fill;
+}
+
+body.stroke-shadow-mode .username,
+body.stroke-shadow-mode .text {
+    -webkit-text-stroke: 0;
+    paint-order: normal;
+}
+
+body.stroke-shadow-mode [style*="background-clip"] {
+    text-shadow: none;
 }
 
 body.uppercase #chat,

@@ -1,5 +1,56 @@
 const knownChatters = new Map();
 
+const CHROME_MAJOR = Number((navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1] || 0);
+const STROKE_VIA_SHADOW = CHROME_MAJOR > 0 && CHROME_MAJOR < 127;
+let appliedStrokeKey = null;
+
+function buildStrokeRing(radius, color) {
+    const step = Math.max(0.1, 1 / radius);
+    const layers = [];
+
+    for (let angle = 0; angle < Math.PI * 2; angle += step) {
+        const x = (Math.cos(angle) * radius).toFixed(3);
+        const y = (Math.sin(angle) * radius).toFixed(3);
+
+        layers.push(`${x}px ${y}px 0 ${color}`);
+    }
+
+    return layers.join(", ");
+}
+
+function applyStrokeMode() {
+    if (!STROKE_VIA_SHADOW) {
+        return;
+    }
+
+    const rootStyle = getComputedStyle(document.documentElement);
+    const width = parseFloat(rootStyle.getPropertyValue("--stroke-width"));
+    const color = rootStyle.getPropertyValue("--stroke-color").trim() || "black";
+    const key = `${width}|${color}`;
+
+    if (key === appliedStrokeKey) {
+        return;
+    }
+
+    appliedStrokeKey = key;
+
+    document.body.classList.add("stroke-shadow-mode");
+
+    if (!(width > 0)) {
+        document.documentElement.style.setProperty("--stroke-shadow", "0 0 0 transparent");
+        return;
+    }
+
+    document.documentElement.style.setProperty(
+        "--stroke-shadow",
+        buildStrokeRing(width, color)
+    );
+}
+
+window.applyStrokeMode = applyStrokeMode;
+
+const MIN_NAME_BRIGHTNESS = 100;
+
 const BTTV_MODIFIERS = new Set([
     "w!", "h!", "v!", "z!", "c!", "l!", "r!", "p!", "s!"
 ]);
@@ -1402,13 +1453,27 @@ function getTwitchDisplayColor(color, login) {
             const g = parseInt(hex.slice(3, 5), 16);
             const b = parseInt(hex.slice(5, 7), 16);
 
-            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            const brightnessOf = (value) => {
+                const vr = parseInt(value.slice(1, 3), 16);
+                const vg = parseInt(value.slice(3, 5), 16);
+                const vb = parseInt(value.slice(5, 7), 16);
 
-            if (brightness <= 50) {
-                return lightenColor(hex, 30);
+                return (vr * 299 + vg * 587 + vb * 114) / 1000;
+            };
+
+            if (brightnessOf(hex) >= MIN_NAME_BRIGHTNESS) {
+                return hex;
             }
 
-            return hex;
+            for (let amount = 5; amount <= 60; amount += 5) {
+                const lightened = lightenColor(hex, amount);
+
+                if (brightnessOf(lightened) >= MIN_NAME_BRIGHTNESS) {
+                    return lightened;
+                }
+            }
+
+            return lightenColor(hex, 60);
         }
     }
 
@@ -1709,6 +1774,7 @@ async function onMsg(
     if (!chat) {
         return;
     }
+    applyStrokeMode();
     registerChatter(user, usernameColor, userId);
 
     const replyInfo =
