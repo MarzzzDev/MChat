@@ -1,5 +1,8 @@
 const knownChatters = new Map();
 
+const BTTV_MODIFIERS = new Set([
+    "w!", "h!", "v!", "z!", "c!", "l!", "r!", "p!", "s!"
+]);
 
 function registerChatter(user, color, userId) {
     if (!user) {
@@ -34,6 +37,7 @@ function createMention(chatter, prefix = "") {
 
     return mention;
 }
+
 function createEmote(
     url,
     alt
@@ -116,7 +120,7 @@ function renderTwemoji(container) {
                     "inline-block";
 
                 emoji.style.verticalAlign =
-                    "-0.2em";
+                    "middle";
 
                 emoji.style.margin =
                     "0 0.05em";
@@ -688,118 +692,211 @@ function create7TVOverlay(
     return true;
 }
 
+function widenEmote(emote, zero = false) {
+    const apply = () => {
+        if (!emote.naturalWidth || !emote.naturalHeight) {
+            return;
+        }
+
+        const half = (65 * emote.naturalWidth / emote.naturalHeight) / 2;
+
+        emote.style.marginLeft = `${(zero ? 0 : 3) + half}px`;
+        emote.style.marginRight = `${3 + half}px`;
+    };
+
+    if (emote.complete && emote.naturalWidth) {
+        apply();
+    } else {
+        emote.addEventListener("load", apply, { once: true });
+    }
+}
+
+function removeTrailingWhitespace(container) {
+    const last = container.lastChild;
+
+    if (
+        last &&
+        last.nodeType === Node.TEXT_NODE &&
+        !last.textContent.trim()
+    ) {
+        last.remove();
+    }
+}
+
+function applyBTTVModifiers(container, emote, modifiers) {
+    let scaleX = Number(emote.dataset.ffzScaleX || 1);
+    let scaleY = Number(emote.dataset.ffzScaleY || 1);
+    let rotate = Number(emote.dataset.ffzRotate || 0);
+    let transformed = false;
+    let wide = false;
+
+    for (const modifier of modifiers) {
+        switch (modifier) {
+            case "h!":
+                scaleX *= -1;
+                transformed = true;
+                break;
+
+            case "v!":
+                scaleY *= -1;
+                transformed = true;
+                break;
+
+            case "l!":
+                rotate -= 90;
+                transformed = true;
+                break;
+
+            case "r!":
+                rotate += 90;
+                transformed = true;
+                break;
+
+            case "w!":
+                scaleX *= 2;
+                transformed = true;
+                wide = true;
+                break;
+
+            case "z!":
+                removeTrailingWhitespace(container);
+                emote.classList.add("bttv-effect-zero");
+                break;
+
+            case "c!":
+                emote.classList.add("bttv-effect-cursed");
+                break;
+
+            case "p!":
+                emote.classList.add("bttv-effect-party");
+                break;
+
+            case "s!":
+                emote.classList.add("bttv-effect-shake");
+                break;
+        }
+    }
+
+    if (transformed) {
+        emote.dataset.ffzScaleX = String(scaleX);
+        emote.dataset.ffzScaleY = String(scaleY);
+        emote.dataset.ffzRotate = String(rotate);
+
+        emote.classList.add("ffz-effect-transform");
+        emote.style.setProperty("--ffz-scale-x", String(scaleX));
+        emote.style.setProperty("--ffz-scale-y", String(scaleY));
+        emote.style.setProperty("--ffz-rotate", `${rotate}deg`);
+    }
+
+    if (wide) {
+        widenEmote(emote, modifiers.includes("z!"));
+    }
+}
+
 function renderExternalText(
     container,
     value,
     username = null
 ) {
-    const parts =
-        value.split(
-            /(\s+)/
-        );
+    const parts = value.split(/(\s+)/);
 
-    for (
-        const part
-        of parts
-    ) {
+    let pendingModifiers = [];
+    let pendingNodes = [];
+
+    const flushPending = () => {
+        for (const node of pendingNodes) {
+            container.appendChild(node);
+        }
+
+        pendingModifiers = [];
+        pendingNodes = [];
+    };
+
+    for (const part of parts) {
         if (!part) {
             continue;
         }
 
-        if (
-            ffzEffects.has(
-                part
-            )
-        ) {
-            const applied =
-                applyFFZEffectToPrevious(
-                    container,
-                    part
-                );
+        if (pendingModifiers.length && /^\s+$/.test(part)) {
+            pendingNodes.push(document.createTextNode(part));
+            continue;
+        }
+
+        if (BTTV_MODIFIERS.has(part)) {
+            pendingModifiers.push(part);
+            pendingNodes.push(document.createTextNode(part));
+            continue;
+        }
+
+        const external = findThirdPartyEmote(part, username);
+
+        const isPlainEmote =
+            external &&
+            !(external.provider === "7TV" && external.zeroWidth) &&
+            !(external.provider === "FFZ" && external.modifier);
+
+        if (pendingModifiers.length && !isPlainEmote) {
+            flushPending();
+        }
+
+        if (ffzEffects.has(part)) {
+            const applied = applyFFZEffectToPrevious(container, part);
 
             if (!applied) {
-                container.appendChild(
-                    document.createTextNode(
-                        part
-                    )
-                );
+                container.appendChild(document.createTextNode(part));
             }
 
             continue;
         }
 
-        const external =
-            findThirdPartyEmote(
-                part,
-                username
-            );
-
         if (external) {
-            if (
-                external.provider ===
-                    "7TV" &&
-                external.zeroWidth
-            ) {
-                const applied =
-                    create7TVOverlay(
-                        container,
-                        external.url,
-                        external.name
-                    );
+            if (external.provider === "7TV" && external.zeroWidth) {
+                const applied = create7TVOverlay(
+                    container,
+                    external.url,
+                    external.name
+                );
 
                 if (!applied) {
                     container.appendChild(
-                        createEmote(
-                            external.url,
-                            external.name
-                        )
+                        createEmote(external.url, external.name)
                     );
                 }
 
                 continue;
             }
 
-            const emote =
-                createEmote(
-                    external.url,
-                    external.name
-                );
+            const emote = createEmote(external.url, external.name);
 
-            if (
-                external.provider ===
-                    "FFZ" &&
-                external.modifier
-            ) {
-                const effects =
-                    getFFZModifierEffects(
-                        external
-                    );
+            if (external.provider === "FFZ" && external.modifier) {
+                const effects = getFFZModifierEffects(external);
 
                 if (effects.length) {
-                    const applied =
-                        applyEffectsToPreviousEmote(
-                            container,
-                            effects
-                        );
+                    const applied = applyEffectsToPreviousEmote(
+                        container,
+                        effects
+                    );
 
                     if (!applied) {
-                        container.appendChild(
-                            emote
-                        );
+                        container.appendChild(emote);
                     }
 
                     continue;
                 }
             }
 
-            container.appendChild(
-                emote
-            );
+            if (pendingModifiers.length) {
+                applyBTTVModifiers(container, emote, pendingModifiers);
+                pendingModifiers = [];
+                pendingNodes = [];
+            }
+
+            container.appendChild(emote);
 
             continue;
         }
 
-                if (highlightsEnabled) {
+        if (highlightsEnabled) {
             try {
                 const mentionMatch = part.match(/^(@?)(\w{2,25})(\W*)$/);
 
@@ -830,12 +927,11 @@ function renderExternalText(
                 console.error("Mention error:", error);
             }
         }
-        container.appendChild(
-            document.createTextNode(
-                part
-            )
-        );
+
+        container.appendChild(document.createTextNode(part));
     }
+
+    flushPending();
 }
 
 function parseTwitchEmoteRanges(
@@ -1057,6 +1153,7 @@ function createTwitchGif(
 
     return gif;
 }
+
 function applyEffectsToPreviousEmote(
     container,
     effects
@@ -1644,7 +1741,7 @@ async function onMsg(
         "--user-color",
         usernameColor
     );
-    
+
     const badges =
         badgesEnabled
             ? createTwitchBadges(tags)
@@ -1819,4 +1916,3 @@ async function onMsg(
         }, fade * 1000 - 1000);
     }
 }
-

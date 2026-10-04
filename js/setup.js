@@ -2026,6 +2026,7 @@ function showOverlaySetupScreen() {
     const helpFeatures = [
         "MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
         "7TV Paints, FFZ, BTTV and Twitch badges are supported.",
+        "MChat is the only overlay that supports all effects, including FFZ and BTTV effect (ffzCursed, h!, etc)",
         "GIFs are supported, but can be disabled for performance.",
         "Bots and commands can be hidden from the overlay.",
         "Unlisted 7TV emotes can be enabled or disabled.",

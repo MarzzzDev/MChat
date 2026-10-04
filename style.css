@@ -8,7 +8,6 @@ body {
     font-family: var(--chat-font);
 }
 
-
 :root {
     --chat-scale: 1;
     --chat-font: 'Open Sans', sans-serif;
@@ -24,6 +23,7 @@ body {
     --shadow-filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
     --ffz-effect-filter: ;
 }
+
 .message {
     display: block;
     width: auto;
@@ -218,8 +218,7 @@ body.has-background .message.redeem-message:hover {
     -webkit-font-smoothing: antialiased;
 }
 
-.emote,
-.twemoji {
+.emote {
     height: 65px;
     width: auto;
     object-fit: contain;
@@ -230,6 +229,17 @@ body.has-background .message.redeem-message:hover {
     transition: transform 0.15s ease;
 }
 
+.twemoji {
+    height: 1.2em !important;
+    width: 1.2em !important;
+    display: inline-block !important;
+    object-fit: contain;
+    vertical-align: middle !important;
+    margin: 0 0.05em !important;
+    flex: 0 0 auto;
+    filter: var(--shadow-filter, );
+}
+
 .emote.ffz-effect-transform {
     transform:
         translateX(var(--ffz-tx, 0))
@@ -237,6 +247,67 @@ body.has-background .message.redeem-message:hover {
         rotate(var(--ffz-rotate, 0deg))
         scaleX(var(--ffz-scale-x, 1))
         scaleY(var(--ffz-scale-y, 1));
+}
+
+.emote.bttv-effect-zero {
+    margin-left: 0;
+}
+
+.emote.bttv-effect-cursed,
+.emote.ffz-effect-cursed {
+    --ffz-effect-filter: grayscale(1) brightness(0.7) contrast(2.5);
+}
+
+.emote.bttv-effect-party {
+    animation: bttvParty 1s linear infinite;
+}
+
+.emote.bttv-effect-shake {
+    position: relative;
+    animation: bttvShake 0.15s linear infinite;
+}
+
+.emote.bttv-effect-party.bttv-effect-shake {
+    animation:
+        bttvParty 1s linear infinite,
+        bttvShake 0.15s linear infinite;
+}
+
+@keyframes bttvParty {
+    from {
+        filter: var(--ffz-effect-filter, ) hue-rotate(0deg) var(--shadow-filter, );
+    }
+
+    to {
+        filter: var(--ffz-effect-filter, ) hue-rotate(360deg) var(--shadow-filter, );
+    }
+}
+
+@keyframes bttvShake {
+    0% {
+        left: 0;
+        top: 0;
+    }
+
+    25% {
+        left: -3px;
+        top: 2px;
+    }
+
+    50% {
+        left: 3px;
+        top: -2px;
+    }
+
+    75% {
+        left: -2px;
+        top: -3px;
+    }
+
+    100% {
+        left: 0;
+        top: 0;
+    }
 }
 
 .external-badges {
@@ -260,6 +331,7 @@ body.shadow-disabled .username,
 body.shadow-disabled .text {
     text-shadow: var(--stroke-shadow);
 }
+
 body.shadow-disabled {
     --shadow-filter: ;
 }
