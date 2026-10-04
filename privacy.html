@@ -4,7 +4,7 @@
     
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy &amp; Credits · MChat</title>
+<title>About · MChat</title>
 <link rel="icon" href="favicon.png" type="image/gif" >
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -225,6 +225,11 @@
 
     .summary p { margin: 0; }
     .note { color: #62626b; font-size: 9.5px; }
+    ol { margin: 0 0 10px; padding-left: 20px; }
+    .lead { font-size: 13px; color: #dcdce1; line-height: 1.7; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .two-col .card { margin-bottom: 0; }
+
 
     footer {
         margin-top: 32px;
@@ -250,6 +255,8 @@
         #page a.mc-nav-button { width: auto; min-height: 36px; flex: 0 0 auto; }
         .mc-nav-button.is-active::before { display: none; }
         main { padding: 22px 16px 44px; }
+        .two-col { grid-template-columns: 1fr; }
+        .lead { font-size: 14px; }
         p, li { font-size: 13px; }
         .card strong { font-size: 12px; }
         .card span, .note, footer, .updated { font-size: 11px; }
@@ -273,51 +280,89 @@
     <aside class="mc-sidebar">
         <div class="mc-nav-label">On this page</div>
         <nav class="mc-nav">
-            <a class="mc-nav-button is-active" href="#privacy"><span class="mc-nav-icon">01</span><span class="mc-nav-copy"><span class="mc-nav-title">Privacy</span></span></a>
-            <a class="mc-nav-button" href="#third-parties"><span class="mc-nav-icon">02</span><span class="mc-nav-copy"><span class="mc-nav-title">Third parties</span></span></a>
-            <a class="mc-nav-button" href="#credits"><span class="mc-nav-icon">03</span><span class="mc-nav-copy"><span class="mc-nav-title">Credits</span></span></a>
-            <a class="mc-nav-button" href="#contact"><span class="mc-nav-icon">04</span><span class="mc-nav-copy"><span class="mc-nav-title">Contact</span></span></a>
+            <a class="mc-nav-button is-active" href="#about"><span class="mc-nav-icon">01</span><span class="mc-nav-copy"><span class="mc-nav-title">About</span></span></a>
+            <a class="mc-nav-button" href="#features"><span class="mc-nav-icon">02</span><span class="mc-nav-copy"><span class="mc-nav-title">Features</span></span></a>
+            <a class="mc-nav-button" href="#services"><span class="mc-nav-icon">03</span><span class="mc-nav-copy"><span class="mc-nav-title">Supported services</span></span></a>
+            <a class="mc-nav-button" href="#setup"><span class="mc-nav-icon">04</span><span class="mc-nav-copy"><span class="mc-nav-title">Get started</span></span></a>
+            <a class="mc-nav-button" href="#privacy"><span class="mc-nav-icon">05</span><span class="mc-nav-copy"><span class="mc-nav-title">Privacy</span></span></a>
+            <a class="mc-nav-button" href="#credits"><span class="mc-nav-icon">06</span><span class="mc-nav-copy"><span class="mc-nav-title">Credits</span></span></a>
+            <a class="mc-nav-button" href="#contact"><span class="mc-nav-icon">07</span><span class="mc-nav-copy"><span class="mc-nav-title">Contact</span></span></a>
         </nav>
     </aside>
 
     <main id="main">
     <div class="content">
 
-        <h1>Privacy &amp; Credits</h1>
-        <p class="updated">Last updated: October 4, 2026</p>
+        <h1>About MChat</h1>
+        <p class="updated">A free Twitch chat overlay for OBS and other streaming software.</p>
+
+        <section id="about">
+            <h2>What is MChat?</h2>
+            <p class="lead">MChat is a highly customizable Twitch chat overlay. It shows your channel's chat on stream with the emotes, badges and name paints your viewers already use on 7TV, FrankerFaceZ, BetterTTV and more.</p>
+            <div class="summary">
+                <p><strong>No login, no install.</strong> Type a channel name, adjust the look with the live preview, copy the link and paste it into a Browser Source. That's the whole setup.</p>
+            </div>
+            <p>MChat runs entirely in the browser source. It connects to Twitch chat anonymously, so it never asks for your account or a token, and it keeps up with changes mid-stream, like new 7TV emotes, without a refresh.</p>
+        </section>
+
+        <section id="features">
+            <h2>Features</h2>
+            <ul>
+                <li><strong>Emotes:</strong> Twitch, 7TV, FrankerFaceZ and BetterTTV, global and channel. 7TV personal emote sets and zero-width emotes are supported, and 7TV emote changes show up live.</li>
+                <li><strong>Effects:</strong> FFZ and BTTV emote effects such as ffzCursed, ffzSpin, ffzW and more.</li>
+                <li><strong>Badges:</strong> Twitch, FFZ (including custom moderator and VIP badges), 7TV, Chatterino, Homies, BTTV, DankChat and Moltorino. Each platform can be turned on or off on its own.</li>
+                <li><strong>7TV paints:</strong> usernames use the viewer's 7TV paint or color.</li>
+                <li><strong>Chat behavior:</strong> replies, /me actions, GIFs, and live removal of deleted messages, timeouts, bans and chat clears.</li>
+                <li><strong>Bots:</strong> hide known bots and ! commands to keep chat clean.</li>
+            </ul>
+            <p>Customize the look with:</p>
+            <div class="two-col">
+                <div class="card"><strong>Text</strong><span>Font (including any Google Font), text scale, uppercase, text color</span></div>
+                <div class="card"><strong>Stroke and shadow</strong><span>Text stroke thickness and color, drop shadow intensity, size and offset</span></div>
+                <div class="card"><strong>Emotes and GIFs</strong><span>Separate emote scale and GIF scale, unlisted 7TV emotes on or off</span></div>
+                <div class="card"><strong>Background</strong><span>Background color and opacity, or no background at all</span></div>
+                <div class="card"><strong>Layout</strong><span>Message wrapping under the username</span></div>
+                <div class="card"><strong>Timing</strong><span>How long messages stay before fading, or never fade</span></div>
+            </div>
+        </section>
+
+        <section id="services">
+            <h2>Supported services</h2>
+            <p>MChat pulls from these community services directly in your browser.</p>
+            <div class="card"><strong>Twitch</strong><span>Anonymous chat connection, Twitch emotes and badges, moderation events. twitch.tv</span></div>
+            <div class="card"><strong>7TV</strong><span>Global, channel and personal emotes, zero-width emotes, live emote updates, paints and badges. 7tv.app</span></div>
+            <div class="card"><strong>FrankerFaceZ</strong><span>Emotes, effects, user badges, custom moderator and VIP badges, and the bot list. frankerfacez.com</span></div>
+            <div class="card"><strong>BetterTTV</strong><span>Emotes and badges. betterttv.com</span></div>
+            <div class="card"><strong>Chatterino and Chatterino Homies</strong><span>User badges. chatterino.com, chatterinohomies.com</span></div>
+            <div class="card"><strong>DankChat</strong><span>Supporter badges. dank.chat</span></div>
+            <div class="card"><strong>Moltorino</strong><span>Supporter badges. moltorino.com</span></div>
+            <p class="note">Missing a platform you'd like to see? Let me know.</p>
+        </section>
+
+        <section id="setup">
+            <h2>Get started</h2>
+            <ol>
+                <li>Open the <a href="index.html">setup page</a> and enter your Twitch channel name.</li>
+                <li>Adjust the settings and watch the live preview update.</li>
+                <li>Click <strong>Copy overlay link</strong>.</li>
+                <li>In OBS, add a <strong>Browser Source</strong> and paste the link as the URL.</li>
+                <li>Set the source size to fit your scene. The background is transparent unless you turn it on.</li>
+            </ol>
+            <p>Your settings are stored in the link itself, so keep the link to reuse your setup, or edit the setup page again and copy a new one.</p>
+        </section>
 
         <section id="privacy">
             <h2>Privacy</h2>
-            <div class="summary">
-                <p><strong>Short version:</strong> MChat has no accounts, no cookies, no analytics and no database. It does not collect or store personal data. Your settings live only in the overlay link.</p>
-            </div>
-            <p><strong>What MChat stores:</strong> nothing on a server. MChat is a static website that runs in your browser or streaming software. The Twitch channel name and your settings are kept only in the overlay link you copy, so only share it with people you trust.</p>
-            <p><strong>Twitch chat:</strong> the overlay connects to Twitch chat anonymously, without logging in, and shows the channel's public messages in your browser. MChat does not log, save or forward them.</p>
-            <p><strong>IP addresses:</strong> your browser connects directly to the services listed below, so they receive your IP address and normal browser information, like any website you visit. MChat does not receive or control that data. This site is hosted on GitHub Pages, which may keep standard server logs.</p>
-            <p><strong>Your rights:</strong> if you are in the EU, EEA or UK you can ask what data is held about you, ask for it to be corrected or deleted, object to its processing, and complain to your local data protection authority. Since MChat stores no personal data there is normally nothing to retrieve, but you can contact me any time.</p>
-            <p><strong>Children:</strong> MChat is not directed at children and does not knowingly collect data from anyone.</p>
-        </section>
-
-        <section id="third-parties">
-            <h2>Third-party services</h2>
-            <p>To show chat, emotes and badges, your browser contacts these services. Their own privacy policies apply to the data they receive.</p>
-
-            <div class="card"><strong>Twitch</strong><span>Anonymous chat connection, badges and Twitch emotes. twitch.tv</span></div>
-            <div class="card"><strong>7TV</strong><span>Emotes, badges, paints and live emote updates. 7tv.app</span></div>
-            <div class="card"><strong>FrankerFaceZ</strong><span>Emotes, badges, effects and bot lists. frankerfacez.com</span></div>
-            <div class="card"><strong>BetterTTV</strong><span>Emotes. betterttv.com</span></div>
-            <div class="card"><strong>Chatterino and Chatterino Homies</strong><span>User badges. chatterino.com, chatterinohomies.com</span></div>
-            <div class="card"><strong>GitHub</strong><span>Hosts this site, supplies the latest-version label on the setup page and the Homies badge list. github.com</span></div>
-            <div class="card"><strong>jsDelivr</strong><span>Delivers the Twemoji emoji images. jsdelivr.com</span></div>
-            <div class="card"><strong>Google Fonts</strong><span>Delivers the Open Sans font used by the interface and the default chat font, plus any other Google font you choose in the settings. fonts.google.com</span></div>
+            <p>MChat has no accounts, cookies, analytics or database, and it does not collect or store personal data. It is a static site hosted on GitHub Pages. Your channel name and settings live only in the overlay link, so share it only with people you trust.</p>
+            <p>Your browser connects directly to the services listed above, plus jsDelivr (Twemoji images) and Google Fonts, so those services receive your IP address like any website you visit. MChat does not receive or control that data, and their own privacy policies apply. Chat messages are shown in your browser and are never logged, saved or forwarded.</p>
         </section>
 
         <section id="credits">
             <h2>Credits</h2>
-            <p>MChat is made by marz_dev. It is not affiliated with or endorsed by Twitch, 7TV, FrankerFaceZ, BetterTTV, Chatterino or Chatterino Homies. All names, logos and trademarks belong to their respective owners.</p>
+            <p>MChat is made by marz_dev. It is not affiliated with or endorsed by Twitch, 7TV, FrankerFaceZ, BetterTTV, Chatterino, Chatterino Homies, DankChat or Moltorino. All names, logos and trademarks belong to their respective owners.</p>
             <ul>
                 <li><strong>Emoji graphics:</strong> Twemoji, &copy; Twitter, Inc. and other contributors, maintained by <a href="https://github.com/jdecked/twemoji" target="_blank" rel="noopener noreferrer">jdecked/twemoji</a> and licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC-BY 4.0</a>.</li>
-                <li><strong>Emotes, badges and paints:</strong> provided by Twitch, 7TV, FrankerFaceZ, BetterTTV and the Chatterino projects. Every emote and badge belongs to its creator.</li>
+                <li><strong>Emotes, badges and paints:</strong> provided by Twitch, 7TV, FrankerFaceZ, BetterTTV, Chatterino, DankChat and Moltorino. Every emote and badge belongs to its creator.</li>
                 <li><strong>Fonts:</strong> Open Sans, Roboto and Montserrat are licensed under the <a href="https://openfontlicense.org" target="_blank" rel="noopener noreferrer">SIL Open Font License 1.1</a>.</li>
             </ul>
             <p class="note">MChat's source code is on <a href="https://github.com/marzzzdev/marz-overlay" target="_blank" rel="noopener noreferrer">GitHub</a> under the license in the repository.</p>
@@ -326,8 +371,7 @@
         <section id="contact">
             <h2>Contact</h2>
             <p>MChat is run by marz_dev as a non-commercial hobby project.</p>
-            <p>Questions, privacy requests or takedown requests: <a href="mailto:mchat.contact@proton.me">mchat.contact@proton.me</a>, or add me on <a href="https://discord.com/users/1422977056085639309" target="_blank" rel="noopener noreferrer">Discord</a>. I'll reply to privacy requests within 30 days.</p>
-            <p>If this policy changes, the date at the top of this page will be updated.</p>
+            <p>Questions, or feedback: <a href="mailto:mchat.contact@proton.me">mchat.contact@proton.me</a>, or add me on <a href="https://discord.com/users/1422977056085639309" target="_blank" rel="noopener noreferrer">Discord</a>. I'll reply to privacy requests within 30 days.</p>
         </section>
 
         <footer>
