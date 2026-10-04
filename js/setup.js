@@ -326,6 +326,27 @@ function showOverlaySetupScreen() {
             letter-spacing: .11em;
         }
 
+        #overlay-setup-screen .mc-top-link {
+            display: inline-flex;
+            align-items: center;
+            height: 30px;
+            padding: 0 13px;
+            border: 1px solid #32323a;
+            border-radius: 6px;
+            background: #17171b;
+            color: #d4d4db;
+            font-size: 11px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: border-color .12s ease, background .12s ease, color .12s ease;
+        }
+
+        #overlay-setup-screen .mc-top-link:hover {
+            border-color: #e8d58a;
+            background: #2a271d;
+            color: #f2df9b;
+        }
+
         #overlay-setup-screen .mc-top-status {
             display: inline-flex;
             align-items: center;
@@ -1323,6 +1344,13 @@ function showOverlaySetupScreen() {
     brand.appendChild(brandText);
 
     topbar.appendChild(brand);
+
+    const topLink = document.createElement("a");
+    topLink.className = "mc-top-link";
+    topLink.href = "privacy.html";
+    topLink.textContent = "About & Credits";
+    topbar.appendChild(topLink);
+
     const sidebar = document.createElement("aside");
     sidebar.className = "mc-sidebar";
 
@@ -1440,23 +1468,12 @@ function showOverlaySetupScreen() {
     attributionCommit.rel = "noopener noreferrer";
     attributionCommit.textContent = "loading commit…";
 
-    const attributionSeparator4 = document.createElement("span");
-    attributionSeparator4.className = "mc-attribution-separator";
-    attributionSeparator4.textContent = "•";
-
-    const attributionPrivacy = document.createElement("a");
-    attributionPrivacy.className = "mc-attribution-github";
-    attributionPrivacy.href = "privacy.html";
-    attributionPrivacy.textContent = "Privacy & Credits";
-
     attribution.appendChild(attributionBrand);
     attribution.appendChild(attributionSeparator);
     attribution.appendChild(attributionDisclaimer);
     attribution.appendChild(attributionSeparator2);
     attribution.appendChild(attributionGithub);
     attribution.appendChild(attributionSeparator3);
-    attribution.appendChild(attributionPrivacy);
-    attribution.appendChild(attributionSeparator4);
     attribution.appendChild(attributionCommit);
 
     setupFooter.appendChild(feedback);
@@ -2055,7 +2072,6 @@ function showOverlaySetupScreen() {
     const helpFeatures = [
         "MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
         "7TV Paints, FFZ, BTTV and Twitch badges are supported.",
-        "We also have badges from every platform available, such as BTTV, Moltorino and Dankchat",
         "MChat is the only overlay that supports all effects, including FFZ and BTTV effect (ffzCursed, h!, etc)",
         "We have support for badges from every single platform available, and if there's a platform we're missing let us know!",
         "GIFs are supported, but can be disabled for performance.",
