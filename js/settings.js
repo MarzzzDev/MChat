@@ -118,6 +118,9 @@ function normaliseOverlaySettings(settings = {}) {
     result.badgeChatterino =
         settings.badgeChatterino !== false;
 
+    result.badgeHomies =
+        settings.badgeHomies !== false;
+
     result.gifs =
         settings.gifs !== false;
 
@@ -506,6 +509,13 @@ function appendFlatOverlaySettings(
         ]);
     }
 
+    if (normalised.badgeHomies !== true) {
+        query.push([
+            "badgeHomies",
+            normalised.badgeHomies ? "1" : "0"
+        ]);
+    }
+
     if (normalised.gifs !== true) {
         query.push([
             "gifs",
@@ -737,6 +747,12 @@ let badgeSeventv =
 let badgeChatterino =
     parseQueryBoolean(
         "badgeChatterino",
+        true
+    );
+
+let badgeHomies =
+    parseQueryBoolean(
+        "badgeHomies",
         true
     );
 

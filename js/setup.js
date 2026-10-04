@@ -64,13 +64,15 @@ let badgeSources = {
     twitch: badgeTwitch,
     ffz: badgeFfz,
     seventv: badgeSeventv,
-    chatterino: badgeChatterino
+    chatterino: badgeChatterino,
+    homies: badgeHomies
 };
 const PLATFORM_BADGE_SOURCES = [
     { key: "twitch", label: "Twitch", logo: "logos/twitch.png" },
     { key: "ffz", label: "FFZ", logo: "logos/ffz.png" },
     { key: "seventv", label: "7TV", logo: "logos/7tv.png" },
-    { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg" }
+    { key: "chatterino", label: "Chatterino", logo: "logos/chatterino.svg" },
+    { key: "homies", label: "Homies", logo: "logos/homies.svg" }
 ];
 
 let backgroundOpacity = (() => {
@@ -1434,12 +1436,23 @@ function showOverlaySetupScreen() {
     attributionCommit.rel = "noopener noreferrer";
     attributionCommit.textContent = "loading commit…";
 
+    const attributionSeparator4 = document.createElement("span");
+    attributionSeparator4.className = "mc-attribution-separator";
+    attributionSeparator4.textContent = "•";
+
+    const attributionPrivacy = document.createElement("a");
+    attributionPrivacy.className = "mc-attribution-github";
+    attributionPrivacy.href = "privacy.html";
+    attributionPrivacy.textContent = "Privacy & Credits";
+
     attribution.appendChild(attributionBrand);
     attribution.appendChild(attributionSeparator);
     attribution.appendChild(attributionDisclaimer);
     attribution.appendChild(attributionSeparator2);
     attribution.appendChild(attributionGithub);
     attribution.appendChild(attributionSeparator3);
+    attribution.appendChild(attributionPrivacy);
+    attribution.appendChild(attributionSeparator4);
     attribution.appendChild(attributionCommit);
 
     setupFooter.appendChild(feedback);
@@ -1776,6 +1789,8 @@ function showOverlaySetupScreen() {
                 badgeSeventv = value;
             } else if (key === "chatterino") {
                 badgeChatterino = value;
+            } else if (key === "homies") {
+                badgeHomies = value;
             }
         }
     );
@@ -2418,6 +2433,9 @@ function showOverlaySetupScreen() {
 
             badgeChatterino:
                 badgeSources.chatterino,
+
+            badgeHomies:
+                badgeSources.homies,
 
             gifs:
                 gifsCheckbox.checked,

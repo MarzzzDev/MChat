@@ -1,3 +1,49 @@
+const homiesBadges = new Map();
+
+async function loadHomiesBadges() {
+    try {
+        const response = await fetch("https://itzalex.github.io/badges2");
+
+        if (!response.ok) {
+            throw new Error(`Homies badges: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        for (const badge of data.badges || []) {
+            const url = normalizeImageUrl(
+                badge.image3 || badge.image2 || badge.image1
+            );
+
+            if (!url) {
+                continue;
+            }
+
+            const title = badge.tooltip || "Homies Badge";
+
+            for (const rawId of badge.users || []) {
+                const id = String(rawId).trim();
+
+                if (!id) {
+                    continue;
+                }
+
+                if (!homiesBadges.has(id)) {
+                    homiesBadges.set(id, []);
+                }
+
+                homiesBadges.get(id).push({ url, title });
+            }
+        }
+
+        console.log(
+            `Loaded Homies badges for ${homiesBadges.size} users.`
+        );
+    } catch (error) {
+        console.error("Homies badge error:", error);
+    }
+}
+
 function normalizeFFZRoomBadge(
     badge,
     title
@@ -170,75 +216,13 @@ async function loadFFZBadges() {
     }
 }
 
-async function loadChatterinoBadges() {
-    const urls = [
-        "https://api.chatterino.com/badges",
-        "https://api.chatterino.com/v1/badges"
-    ];
-
-    for (
-        const url
-        of urls
-    ) {
-        try {
-            const response =
-                await fetch(url);
-
-            if (!response.ok) {
-                continue;
-            }
-
-            const data =
-                await response.json();
-
-            const entries =
-                Array.isArray(data)
-                    ? data
-                    : data.badges ||
-                      data.data ||
-                      [];
-
-            for (
-                const badge
-                of entries
-            ) {
-                const id =
-                    badge.id ??
-                    badge.name ??
-                    badge.user_id;
-
-                const image =
-                    badge.image ??
-                    badge.url ??
-                    badge.image_url;
-
-                if (
-                    id &&
-                    image
-                ) {
-                    chatterinoBadges.set(
-                        String(id),
-                        normalizeImageUrl(
-                            image
-                        )
-                    );
-                }
-            }
-
-            return;
-
-        } catch {
-        }
-    }
-}
-
 async function loadExternalBadges() {
     await Promise.allSettled([
         loadFFZBadges(),
-        loadChatterinoBadges()
+        loadChatterinoBadges(),
+        loadHomiesBadges()
     ]);
 }
-
 
 function preloadBadgeImage(url) {
     if (!url) {
@@ -690,6 +674,8 @@ function isBadgeProviderEnabled(provider) {
             return badgeSeventv;
         case "Chatterino":
             return badgeChatterino;
+        case "Homies":
+            return badgeHomies;
         default:
             return true;
     }
@@ -966,6 +952,34 @@ async function createExternalBadges(
 
                     provider:
                         "Chatterino",
+
+                    type:
+                        null
+                });
+            }
+
+            const homies =
+                homiesBadges.get(userId) || [];
+
+            for (const badge of homies) {
+                const image =
+                    await preloadBadgeImage(
+                        badge.url
+                    );
+
+                if (!image) {
+                    continue;
+                }
+
+                badges.push({
+                    url:
+                        badge.url,
+
+                    title:
+                        badge.title,
+
+                    provider:
+                        "Homies",
 
                     type:
                         null

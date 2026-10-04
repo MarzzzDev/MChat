@@ -186,7 +186,8 @@ async function loadPreviewEmotes() {
         loadFFZEmotes(),
         loadBTTVEmotes(),
         loadFFZBadges(),
-        loadChatterinoBadges()
+        loadChatterinoBadges(),
+        loadHomiesBadges()
     ];
 
     tasks.push(loadTwitchBadges());

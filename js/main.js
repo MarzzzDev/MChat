@@ -5,7 +5,8 @@ const LOADING_TASKS = [
     { label: "BTTV emotes", run: loadBTTVEmotes },
     { label: "Twitch badges", run: loadTwitchBadges },
     { label: "FFZ badges", run: loadFFZBadges },
-    { label: "Chatterino badges", run: loadChatterinoBadges }
+    { label: "Chatterino badges", run: loadChatterinoBadges },
+    { label: "Homies badges", run: loadHomiesBadges }
 ];
 
 loadFFZBotBadgeList();
