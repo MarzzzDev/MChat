@@ -13,10 +13,39 @@ const LOADING_TASKS = [
     { label: "Channel rewards", run: loadChannelHighlightData },
 ];
 
+let loadingAnimationInterval = null;
+
+function startLoadingAnimation() {
+    const loadingElement = document.getElementById("loading-text");
+
+    if (!loadingElement) return;
+
+    let dots = 1;
+
+    loadingElement.textContent = "Loading.";
+
+    loadingAnimationInterval = setInterval(() => {
+        dots++;
+
+        if (dots > 3) {
+            dots = 1;
+        }
+
+        loadingElement.textContent = "Loading" + ".".repeat(dots);
+    }, 500);
+}
+
+function stopLoadingAnimation() {
+    if (loadingAnimationInterval) {
+        clearInterval(loadingAnimationInterval);
+        loadingAnimationInterval = null;
+    }
+}
+
 loadFFZBotBadgeList();
 
 async function startOverlay() {
-    startGithubUpdater(); // refresh automatically
+    startGithubUpdater();
     ensureEmoteScaleStyle();
     addGlobalStyle();
 
@@ -32,17 +61,24 @@ async function startOverlay() {
     CHANNEL = selectedChannel;
     hideOverlaySetupScreen();
 
+    startLoadingAnimation();
+
     try {
         await createTwitchIRCSocket();
     } catch (error) {
+        stopLoadingAnimation();
+
         console.error(
             "Anonymous Twitch IRC startup error:",
             error
         );
+
         return;
     }
 
     await runLoadingTasks(LOADING_TASKS);
+
+    stopLoadingAnimation();
 
     console.log("Chat emotes and badge data loaded.");
     console.log("Overlay channel:", CHANNEL);
@@ -52,6 +88,8 @@ async function startOverlay() {
 
 startOverlay()
     .catch(error => {
+        stopLoadingAnimation();
+
         console.error(
             "Overlay startup error:",
             error

@@ -1,7 +1,8 @@
 const HL_FIRST_MESSAGE_COLOR = "#c832c8";
 const HL_FIRST_MESSAGE_LABEL = "First Message";
-const HL_REDEEM_COLOR = "#1984b6d2";
+const HL_REDEEM_COLOR = "#00e5ff";
 const HL_REDEEM_FALLBACK_LABEL = "Channel Point Redeem";
+const HL_REDEEM_BACKGROUND = "rgba(30, 100, 255, 0.35)";
 const HL_OPACITY_PERCENT = 10;
 const HL_DEFAULT_ACCENT = "#755ebc";
 
@@ -31,8 +32,17 @@ function addHighlightStyles() {
             --hl-accent: ${HL_DEFAULT_ACCENT};
             --hl-muted: #999;
             --hl-link: #bf94ff;
+            --hl-bleed: 18px;
         }
 
+        .message.has-highlight,
+        .message.hl-card {
+            align-self: stretch;
+            width: auto;
+            max-width: none;
+            margin-left: calc(-1 * var(--hl-bleed));
+            margin-right: calc(-1 * var(--hl-bleed));
+        }
 
         .message.has-highlight {
             position: relative;
@@ -84,8 +94,6 @@ function addHighlightStyles() {
         .message.hl-card .hl-bold {
             font-weight: 900;
         }
-
-        /* ---------- Gift subs (SubGift.vue / SubMysteryGift.vue) ---------- */
 
         .message.hl-gift {
             margin-top: calc(0.5 * var(--hl-rem));
@@ -201,12 +209,12 @@ function hlAppendToChat(element) {
     }
 }
 
-function applyHighlight(message, color, label) {
+function applyHighlight(message, color, label, background = null) {
     message.classList.add("has-highlight");
     message.style.setProperty("--hl-color", color);
     message.style.setProperty(
         "--hl-dim",
-        color + hlHexAlpha(HL_OPACITY_PERCENT)
+        background || (color + hlHexAlpha(HL_OPACITY_PERCENT))
     );
 
     if (label) {
@@ -229,7 +237,7 @@ function applyRewardHighlight(message, tags) {
                 : HL_REDEEM_FALLBACK_LABEL
         );
 
-    applyHighlight(message, HL_REDEEM_COLOR, label);
+    applyHighlight(message, HL_REDEEM_COLOR, label, HL_REDEEM_BACKGROUND);
 }
 
 function applyMessageHighlights(message, tags, displayName) {
@@ -250,7 +258,6 @@ function applyMessageHighlights(message, tags, displayName) {
         );
     }
 }
-
 function createSubGiftCard({ gifter, plan, recipient }) {
     const card = hlEl("div", "message hl-card hl-gift");
     const part = hlEl("div", "hl-gift-part");
@@ -331,6 +338,7 @@ function handleTwitchIRCUsernotice(message) {
     const msgId = tags["msg-id"];
 
     if (msgId === "subgift" || msgId === "anonsubgift") {
+
         if (tags["msg-param-community-gift-id"]) {
             return;
         }
