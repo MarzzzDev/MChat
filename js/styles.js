@@ -629,6 +629,48 @@ function addGlobalStyle() {
             margin-right:
                 2px;
         }
+
+        #chat .message.wrap-message {
+            display: block !important;
+            flex-direction: initial !important;
+            flex-wrap: nowrap !important;
+            align-items: initial !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: normal !important;
+            text-align: left !important;
+        }
+
+        #chat .message.wrap-message > .badge,
+        #chat .message.wrap-message > span:not(.text):not(.username) {
+            display: inline !important;
+        }
+
+        #chat .message.wrap-message > .username {
+            display: inline !important;
+            white-space: normal !important;
+        }
+
+        #chat .message.wrap-message > .username.seven-tv-painted {
+            display: inline !important;
+        }
+
+        #chat .message.wrap-message > .text {
+            display: inline !important;
+            flex: none !important;
+            min-width: 0 !important;
+            width: auto !important;
+            max-width: none !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        #chat .message.wrap-message .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
+        #chat .message.wrap-message .text .twemoji,
+        #chat .message.wrap-message .text .ffz-effect-target,
+        #chat .message.wrap-message .text .emote-overlay-target {
+            vertical-align: middle !important;
+        }
     `;
 
     document.head.appendChild(
@@ -637,4 +679,3 @@ function addGlobalStyle() {
 }
 
 addGlobalStyle();
-

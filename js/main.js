@@ -61,24 +61,17 @@ async function startOverlay() {
     CHANNEL = selectedChannel;
     hideOverlaySetupScreen();
 
-    startLoadingAnimation();
-
     try {
         await createTwitchIRCSocket();
     } catch (error) {
-        stopLoadingAnimation();
-
         console.error(
             "Anonymous Twitch IRC startup error:",
             error
         );
-
         return;
     }
 
     await runLoadingTasks(LOADING_TASKS);
-
-    stopLoadingAnimation();
 
     console.log("Chat emotes and badge data loaded.");
     console.log("Overlay channel:", CHANNEL);

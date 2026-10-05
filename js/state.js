@@ -232,43 +232,46 @@ function isKnownBot(login) {
 
 async function runLoadingTasks(tasks) {
     const indicator = showLoadingIndicator();
-    const pending = new Set(tasks.map(task => task.label));
 
-    function refresh() {
-        if (!indicator) {
+    const loadingText = indicator?.querySelector("#overlay-loading-text");
+
+    let dots = 1;
+
+    if (loadingText) {
+        loadingText.textContent = "Loading.";
+    }
+
+    const animation = setInterval(() => {
+        if (!loadingText) {
             return;
         }
 
-        const loadingText =
-            indicator.querySelector(
-                "#overlay-loading-text"
-            );
+        dots++;
 
-        if (loadingText) {
-            loadingText.textContent =
-                pending.size
-                    ? ``
-                    : "Loading...";
+        if (dots > 3) {
+            dots = 1;
         }
-    }
 
-    refresh();
+        loadingText.textContent = "Loading" + ".".repeat(dots);
+    }, 500);
 
-    await Promise.allSettled(
-        tasks.map(task =>
-            task.run()
-                .catch(error => {
-                    console.error(`${task.label} failed to load:`, error);
+    try {
+        await Promise.allSettled(
+            tasks.map(task =>
+                task.run().catch(error => {
+                    console.error(
+                        `${task.label} failed to load:`,
+                        error
+                    );
                 })
-                .finally(() => {
-                    pending.delete(task.label);
-                    refresh();
-                })
-        )
-    );
+            )
+        );
+    } finally {
+        clearInterval(animation);
 
-    if (indicator) {
-        indicator.remove();
+        if (indicator) {
+            indicator.remove();
+        }
     }
 }
 
