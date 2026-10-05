@@ -1438,14 +1438,13 @@ async function onMsg(
 
 	const indicatorPlatform = tags["preview-platform"] || platform;
 
-	if (platformIndicatorEnabled && (previewEntry || isMultiChat())) {
-		const indicator = createPlatformIndicator(indicatorPlatform);
+	if (platformIndicatorEnabled && !previewEntry && isMultiChat()) {
+		const indicator = createPlatformIndicator(platform);
 
 		if (indicator) {
 			message.appendChild(indicator);
 		}
 	}
-
 	message.appendChild(badges);
 
 	message.appendChild(usernameElement);

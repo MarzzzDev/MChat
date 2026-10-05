@@ -111,13 +111,137 @@ function parseYouTubeInput(raw) {
 	return { path: `${value.startsWith("@") ? value : `@${value}`}/live` };
 }
 
+const YOUTUBE_DIRECT_ID_PATTERNS = [
+	/<link[^>]+rel="canonical"[^>]+href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/,
+	/<link[^>]+href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"[^>]+rel="canonical"/,
+	/<meta[^>]+property="og:url"[^>]+content="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/,
+	/<meta[^>]+itemprop="videoId"[^>]+content="([\w-]{11})"/,
+];
+
+const YOUTUBE_LIVE_ID_PATTERNS = [
+	/"videoDetails":\{"videoId":"([\w-]{11})"/,
+	/"currentVideoEndpoint":\{[^}]*?"watchEndpoint":\{"videoId":"([\w-]{11})"/,
+	/"videoId":"([\w-]{11})","isLive(?:Now)?":true/,
+	/"isLive(?:Now)?":true[^}]{0,400}?"videoId":"([\w-]{11})"/,
+];
+
+function isYouTubeConsentPage(html) {
+	return (
+		/Before you continue to YouTube|consent\.youtube\.com/.test(html) &&
+		!/ytInitialData/.test(html)
+	);
+}
+
+function youtubeVideoIsLive(video) {
+	if (video?.is_live === true) {
+		return true;
+	}
+
+	const badges = Array.isArray(video?.badges) ? video.badges : [];
+
+	return badges.some((badge) => {
+		const style = String(badge?.style || "").toUpperCase();
+		const label = String(badge?.label || badge?.text || "").toUpperCase();
+
+		return style.includes("LIVE_NOW") || label === "LIVE";
+	});
+}
+
+async function findLiveVideoIdViaInnertube(target) {
+	try {
+		const youtube = await getYouTubeInnertube();
+
+		const liveUrl = `https://www.youtube.com/${target.path}`;
+
+		const liveEndpoint = await youtube.resolveURL(liveUrl);
+
+		console.log("YouTube resolveURL (live):", {
+			pageType: liveEndpoint?.metadata?.page_type || null,
+			payloadKeys: Object.keys(liveEndpoint?.payload || {}),
+			videoId: liveEndpoint?.payload?.videoId || null,
+			browseId: liveEndpoint?.payload?.browseId || null,
+		});
+
+		const directId = liveEndpoint?.payload?.videoId;
+
+		if (directId && /^[\w-]{11}$/.test(String(directId))) {
+			return String(directId);
+		}
+
+		let browseId = liveEndpoint?.payload?.browseId || null;
+
+		if (!browseId) {
+			const handle = String(target.path || "").replace(/\/live$/, "");
+
+			const channelEndpoint = await youtube.resolveURL(
+				`https://www.youtube.com/${handle}`,
+			);
+
+			browseId = channelEndpoint?.payload?.browseId || null;
+
+			console.log("YouTube resolveURL (channel):", {
+				pageType: channelEndpoint?.metadata?.page_type || null,
+				browseId,
+			});
+		}
+
+		if (!browseId) {
+			console.warn("YouTube API lookup: could not resolve channel id.");
+
+			return null;
+		}
+
+		const channel = await youtube.getChannel(browseId);
+
+		console.log("YouTube channel loaded:", {
+			title: channel?.metadata?.title || null,
+			hasLiveStreams: Boolean(channel?.has_live_streams),
+		});
+
+		if (!channel.has_live_streams) {
+			return null;
+		}
+
+		const live = await channel.getLiveStreams();
+
+		const videos = live?.videos || [];
+
+		console.log(
+			"YouTube live streams tab:",
+			videos.map((video) => ({
+				id: video?.video_id || video?.id || null,
+				type: video?.type || null,
+				isLive: youtubeVideoIsLive(video),
+			})),
+		);
+
+		for (const video of videos) {
+			if (!youtubeVideoIsLive(video)) {
+				continue;
+			}
+
+			const id = video.video_id || video.id || video.content_id || null;
+
+			if (id && /^[\w-]{11}$/.test(String(id))) {
+				return String(id);
+			}
+		}
+
+		return null;
+	} catch (error) {
+		console.warn("YouTube API live lookup failed:", error);
+
+		return null;
+	}
+}
+
 async function findYouTubeLiveVideoId(target) {
 	if (target.videoId) {
 		return target.videoId;
 	}
 
 	const response = await platformFetch(
-		`https://www.youtube.com/${target.path}`,
+		`https://www.youtube.com/${target.path}?ucbcb=1`,
 		{ headers: { "Accept-Language": "en-US,en;q=0.9" } },
 	);
 
@@ -127,14 +251,50 @@ async function findYouTubeLiveVideoId(target) {
 
 	const html = await response.text();
 
-	const canonical =
-		html.match(
-			/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/,
-		) || html.match(/"videoId":"([\w-]{11})","isLive(?:Now)?":true/);
+	if (isYouTubeConsentPage(html)) {
+		console.warn("YouTube returned a consent page, using API lookup instead.");
 
-	return canonical ? canonical[1] : null;
+		return findLiveVideoIdViaInnertube(target);
+	}
+
+	for (const pattern of YOUTUBE_DIRECT_ID_PATTERNS) {
+		const match = html.match(pattern);
+
+		if (match) {
+			return match[1];
+		}
+	}
+
+	if (/"isLive(?:Now)?":true/.test(html)) {
+		for (const pattern of YOUTUBE_LIVE_ID_PATTERNS) {
+			const match = html.match(pattern);
+
+			if (match) {
+				return match[1];
+			}
+		}
+	}
+
+	console.warn("YouTube live lookup found no live video in page:", {
+		path: target.path,
+		htmlLength: html.length,
+		title: (html.match(/<title>([^<]*)<\/title>/) || [])[1] || "",
+		canonicalTag: (html.match(/<link[^>]+rel="canonical"[^>]*>/) || [])[0] || null,
+		watchIds: [
+			...new Set(
+				[...html.matchAll(/watch\?v=([\w-]{11})/g)].map((match) => match[1]),
+			),
+		].slice(0, 5),
+		flags: {
+			isLive: /"isLive":true/.test(html),
+			isLiveNow: /"isLiveNow":true/.test(html),
+			isLiveContent: /"isLiveContent":true/.test(html),
+			liveBadge: /"style":"LIVE_NOW"|"label":"LIVE"/.test(html),
+		},
+	});
+
+	return findLiveVideoIdViaInnertube(target);
 }
-
 function pickLargestImage(images) {
 	const list = Array.isArray(images) ? images.filter((image) => image?.url) : [];
 

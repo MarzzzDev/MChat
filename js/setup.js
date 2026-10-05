@@ -180,12 +180,7 @@ function runPreviewMessage() {
 		return;
 	}
 
-	const previewPlatforms = ["twitch", "kick", "youtube"];
-
-	addPreviewMessage(message[0], message[1], message[2], message[3], {
-		...message[4],
-		"preview-platform": previewPlatforms[currentPreviewMessage % 3],
-	});
+	addPreviewMessage(...message);
 
 	currentPreviewMessage = (currentPreviewMessage + 1) % previewMessages.length;
 
