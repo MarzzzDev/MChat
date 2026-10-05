@@ -302,7 +302,15 @@ function normalizeImageUrl(url) {
 }
 
 function getFFZImage(emote) {
-	return emote.urls?.["4"] || emote.urls?.["2"] || emote.urls?.["1"] || null;
+	return (
+		emote.animated?.["4"] ||
+		emote.animated?.["2"] ||
+		emote.animated?.["1"] ||
+		emote.urls?.["4"] ||
+		emote.urls?.["2"] ||
+		emote.urls?.["1"] ||
+		null
+	);
 }
 
 async function loadFFZEmotes() {
