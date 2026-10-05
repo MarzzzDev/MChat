@@ -183,7 +183,7 @@ async function loadCommitInfo(target) {
 
     try {
         const response = await fetch(
-            "https://api.github.com/repos/marzzzdev/marz-overlay/commits/main"
+            "https://api.github.com/repos/MarzzzDev/MChat/commits/main"
         );
 
         if (!response.ok) {
@@ -1452,7 +1452,7 @@ function showOverlaySetupScreen() {
 
     const attributionGithub = document.createElement("a");
     attributionGithub.className = "mc-attribution-github";
-    attributionGithub.href = "https://github.com/marzzzdev/marz-overlay";
+    attributionGithub.href = "https://github.com/MarzzzDev/MChat";
     attributionGithub.target = "_blank";
     attributionGithub.rel = "noopener noreferrer";
     attributionGithub.textContent = "GitHub";
@@ -1463,7 +1463,7 @@ function showOverlaySetupScreen() {
 
     const attributionCommit = document.createElement("a");
     attributionCommit.className = "mc-attribution-commit";
-    attributionCommit.href = "https://github.com/marzzzdev/marz-overlay/commits/main";
+    attributionCommit.href = "https://github.com/MarzzzDev/MChat/commits/main";
     attributionCommit.target = "_blank";
     attributionCommit.rel = "noopener noreferrer";
     attributionCommit.textContent = "loading commit…";

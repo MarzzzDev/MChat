@@ -15,6 +15,7 @@ const LOADING_TASKS = [
 loadFFZBotBadgeList();
 
 async function startOverlay() {
+    startGithubUpdater(); // refresh automatically
     ensureEmoteScaleStyle();
     addGlobalStyle();
 
