@@ -50,15 +50,20 @@ body {
     word-break: break-word;
 }
 
-.message.wrap-message .text {
-    display: inline;
-    width: auto;
-    max-width: none;
+.message.wrap-message > .text {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
     min-width: 0;
     flex: none;
     margin: 0;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+body.pixel-font .message.wrap-message > .text {
+    flex: 0 0 100%;
+    width: 100%;
 }
 
 body.pixel-font .message {
