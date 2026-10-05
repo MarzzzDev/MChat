@@ -20,8 +20,8 @@ const chatterinoBadges = new Map();
 const sevenTVBadges = new Map();
 
 const ffzRoomBadges = {
-    vip: null,
-    moderator: null
+  vip: null,
+  moderator: null,
 };
 
 const twitchEmotes = new Map();
@@ -36,64 +36,60 @@ const sevenTVColors = new Map();
 const sevenTVColorPromises = new Map();
 
 const SEVENTV_EMOTE_FLAGS = Object.freeze({
-    ZERO_WIDTH: 256
+  ZERO_WIDTH: 256,
 });
 
 const ffzEffects = new Map([
-    ["ffzX", { effects: ["flipX"] }],
-    ["ffzY", { effects: ["flipY"] }],
-    ["ffzW", { effects: ["growX"] }],
-    ["ffzShrinkX", { effects: ["shrinkX"] }],
-    ["ffzRainbow", { effects: ["rainbow"] }],
-    ["ffzHyperRed", { effects: ["hyperRed"] }],
-    ["ffzShake", { effects: ["shake"] }],
-    ["ffzCursed", { effects: ["cursed"] }],
-    ["ffzJam", { effects: ["jam"] }],
-    ["ffzBounce", { effects: ["bounce"] }],
-    ["ffzSlide", { effects: ["slide"] }],
-    ["ffzArrive", { effects: ["appear"] }],
-    ["ffzLeave", { effects: ["leave"] }],
-    ["ffzSpin", { effects: ["rotate"] }],
-    ["ffzPhotocopy", { effects: ["photocopy"] }],
-    ["FlipX", { effects: ["flipX"] }],
-    ["FlipY", { effects: ["flipY"] }],
-    ["GrowX", { effects: ["growX"] }],
-    ["ShrinkX", { effects: ["shrinkX"] }],
-    ["Rainbow", { effects: ["rainbow"] }],
-    ["HyperRed", { effects: ["hyperRed"] }],
-    ["HyperShake", { effects: ["shake"] }],
-    ["Cursed", { effects: ["cursed"] }],
-    ["Jam", { effects: ["jam"] }],
-    ["Bounce", { effects: ["bounce"] }],
-    ["Slide", { effects: ["slide"] }],
-    ["Appear", { effects: ["appear"] }],
-    ["Leave", { effects: ["leave"] }],
-    ["Rotate", { effects: ["rotate"] }],
-    ["Photocopy", { effects: ["photocopy"] }]
+  ["ffzX", { effects: ["flipX"] }],
+  ["ffzY", { effects: ["flipY"] }],
+  ["ffzW", { effects: ["growX"] }],
+  ["ffzShrinkX", { effects: ["shrinkX"] }],
+  ["ffzRainbow", { effects: ["rainbow"] }],
+  ["ffzHyperRed", { effects: ["hyperRed"] }],
+  ["ffzShake", { effects: ["shake"] }],
+  ["ffzCursed", { effects: ["cursed"] }],
+  ["ffzJam", { effects: ["jam"] }],
+  ["ffzBounce", { effects: ["bounce"] }],
+  ["ffzSlide", { effects: ["slide"] }],
+  ["ffzArrive", { effects: ["appear"] }],
+  ["ffzLeave", { effects: ["leave"] }],
+  ["ffzSpin", { effects: ["rotate"] }],
+  ["ffzPhotocopy", { effects: ["photocopy"] }],
+  ["FlipX", { effects: ["flipX"] }],
+  ["FlipY", { effects: ["flipY"] }],
+  ["GrowX", { effects: ["growX"] }],
+  ["ShrinkX", { effects: ["shrinkX"] }],
+  ["Rainbow", { effects: ["rainbow"] }],
+  ["HyperRed", { effects: ["hyperRed"] }],
+  ["HyperShake", { effects: ["shake"] }],
+  ["Cursed", { effects: ["cursed"] }],
+  ["Jam", { effects: ["jam"] }],
+  ["Bounce", { effects: ["bounce"] }],
+  ["Slide", { effects: ["slide"] }],
+  ["Appear", { effects: ["appear"] }],
+  ["Leave", { effects: ["leave"] }],
+  ["Rotate", { effects: ["rotate"] }],
+  ["Photocopy", { effects: ["photocopy"] }],
 ]);
 
 const FFZ_EFFECT_FLAGS = Object.freeze({
-    HIDDEN: 1,
-    GROW_X: 8,
-    RAINBOW: 2048,
-    HYPER_RED: 4096,
-    HYPER_SHAKE: 8192,
-    CURSED: 16384,
-    JAM: 32768,
-    BOUNCE: 65536
+  HIDDEN: 1,
+  GROW_X: 8,
+  RAINBOW: 2048,
+  HYPER_RED: 4096,
+  HYPER_SHAKE: 8192,
+  CURSED: 16384,
+  JAM: 32768,
+  BOUNCE: 65536,
 });
 function showLoadingIndicator() {
-    loadGoogleFontIfNeeded(
-        "'Open Sans', sans-serif"
-    );
+  loadGoogleFontIfNeeded("'Open Sans', sans-serif");
 
-    const indicator =
-        document.createElement("div");
+  const indicator = document.createElement("div");
 
-    indicator.id =
-        "overlay-loading-indicator";
+  indicator.id = "overlay-loading-indicator";
 
-    indicator.style.cssText = `
+  indicator.style.cssText = `
         position: fixed;
         inset: 0;
 
@@ -125,19 +121,15 @@ function showLoadingIndicator() {
         z-index: 999999;
     `;
 
-    const logo =
-        document.createElement("img");
+  const logo = document.createElement("img");
 
-    logo.src =
-        "waga.gif";
+  logo.src = "waga.gif";
 
-    logo.alt =
-        "Waga";
+  logo.alt = "Waga";
 
-    logo.draggable =
-        false;
+  logo.draggable = false;
 
-    logo.style.cssText = `
+  logo.style.cssText = `
         display: block;
 
         width: auto;
@@ -153,13 +145,11 @@ function showLoadingIndicator() {
             );
     `;
 
-    const text =
-        document.createElement("div");
+  const text = document.createElement("div");
 
-    text.id =
-        "overlay-loading-text";
+  text.id = "overlay-loading-text";
 
-    text.style.cssText = `
+  text.style.cssText = `
         font-family:
             'Open Sans',
             Arial,
@@ -172,107 +162,87 @@ function showLoadingIndicator() {
             rgba(0, 0, 0, .85);
     `;
 
-    indicator.appendChild(logo);
-    indicator.appendChild(text);
+  indicator.appendChild(logo);
+  indicator.appendChild(text);
 
-    document.body.appendChild(
-        indicator
-    );
+  document.body.appendChild(indicator);
 
-    return indicator;
+  return indicator;
 }
 
 const ffzBotBadgeUsers = new Set();
 
 async function loadFFZBotBadgeList() {
-    try {
-        const response =
-            await fetch(
-                "https://api.frankerfacez.com/v1/badge/bot"
-            );
+  try {
+    const response = await fetch("https://api.frankerfacez.com/v1/badge/bot");
 
-        if (!response.ok) {
-            throw new Error(
-                `FFZ bot badge list: ${response.status}`
-            );
-        }
-
-        const data =
-            await response.json();
-
-        for (
-            const login
-            of Object.values(data.users || {}).flat()
-        ) {
-            ffzBotBadgeUsers.add(
-                String(login || "")
-                    .trim()
-                    .toLowerCase()
-            );
-        }
-
-        console.log(
-            `Loaded ${ffzBotBadgeUsers.size} FFZ-badged bots.`
-        );
-
-    } catch (error) {
-        console.error(
-            "FFZ bot badge list error:",
-            error
-        );
+    if (!response.ok) {
+      throw new Error(`FFZ bot badge list: ${response.status}`);
     }
+
+    const data = await response.json();
+
+    for (const login of Object.values(data.users || {}).flat()) {
+      ffzBotBadgeUsers.add(
+        String(login || "")
+          .trim()
+          .toLowerCase(),
+      );
+    }
+
+    console.log(`Loaded ${ffzBotBadgeUsers.size} FFZ-badged bots.`);
+  } catch (error) {
+    console.error("FFZ bot badge list error:", error);
+  }
 }
 
 function isKnownBot(login) {
-    login = String(login || "").trim().toLowerCase();
-    return (
-        ffzBotBadgeUsers.has(login)
-    );
+  login = String(login || "")
+    .trim()
+    .toLowerCase();
+  return ffzBotBadgeUsers.has(login);
 }
 
 async function runLoadingTasks(tasks) {
-    const indicator = showLoadingIndicator();
+  const indicator = showLoadingIndicator();
 
-    const loadingText = indicator?.querySelector("#overlay-loading-text");
+  const loadingText = indicator?.querySelector("#overlay-loading-text");
 
-    let dots = 1;
+  let dots = 1;
 
-    if (loadingText) {
-        loadingText.textContent = "Loading.";
+  if (loadingText) {
+    loadingText.textContent = "Loading.";
+  }
+
+  const animation = setInterval(() => {
+    if (!loadingText) {
+      return;
     }
 
-    const animation = setInterval(() => {
-        if (!loadingText) {
-            return;
-        }
+    dots++;
 
-        dots++;
-
-        if (dots > 3) {
-            dots = 1;
-        }
-
-        loadingText.textContent = "Loading" + ".".repeat(dots);
-    }, 500);
-
-    try {
-        await Promise.allSettled(
-            tasks.map(task =>
-                task.run().catch(error => {
-                    console.error(
-                        `${task.label} failed to load:`,
-                        error
-                    );
-                })
-            )
-        );
-    } finally {
-        clearInterval(animation);
-
-        if (indicator) {
-            indicator.remove();
-        }
+    if (dots > 3) {
+      dots = 1;
     }
+
+    loadingText.textContent = "Loading" + ".".repeat(dots);
+  }, 500);
+
+  try {
+    await Promise.allSettled(
+      tasks.map((task) =>
+        task.run().catch((error) => {
+          console.error(`${task.label} failed to load:`, error);
+        }),
+      ),
+    );
+  } finally {
+    clearInterval(animation);
+
+    if (indicator) {
+      indicator.remove();
+    }
+  }
 }
 
 let twemojiReady = null;
@@ -280,8 +250,4 @@ let twemojiReady = null;
 const messageElements = new Map();
 const userMessageElements = new Map();
 
-
-
-const params = new URLSearchParams(
-    window.location.search
-);
+const params = new URLSearchParams(window.location.search);
