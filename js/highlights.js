@@ -1,6 +1,6 @@
 const HL_FIRST_MESSAGE_COLOR = "#c832c8";
 const HL_FIRST_MESSAGE_LABEL = "First Message";
-const HL_REDEEM_COLOR = "#00e5ff";
+const HL_REDEEM_COLOR = "#1984b6d2";
 const HL_REDEEM_FALLBACK_LABEL = "Channel Point Redeem";
 const HL_OPACITY_PERCENT = 10;
 const HL_DEFAULT_ACCENT = "#755ebc";
