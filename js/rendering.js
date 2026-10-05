@@ -71,7 +71,7 @@ const TWITCH_DEFAULT_COLORS = [
 	"#1E90FF",
 	"#FF69B4",
 	"#8A2BE2",
-	"#00FF7F",
+	"#	",
 ];
 
 const BTTV_MODIFIERS = new Set([

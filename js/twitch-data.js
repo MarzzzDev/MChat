@@ -141,16 +141,41 @@ async function loadTwitchBadges() {
     return load;
 }
 
+let previewManifestPromise;
+function installPreviewFetch() {
+  const orig = window.fetch;
+  previewManifestPromise ??= orig("preview-cache/manifest.json").then((r) => r.json());
+
+  window.fetch = async (input, init = {}) => {
+    try {
+      const m = await previewManifestPromise;
+      const url = typeof input === "string" ? input : input.url;
+      const method = (init.method || input.method || "GET").toUpperCase();
+      const body = typeof init.body === "string" ? init.body : "";
+      const hit = m.api.find((x) => x.url === url && x.method === method && x.body === body);
+      if (hit) {
+        const r = await orig("preview-cache/" + hit.file);
+        return new Response(await r.text(), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    } catch {}
+    return orig(input, init);
+  };
+  return () => { window.fetch = orig; };
+}
+
 async function loadPreviewEmotes() {
     const previousChannel = CHANNEL;
     const previousUserId = TWITCH_USER_ID;
+    const restoreFetch = installPreviewFetch();
 
     CHANNEL = PREVIEW_CHANNEL;
     TWITCH_USER_ID = PREVIEW_TWITCH_USER_ID;
-
     seedPreviewTwitchBadges();
 
-    const tasks = [
+    const tasks = [ 
         load7TVGlobalEmotes(),
         load7TVEmotes(),
         loadFFZEmotes(),
@@ -162,12 +187,12 @@ async function loadPreviewEmotes() {
         loadDankChatBadges(),
         loadMoltorinoBadges(),
     ];
-
     tasks.push(loadTwitchBadges());
     tasks.push(loadFFZBotBadgeList());
 
     await Promise.allSettled(tasks);
 
+    restoreFetch();
     CHANNEL = previousChannel;
     TWITCH_USER_ID = previousUserId;
 }
@@ -205,6 +230,14 @@ const PREVIEW_TWITCH_BADGES = {
         title: "bot",
         url: "https://static-cdn.jtvnw.net/badges/v1/3ffa9565-c35b-4cad-800b-041e60659cf2/3",
     },
+    "ewcgold/1": {
+        title: "EWC Cold",
+        url: "https://static-cdn.jtvnw.net/badges/v1/aa891ef7-b24b-49ff-ae08-13819621fc4b/3",
+    },
+    "custommod/1": {
+        title: "ffz mod",
+        url: "https://cdn.frankerfacez.com/room-badge/mod/id/195845559/v/b25f904c/4",
+    }
 };
 
 function seedPreviewTwitchBadges() {

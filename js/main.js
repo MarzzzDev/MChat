@@ -1,3 +1,5 @@
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("./js/sw.js");
+
 const LOADING_TASKS = [
 	{ label: "", run: load7TVGlobalEmotes },
 	{ label: "", run: load7TVEmotes },

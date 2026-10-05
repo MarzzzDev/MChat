@@ -14,7 +14,14 @@ const previewMessages = [
 		{ badges: "broadcaster/1,subscriber/1,subtember/1" },
 	],
 	[
-		"RandomKid",
+		"NonCre8ive",
+		"hello men",
+		"#00FF7F",
+		"405299735",
+		{ badges: "custommod/1,ewcgold/1", "msg-id": "highlighted-message" },
+	],
+	[
+		"XDR412",
 		"Maybe",
 		"#DAA520",
 		"195845559",
