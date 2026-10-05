@@ -180,7 +180,12 @@ function runPreviewMessage() {
 		return;
 	}
 
-	addPreviewMessage(...message);
+	const previewPlatforms = ["twitch", "kick", "youtube"];
+
+	addPreviewMessage(message[0], message[1], message[2], message[3], {
+		...message[4],
+		"preview-platform": previewPlatforms[currentPreviewMessage % 3],
+	});
 
 	currentPreviewMessage = (currentPreviewMessage + 1) % previewMessages.length;
 
@@ -188,7 +193,6 @@ function runPreviewMessage() {
 
 	previewTimer = setTimeout(runPreviewMessage, delay);
 }
-
 async function startPreviewMessages() {
 	previewActive = true;
 
@@ -2238,6 +2242,13 @@ function showOverlaySetupScreen() {
 		"bots",
 		botsEnabled,
 	);
+	const platformIndicatorCheckbox = addToggle(
+		appearancePanel,
+		"Show Platform Indicator",
+		"Show which platform each message came from when multichat is active.",
+		"platformIndicator",
+		platformIndicatorEnabled,
+	);
 	const highlightsCheckbox = addToggle(
 		appearancePanel,
 		"Highlights",
@@ -2721,6 +2732,10 @@ function showOverlaySetupScreen() {
 		botsEnabled = botsCheckbox.checked;
 		rerenderPreviewChat();
 	});
+	platformIndicatorCheckbox.addEventListener("change", () => {
+		platformIndicatorEnabled = platformIndicatorCheckbox.checked;
+		rerenderPreviewChat();
+	});
 	highlightsCheckbox.addEventListener("change", () => {
 		highlightsEnabled = highlightsCheckbox.checked;
 		rerenderPreviewChat();
@@ -2962,6 +2977,8 @@ function showOverlaySetupScreen() {
 			gifs: gifsCheckbox.checked,
 
 			bots: botsCheckbox.checked,
+
+			platformIndicator: platformIndicatorCheckbox.checked,
 
 			highlights: highlightsCheckbox.checked,
 

@@ -107,6 +107,8 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.hlGifts = settings.hlGifts !== false;
 
+	result.platformIndicator = settings.platformIndicator !== false;
+
 	result.scale = Number(settings.scale ?? 0.5);
 
 	if (!Number.isFinite(result.scale)) {
@@ -414,6 +416,10 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["hlGifts", normalised.hlGifts ? "1" : "0"]);
 	}
 
+	if (normalised.platformIndicator !== true) {
+		query.push(["platformIndicator", normalised.platformIndicator ? "1" : "0"]);
+	}
+
 	if (normalised.shadow !== true) {
 		query.push(["shadow", normalised.shadow ? "1" : "0"]);
 	}
@@ -544,6 +550,8 @@ let hlFirstEnabled = parseQueryBoolean("hlFirst", true);
 let hlRedeemsEnabled = parseQueryBoolean("hlRedeems", true);
 
 let hlGiftsEnabled = parseQueryBoolean("hlGifts", true);
+
+let platformIndicatorEnabled = parseQueryBoolean("platformIndicator", true);
 
 let scale = Number(params.get("scale") ?? 0.5);
 

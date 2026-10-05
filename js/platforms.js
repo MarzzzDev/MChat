@@ -172,3 +172,63 @@ function emitPlatformMessage({
 		onMsg(username, text, color, userId, tags, null, messageId),
 	).catch((error) => console.error(`${platform} message rendering error:`, error));
 }
+
+const PLATFORM_INDICATOR_LOGOS = {
+	twitch: "logos/twitch.png",
+	kick: "logos/kick.svg",
+	youtube: "logos/youtube.webp",
+};
+
+const PLATFORM_INDICATOR_TITLES = {
+	twitch: "Twitch",
+	kick: "Kick",
+	youtube: "YouTube",
+};
+
+function isMultiChat() {
+	return (
+		[selectedChannel, selectedKick, selectedYouTube].filter(Boolean).length > 1
+	);
+}
+
+function createPlatformIndicator(platform) {
+	const url = PLATFORM_INDICATOR_LOGOS[platform];
+
+	if (!url) {
+		return null;
+	}
+
+	const container = document.createElement("span");
+
+	container.className = "platform-indicator";
+
+	container.dataset.platform = platform;
+
+	const img = document.createElement("img");
+
+	img.className = "badge platform-indicator-badge";
+
+	img.src = url;
+
+	img.alt = PLATFORM_INDICATOR_TITLES[platform] || platform;
+
+	img.title = PLATFORM_INDICATOR_TITLES[platform] || platform;
+
+	img.width = 18;
+
+	img.height = 18;
+
+	img.draggable = false;
+
+	img.style.width = "18px";
+
+	img.style.height = "18px";
+
+	img.style.objectFit = "contain";
+
+	img.style.marginRight = "4px";
+
+	container.appendChild(img);
+
+	return container;
+}

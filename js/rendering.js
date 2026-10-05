@@ -1436,6 +1436,16 @@ async function onMsg(
 		}
 	}
 
+	const indicatorPlatform = tags["preview-platform"] || platform;
+
+	if (platformIndicatorEnabled && (previewEntry || isMultiChat())) {
+		const indicator = createPlatformIndicator(indicatorPlatform);
+
+		if (indicator) {
+			message.appendChild(indicator);
+		}
+	}
+
 	message.appendChild(badges);
 
 	message.appendChild(usernameElement);
