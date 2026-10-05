@@ -1,16 +1,16 @@
 const LOADING_TASKS = [
-    { label: "7TV global emotes", run: load7TVGlobalEmotes },
-    { label: "7TV channel emotes", run: load7TVEmotes },
-    { label: "FFZ emotes", run: loadFFZEmotes },
-    { label: "BTTV emotes", run: loadBTTVEmotes },
-    { label: "Twitch badges", run: loadTwitchBadges },
-    { label: "FFZ badges", run: loadFFZBadges },
-    { label: "Chatterino badges", run: loadChatterinoBadges },
-    { label: "Homies badges", run: loadHomiesBadges },
-    { label: "BTTV badges", run: loadBTTVBadges },
-    { label: "DankChat badges", run: loadDankChatBadges },
-    { label: "Moltorino badges", run: loadMoltorinoBadges },
-    { label: "Channel rewards", run: loadChannelHighlightData },
+    { label: "", run: load7TVGlobalEmotes },
+    { label: "", run: load7TVEmotes },
+    { label: "", run: loadFFZEmotes },
+    { label: "", run: loadBTTVEmotes },
+    { label: "", run: loadTwitchBadges },
+    { label: "", run: loadFFZBadges },
+    { label: "", run: loadChatterinoBadges },
+    { label: "", run: loadHomiesBadges },
+    { label: "", run: loadBTTVBadges },
+    { label: "", run: loadDankChatBadges },
+    { label: "", run: loadMoltorinoBadges },
+    { label: "", run: loadChannelHighlightData },
 ];
 
 let loadingAnimationInterval = null;

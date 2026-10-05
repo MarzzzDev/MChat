@@ -245,12 +245,12 @@ function applyMessageHighlights(message, tags, displayName) {
         Boolean(tags["custom-reward-id"]) ||
         tags["msg-id"] === "highlighted-message";
 
-    if (isRedeem) {
+    if (isRedeem && hlRedeemsEnabled) {
         applyRewardHighlight(message, tags);
         return;
     }
 
-    if (String(tags["first-msg"]) === "1") {
+    if (hlFirstEnabled && String(tags["first-msg"]) === "1") {
         applyHighlight(
             message,
             HL_FIRST_MESSAGE_COLOR,
@@ -336,6 +336,10 @@ function hlGifterName(tags) {
 function handleTwitchIRCUsernotice(message) {
     const tags = message.tags || {};
     const msgId = tags["msg-id"];
+
+    if (!hlGiftsEnabled) {
+        return;
+    }
 
     if (msgId === "subgift" || msgId === "anonsubgift") {
 

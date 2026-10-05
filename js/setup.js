@@ -57,6 +57,20 @@ const previewMessages = [
         "#FF69B4",
         "406239629",
         { badges: "founder/1,noob/1" }
+    ],
+    [
+        "FreshChatter",
+        "hello chat first time here",
+        "#1E90FF",
+        "812345670",
+        { badges: "", "first-msg": "1" }
+    ],
+    [
+        "PointsGoblin",
+        "redeemed something cool",
+        "#32CD32",
+        "812345671",
+        { badges: "subscriber/1", "custom-reward-id": "preview-reward" }
     ]
 ];
 let currentPreviewMessage = 0;
@@ -1841,6 +1855,19 @@ function showOverlaySetupScreen() {
     const highlightsCheckbox = addToggle(appearancePanel, "Highlights", "Highlight usernames with the 7TV Paint/Color", "highlights", highlightsEnabled);
     const unlistedCheckbox = addToggle(appearancePanel, "Unlisted 7TV emotes", "Render unlisted 7TV emotes.", "unlisted", showUnlisted7TV);
 
+    const highlightDivider = document.createElement("div");
+    highlightDivider.className = "mc-divider";
+    appearancePanel.appendChild(highlightDivider);
+
+    const highlightSub = document.createElement("h2");
+    highlightSub.className = "mc-subhead";
+    highlightSub.textContent = "Message highlights";
+    appearancePanel.appendChild(highlightSub);
+
+    const hlFirstCheckbox = addToggle(appearancePanel, "First messages", "Highlight a chatter's first message in the channel.", "hlFirst", hlFirstEnabled);
+    const hlRedeemsCheckbox = addToggle(appearancePanel, "Redeems", "Highlight channel point redeems and Highlight My Message.", "hlRedeems", hlRedeemsEnabled);
+    const hlGiftsCheckbox = addToggle(appearancePanel, "Gift subs", "Show gifted sub and mass gift cards in chat.", "hlGifts", hlGiftsEnabled);
+
     const shadowDivider = document.createElement("div");
     shadowDivider.className = "mc-divider";
     appearancePanel.appendChild(shadowDivider);
@@ -2242,6 +2269,20 @@ function showOverlaySetupScreen() {
         rerenderPreviewChat();
     });
 
+    hlFirstCheckbox.addEventListener("change", () => {
+        hlFirstEnabled = hlFirstCheckbox.checked;
+        rerenderPreviewChat();
+    });
+
+    hlRedeemsCheckbox.addEventListener("change", () => {
+        hlRedeemsEnabled = hlRedeemsCheckbox.checked;
+        rerenderPreviewChat();
+    });
+
+    hlGiftsCheckbox.addEventListener("change", () => {
+        hlGiftsEnabled = hlGiftsCheckbox.checked;
+    });
+
     function syncShadowState() {
         shadowIntensityInput.disabled = !shadowCheckbox.checked;
         shadowSizeInput.disabled = !shadowCheckbox.checked;
@@ -2487,6 +2528,15 @@ function showOverlaySetupScreen() {
 
             highlights:
                 highlightsCheckbox.checked,
+
+            hlFirst:
+                hlFirstCheckbox.checked,
+
+            hlRedeems:
+                hlRedeemsCheckbox.checked,
+
+            hlGifts:
+                hlGiftsCheckbox.checked,
 
             scale:
                 Math.max(

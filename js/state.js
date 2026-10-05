@@ -247,7 +247,7 @@ async function runLoadingTasks(tasks) {
         if (loadingText) {
             loadingText.textContent =
                 pending.size
-                    ? `Loading ${[...pending].join(", ")}...`
+                    ? ``
                     : "Ready!";
         }
     }

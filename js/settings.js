@@ -139,6 +139,15 @@ function normaliseOverlaySettings(settings = {}) {
     result.bots =
         settings.bots !== false;
 
+    result.hlFirst =
+        settings.hlFirst !== false;
+
+    result.hlRedeems =
+        settings.hlRedeems !== false;
+
+    result.hlGifts =
+        settings.hlGifts !== false;
+
     result.scale =
         Number(
             settings.scale ?? 0.5
@@ -576,6 +585,27 @@ function appendFlatOverlaySettings(
         ]);
     }
 
+    if (normalised.hlFirst !== true) {
+        query.push([
+            "hlFirst",
+            normalised.hlFirst ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.hlRedeems !== true) {
+        query.push([
+            "hlRedeems",
+            normalised.hlRedeems ? "1" : "0"
+        ]);
+    }
+
+    if (normalised.hlGifts !== true) {
+        query.push([
+            "hlGifts",
+            normalised.hlGifts ? "1" : "0"
+        ]);
+    }
+
     if (normalised.shadow !== true) {
         query.push([
             "shadow",
@@ -814,6 +844,24 @@ let highlightsEnabled =
     parseQueryBoolean(
         "highlights",
         false
+    );
+
+let hlFirstEnabled =
+    parseQueryBoolean(
+        "hlFirst",
+        true
+    );
+
+let hlRedeemsEnabled =
+    parseQueryBoolean(
+        "hlRedeems",
+        true
+    );
+
+let hlGiftsEnabled =
+    parseQueryBoolean(
+        "hlGifts",
+        true
     );
 
 let scale =
