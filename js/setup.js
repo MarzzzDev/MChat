@@ -2563,6 +2563,7 @@ function showOverlaySetupScreen() {
 		"7TV Paints, FFZ, BTTV and Twitch badges are supported.",
 		"MChat is the only overlay that supports all effects, including FFZ and BTTV effect (ffzCursed, h!, etc)",
 		"We have support for badges from every single platform available, and if there's a platform we're missing let us know!",
+		"We support Kick, Twitch and Youtube all together.",
 		"If any new feature is added, the overlay will be automatically refreshed to have the newest features at all times, with no need to do it manually.",
 		"GIFs are supported, but can be disabled for performance.",
 		"Bots and commands can be hidden from the overlay.",
