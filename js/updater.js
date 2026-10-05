@@ -64,5 +64,5 @@ async function hardRefreshOverlay() {
 function startGithubUpdater() {
     checkForGithubCommit();
     setInterval(checkForGithubCommit, UPDATE_POLL_MS);
-    print("Started the GitHub updater");
+    console.log("Initiated GitHub updater.");
 }
