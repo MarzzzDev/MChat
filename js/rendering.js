@@ -398,6 +398,36 @@ function findGlobalThirdPartyEmote(word) {
 
 function findThirdPartyEmote(word, username = null, platform = "twitch") {
 	if (platform === "youtube") {
+		if (selectedChannel) {
+			const twitchChannelEmote = sevenTVEmotes.get(word);
+
+			if (
+				twitchChannelEmote &&
+				(showUnlisted7TV || twitchChannelEmote.listed !== false)
+			) {
+				return {
+					...twitchChannelEmote,
+
+					provider: "7TV",
+				};
+			}
+		}
+
+		if (selectedKick) {
+			const kickChannelEmote = sevenTVKickEmotes.get(word);
+
+			if (
+				kickChannelEmote &&
+				(showUnlisted7TV || kickChannelEmote.listed !== false)
+			) {
+				return {
+					...kickChannelEmote,
+
+					provider: "7TV",
+				};
+			}
+		}
+
 		return findGlobalThirdPartyEmote(word);
 	}
 
