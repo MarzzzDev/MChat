@@ -248,7 +248,7 @@ async function runLoadingTasks(tasks) {
             loadingText.textContent =
                 pending.size
                     ? ``
-                    : "Ready!";
+                    : "Loading...";
         }
     }
 
