@@ -428,6 +428,32 @@ function findThirdPartyEmote(word, username = null, platform = "twitch") {
 			}
 		}
 
+		if (selectedChannel) {
+			if (bttvEmotes.has(word)) {
+				return {
+					...bttvEmotes.get(word),
+
+					provider: "BTTV",
+				};
+			}
+
+			if (ffzEmotes.has(word)) {
+				const emote = ffzEmotes.get(word);
+
+				return {
+					...emote,
+
+					provider: "FFZ",
+
+					modifier: Boolean(emote.modifier),
+
+					modifierFlags: Number(emote.modifierFlags || 0),
+
+					effects: getFFZModifierEffects(emote),
+				};
+			}
+		}
+
 		return findGlobalThirdPartyEmote(word);
 	}
 
