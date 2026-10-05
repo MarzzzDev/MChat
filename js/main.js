@@ -9,7 +9,8 @@ const LOADING_TASKS = [
     { label: "Homies badges", run: loadHomiesBadges },
     { label: "BTTV badges", run: loadBTTVBadges },
     { label: "DankChat badges", run: loadDankChatBadges },
-    { label: "Moltorino badges", run: loadMoltorinoBadges }
+    { label: "Moltorino badges", run: loadMoltorinoBadges },
+    { label: "Channel rewards", run: loadChannelHighlightData },
 ];
 
 loadFFZBotBadgeList();

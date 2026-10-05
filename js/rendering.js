@@ -1795,14 +1795,6 @@ async function onMsg(
         message.classList.add("wrap-message");
     }
 
-    if (
-        tags["custom-reward-id"]
-    ) {
-        message.classList.add(
-            "redeem-message"
-        );
-    }
-
     message.style.setProperty(
         "--user-color",
         usernameColor
@@ -1908,6 +1900,8 @@ async function onMsg(
     message.appendChild(
         text
     );
+
+    applyMessageHighlights(message, tags, user);
 
     chat.appendChild(
         message

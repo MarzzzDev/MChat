@@ -342,6 +342,10 @@ function handleTwitchIRCMessage(raw) {
             handleTwitchIRCClearChat();
         }
     }
+    if (message.command === "USERNOTICE") {
+        handleTwitchIRCUsernotice(message);
+        return; 
+    }
 }
 
 function handleTwitchIRCClearUserMessages(userId) {

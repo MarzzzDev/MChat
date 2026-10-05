@@ -76,30 +76,6 @@ body.pixel-font .text {
     word-break: break-word;
 }
 
-.message.redeem-message {
-    background: transparent;
-    box-shadow: none;
-}
-
-body.has-background .message.redeem-message {
-    background: linear-gradient(
-        90deg,
-        rgba(20, 80, 180, 0.92),
-        rgba(35, 105, 220, 0.78)
-    );
-    box-shadow:
-        0 4px 14px rgba(0, 0, 0, 0.45),
-        inset 0 0 20px rgba(70, 150, 255, 0.18),
-        0 0 12px rgba(40, 120, 255, 0.18);
-}
-
-body.has-background .message.redeem-message:hover {
-    box-shadow:
-        0 4px 18px rgba(0, 0, 0, 0.5),
-        inset 0 0 20px rgba(70, 150, 255, 0.22),
-        0 0 18px rgba(40, 120, 255, 0.25);
-}
-
 #chat {
     width: 100%;
     box-sizing: border-box;
