@@ -1,1101 +1,1179 @@
 const knownChatters = new Map();
 
 const CHROME_MAJOR = Number(
-  (navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1] || 0,
+	(navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1] || 0,
 );
 const STROKE_VIA_SHADOW = CHROME_MAJOR > 0 && CHROME_MAJOR < 127;
 let appliedStrokeKey = null;
 
 function buildStrokeRing(radius, color) {
-  const step = Math.max(0.1, 1 / radius);
-  const layers = [];
+	const step = Math.max(0.1, 1 / radius);
+	const layers = [];
 
-  for (let angle = 0; angle < Math.PI * 2; angle += step) {
-    const x = (Math.cos(angle) * radius).toFixed(3);
-    const y = (Math.sin(angle) * radius).toFixed(3);
+	for (let angle = 0; angle < Math.PI * 2; angle += step) {
+		const x = (Math.cos(angle) * radius).toFixed(3);
+		const y = (Math.sin(angle) * radius).toFixed(3);
 
-    layers.push(`${x}px ${y}px 0 ${color}`);
-  }
+		layers.push(`${x}px ${y}px 0 ${color}`);
+	}
 
-  return layers.join(", ");
+	return layers.join(", ");
 }
 
 function applyStrokeMode() {
-  if (!STROKE_VIA_SHADOW) {
-    return;
-  }
+	if (!STROKE_VIA_SHADOW) {
+		return;
+	}
 
-  const rootStyle = getComputedStyle(document.documentElement);
-  const width = parseFloat(rootStyle.getPropertyValue("--stroke-width"));
-  const color = rootStyle.getPropertyValue("--stroke-color").trim() || "black";
-  const key = `${width}|${color}`;
+	const rootStyle = getComputedStyle(document.documentElement);
+	const width = parseFloat(rootStyle.getPropertyValue("--stroke-width"));
+	const color = rootStyle.getPropertyValue("--stroke-color").trim() || "black";
+	const key = `${width}|${color}`;
 
-  if (key === appliedStrokeKey) {
-    return;
-  }
+	if (key === appliedStrokeKey) {
+		return;
+	}
 
-  appliedStrokeKey = key;
+	appliedStrokeKey = key;
 
-  document.body.classList.add("stroke-shadow-mode");
+	document.body.classList.add("stroke-shadow-mode");
 
-  if (!(width > 0)) {
-    document.documentElement.style.setProperty(
-      "--stroke-shadow",
-      "0 0 0 transparent",
-    );
-    return;
-  }
+	if (!(width > 0)) {
+		document.documentElement.style.setProperty(
+			"--stroke-shadow",
+			"0 0 0 transparent",
+		);
+		return;
+	}
 
-  document.documentElement.style.setProperty(
-    "--stroke-shadow",
-    buildStrokeRing(width, color),
-  );
+	document.documentElement.style.setProperty(
+		"--stroke-shadow",
+		buildStrokeRing(width, color),
+	);
 }
 
 window.applyStrokeMode = applyStrokeMode;
 
 const MIN_NAME_BRIGHTNESS = 100;
 
+const TWITCH_DEFAULT_COLORS = [
+	"#FF0000",
+	"#0000FF",
+	"#008000",
+	"#B22222",
+	"#FF7F50",
+	"#9ACD32",
+	"#FF4500",
+	"#2E8B57",
+	"#DAA520",
+	"#D2691E",
+	"#5F9EA0",
+	"#1E90FF",
+	"#FF69B4",
+	"#8A2BE2",
+	"#00FF7F",
+];
+
 const BTTV_MODIFIERS = new Set([
-  "w!",
-  "h!",
-  "v!",
-  "z!",
-  "c!",
-  "l!",
-  "r!",
-  "p!",
-  "s!",
+	"w!",
+	"h!",
+	"v!",
+	"z!",
+	"c!",
+	"l!",
+	"r!",
+	"p!",
+	"s!",
 ]);
 
-function registerChatter(user, color, userId) {
-  if (!user) {
-    return;
-  }
+function registerChatter(user, color, userId, platform = "twitch") {
+	if (!user) {
+		return;
+	}
 
-  knownChatters.set(String(user).toLowerCase(), { name: user, color, userId });
+	knownChatters.set(String(user).toLowerCase(), {
+		name: user,
+		color,
+		userId,
+		platform,
+	});
 }
 
 function createMention(chatter, prefix = "") {
-  const login = String(chatter.name).toLowerCase();
-  const color = getTwitchDisplayColor(chatter.color, login);
+	const login = String(chatter.name).toLowerCase();
+	const color = getTwitchDisplayColor(chatter.color, login);
 
-  const mention = document.createElement("span");
-  mention.className = "mention";
-  mention.textContent = prefix + chatter.name;
-  mention.style.color = color;
-  mention.style.webkitTextFillColor = color;
+	const mention = document.createElement("span");
+	mention.className = "mention";
+	mention.textContent = prefix + chatter.name;
+	mention.style.color = color;
+	mention.style.webkitTextFillColor = color;
 
-  if (chatter.userId) {
-    Promise.resolve(get7TVPaint(chatter.userId))
-      .then((paint) => {
-        if (paint) {
-          applyPaint(mention, paint);
-        }
-      })
-      .catch((error) => console.error("Mention paint error:", error));
-  }
+	if (chatter.userId) {
+		Promise.resolve(get7TVPaint(chatter.userId, chatter.platform))
+			.then((paint) => {
+				if (paint) {
+					applyPaint(mention, paint);
+				}
+			})
+			.catch((error) => console.error("Mention paint error:", error));
+	}
 
-  return mention;
+	return mention;
 }
 
 function createEmote(url, alt) {
-  const emote = document.createElement("img");
+	const emote = document.createElement("img");
 
-  emote.className = "emote";
+	emote.className = "emote";
 
-  emote.src = url;
+	emote.src = url;
 
-  emote.alt = alt;
+	emote.alt = alt;
 
-  emote.title = alt;
+	emote.title = alt;
 
-  emote.loading = "eager";
+	emote.loading = "eager";
 
-  emote.decoding = "async";
+	emote.decoding = "async";
 
-  emote.draggable = false;
+	emote.draggable = false;
 
-  return emote;
+	return emote;
 }
 
 function renderTwemoji(container) {
-  if (!container) {
-    return;
-  }
+	if (!container) {
+		return;
+	}
 
-  loadTwemoji()
-    .then((twemoji) => {
-      twemoji.parse(container, {
-        folder: "svg",
+	loadTwemoji()
+		.then((twemoji) => {
+			twemoji.parse(container, {
+				folder: "svg",
 
-        ext: ".svg",
+				ext: ".svg",
 
-        base: "https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/",
-      });
+				base: "https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/",
+			});
 
-      const emojis = container.querySelectorAll("img.emoji");
+			const emojis = container.querySelectorAll("img.emoji");
 
-      for (const emoji of emojis) {
-        emoji.classList.add("twemoji");
+			for (const emoji of emojis) {
+				emoji.classList.add("twemoji");
 
-        emoji.draggable = false;
+				emoji.draggable = false;
 
-        emoji.loading = "eager";
+				emoji.loading = "eager";
 
-        emoji.decoding = "async";
+				emoji.decoding = "async";
 
-        emoji.style.width = "1.2em";
+				emoji.style.width = "1.2em";
 
-        emoji.style.height = "1.2em";
+				emoji.style.height = "1.2em";
 
-        emoji.style.display = "inline-block";
+				emoji.style.display = "inline-block";
 
-        emoji.style.verticalAlign = "middle";
+				emoji.style.verticalAlign = "middle";
 
-        emoji.style.margin = "0 0.05em";
-      }
-    })
-    .catch((error) => {
-      console.error("Twemoji error:", error);
-    });
+				emoji.style.margin = "0 0.05em";
+			}
+		})
+		.catch((error) => {
+			console.error("Twemoji error:", error);
+		});
 }
 
 function applyFFZEffects(emote, effects) {
-  if (!emote || !effects?.length) {
-    return;
-  }
+	if (!emote || !effects?.length) {
+		return;
+	}
 
-  let scaleX = Number(emote.dataset.ffzScaleX || 1);
+	let scaleX = Number(emote.dataset.ffzScaleX || 1);
 
-  let scaleY = Number(emote.dataset.ffzScaleY || 1);
+	let scaleY = Number(emote.dataset.ffzScaleY || 1);
 
-  let rotate = Number(emote.dataset.ffzRotate || 0);
+	let rotate = Number(emote.dataset.ffzRotate || 0);
 
-  const existingEffects = emote.dataset.ffzEffects
-    ? emote.dataset.ffzEffects.split(",").filter(Boolean)
-    : [];
+	const existingEffects = emote.dataset.ffzEffects
+		? emote.dataset.ffzEffects.split(",").filter(Boolean)
+		: [];
 
-  for (const effect of effects) {
-    switch (effect) {
-      case "flipX":
-        scaleX *= -1;
-        break;
+	for (const effect of effects) {
+		switch (effect) {
+			case "flipX":
+				scaleX *= -1;
+				break;
 
-      case "flipY":
-        scaleY *= -1;
-        break;
+			case "flipY":
+				scaleY *= -1;
+				break;
 
-      case "growX":
-        scaleX *= 2;
-        break;
+			case "growX":
+				scaleX *= 2;
+				break;
 
-      case "shrinkX":
-        scaleX *= 0.5;
-        break;
-    }
-  }
+			case "shrinkX":
+				scaleX *= 0.5;
+				break;
+		}
+	}
 
-  emote.dataset.ffzScaleX = String(scaleX);
+	emote.dataset.ffzScaleX = String(scaleX);
 
-  emote.dataset.ffzScaleY = String(scaleY);
+	emote.dataset.ffzScaleY = String(scaleY);
 
-  emote.dataset.ffzRotate = String(rotate);
+	emote.dataset.ffzRotate = String(rotate);
 
-  const mergedEffects = Array.from(new Set([...existingEffects, ...effects]));
+	const mergedEffects = Array.from(new Set([...existingEffects, ...effects]));
 
-  emote.dataset.ffzEffects = mergedEffects.join(",");
+	emote.dataset.ffzEffects = mergedEffects.join(",");
 
-  emote.classList.add("ffz-effect-transform");
+	emote.classList.add("ffz-effect-transform");
 
-  emote.style.setProperty("--ffz-scale-x", String(scaleX));
+	emote.style.setProperty("--ffz-scale-x", String(scaleX));
 
-  emote.style.setProperty("--ffz-scale-y", String(scaleY));
+	emote.style.setProperty("--ffz-scale-y", String(scaleY));
 
-  emote.style.setProperty("--ffz-rotate", `${rotate}deg`);
+	emote.style.setProperty("--ffz-rotate", `${rotate}deg`);
 
-  for (const effect of effects) {
-    switch (effect) {
-      case "rainbow":
-        emote.classList.add("ffz-effect-rainbow");
-        break;
+	for (const effect of effects) {
+		switch (effect) {
+			case "rainbow":
+				emote.classList.add("ffz-effect-rainbow");
+				break;
 
-      case "hyperRed":
-        emote.classList.add("ffz-effect-hyper-red");
-        break;
+			case "hyperRed":
+				emote.classList.add("ffz-effect-hyper-red");
+				break;
 
-      case "shake":
-        emote.classList.add("ffz-effect-shake");
-        break;
+			case "shake":
+				emote.classList.add("ffz-effect-shake");
+				break;
 
-      case "cursed":
-        emote.classList.add("ffz-effect-cursed");
-        break;
+			case "cursed":
+				emote.classList.add("ffz-effect-cursed");
+				break;
 
-      case "jam":
-        emote.classList.add("ffz-effect-jam");
-        break;
+			case "jam":
+				emote.classList.add("ffz-effect-jam");
+				break;
 
-      case "bounce":
-        emote.classList.add("ffz-effect-bounce");
-        break;
+			case "bounce":
+				emote.classList.add("ffz-effect-bounce");
+				break;
 
-      case "slide":
-        emote.classList.add("ffz-effect-slide");
-        break;
+			case "slide":
+				emote.classList.add("ffz-effect-slide");
+				break;
 
-      case "appear":
-        emote.classList.add("ffz-effect-appear");
-        break;
+			case "appear":
+				emote.classList.add("ffz-effect-appear");
+				break;
 
-      case "leave":
-        emote.classList.add("ffz-effect-leave");
-        break;
+			case "leave":
+				emote.classList.add("ffz-effect-leave");
+				break;
 
-      case "rotate":
-        emote.classList.add("ffz-effect-rotate");
-        break;
+			case "rotate":
+				emote.classList.add("ffz-effect-rotate");
+				break;
 
-      case "photocopy":
-        emote.classList.add("ffz-effect-photocopy");
-        break;
-    }
-  }
+			case "photocopy":
+				emote.classList.add("ffz-effect-photocopy");
+				break;
+		}
+	}
 }
 
 function applyFFZEffect(emote, effectName) {
-  if (!emote || !effectName) {
-    return false;
-  }
+	if (!emote || !effectName) {
+		return false;
+	}
 
-  const effectData = ffzEffects.get(effectName);
+	const effectData = ffzEffects.get(effectName);
 
-  if (!effectData?.effects?.length) {
-    return false;
-  }
+	if (!effectData?.effects?.length) {
+		return false;
+	}
 
-  applyFFZEffects(emote, effectData.effects);
+	applyFFZEffects(emote, effectData.effects);
 
-  return true;
+	return true;
 }
 
 function applyFFZEffectToPrevious(container, effectName) {
-  const effectData = ffzEffects.get(effectName);
+	const effectData = ffzEffects.get(effectName);
 
-  if (!effectData?.effects?.length) {
-    return false;
-  }
+	if (!effectData?.effects?.length) {
+		return false;
+	}
 
-  const previous = getPreviousEmote(container);
+	const previous = getPreviousEmote(container);
 
-  if (!previous) {
-    return false;
-  }
+	if (!previous) {
+		return false;
+	}
 
-  return applyFFZEffect(previous, effectName);
+	return applyFFZEffect(previous, effectName);
 }
 
 function getFFZModifierEffects(emote) {
-  if (!emote) {
-    return [];
-  }
+	if (!emote) {
+		return [];
+	}
 
-  const effects = [];
+	const effects = [];
 
-  const flags = Number(emote.modifierFlags || 0);
+	const flags = Number(emote.modifierFlags || 0);
 
-  if (flags & FFZ_EFFECT_FLAGS.GROW_X) {
-    effects.push("growX");
-  }
+	if (flags & FFZ_EFFECT_FLAGS.GROW_X) {
+		effects.push("growX");
+	}
 
-  if (flags & FFZ_EFFECT_FLAGS.RAINBOW) {
-    effects.push("rainbow");
-  }
+	if (flags & FFZ_EFFECT_FLAGS.RAINBOW) {
+		effects.push("rainbow");
+	}
 
-  if (flags & FFZ_EFFECT_FLAGS.HYPER_RED) {
-    effects.push("hyperRed");
-  }
+	if (flags & FFZ_EFFECT_FLAGS.HYPER_RED) {
+		effects.push("hyperRed");
+	}
 
-  if (flags & FFZ_EFFECT_FLAGS.HYPER_SHAKE) {
-    effects.push("shake");
-  }
+	if (flags & FFZ_EFFECT_FLAGS.HYPER_SHAKE) {
+		effects.push("shake");
+	}
 
-  if (flags & FFZ_EFFECT_FLAGS.CURSED) {
-    effects.push("cursed");
-  }
+	if (flags & FFZ_EFFECT_FLAGS.CURSED) {
+		effects.push("cursed");
+	}
 
-  if (flags & FFZ_EFFECT_FLAGS.JAM) {
-    effects.push("jam");
-  }
+	if (flags & FFZ_EFFECT_FLAGS.JAM) {
+		effects.push("jam");
+	}
 
-  if (flags & FFZ_EFFECT_FLAGS.BOUNCE) {
-    effects.push("bounce");
-  }
+	if (flags & FFZ_EFFECT_FLAGS.BOUNCE) {
+		effects.push("bounce");
+	}
 
-  return effects;
+	return effects;
 }
 
-function findThirdPartyEmote(word, username = null) {
-  const personalEmotes = get7TVPersonalEmotesForUser(username);
+function findGlobalThirdPartyEmote(word) {
+	const seven = sevenTVGlobalEmotes.get(word);
 
-  if (personalEmotes.has(word)) {
-    const personal = personalEmotes.get(word);
+	if (seven && (showUnlisted7TV || seven.listed !== false)) {
+		return {
+			...seven,
 
-    if (!showUnlisted7TV && personal.listed === false) {
-      return null;
-    }
+			provider: "7TV",
+		};
+	}
 
-    return {
-      id: personal.id,
+	if (bttvGlobalEmotes.has(word)) {
+		return {
+			...bttvGlobalEmotes.get(word),
 
-      name: personal.name,
+			provider: "BTTV",
+		};
+	}
 
-      url: personal.image,
+	if (ffzGlobalEmotes.has(word)) {
+		const emote = ffzGlobalEmotes.get(word);
 
-      provider: "7TV",
+		return {
+			...emote,
 
-      personal: true,
+			provider: "FFZ",
 
-      listed: personal.listed,
+			modifier: Boolean(emote.modifier),
 
-      zeroWidth: personal.zeroWidth,
-    };
-  }
+			modifierFlags: Number(emote.modifierFlags || 0),
 
-  if (sevenTVEmotes.has(word)) {
-    const emote = sevenTVEmotes.get(word);
+			effects: getFFZModifierEffects(emote),
+		};
+	}
 
-    if (!showUnlisted7TV && emote.listed === false) {
-      return null;
-    }
+	return null;
+}
 
-    return {
-      ...emote,
-      provider: "7TV",
-    };
-  }
+function findThirdPartyEmote(word, username = null, platform = "twitch") {
+	if (platform === "youtube") {
+		return findGlobalThirdPartyEmote(word);
+	}
 
-  if (bttvEmotes.has(word)) {
-    return {
-      ...bttvEmotes.get(word),
+	const personalEmotes = get7TVPersonalEmotesForUser(username);
 
-      provider: "BTTV",
-    };
-  }
+	if (personalEmotes.has(word)) {
+		const personal = personalEmotes.get(word);
 
-  if (ffzEmotes.has(word)) {
-    const emote = ffzEmotes.get(word);
+		if (!showUnlisted7TV && personal.listed === false) {
+			return null;
+		}
 
-    return {
-      ...emote,
+		return {
+			id: personal.id,
 
-      provider: "FFZ",
+			name: personal.name,
 
-      modifier: Boolean(emote.modifier),
+			url: personal.image,
 
-      modifierFlags: Number(emote.modifierFlags || 0),
+			provider: "7TV",
 
-      effects: getFFZModifierEffects(emote),
-    };
-  }
+			personal: true,
 
-  return null;
+			listed: personal.listed,
+
+			zeroWidth: personal.zeroWidth,
+		};
+	}
+
+	if (platform === "kick") {
+		const emote = sevenTVKickEmotes.get(word);
+
+		if (emote && (showUnlisted7TV || emote.listed !== false)) {
+			return {
+				...emote,
+
+				provider: "7TV",
+			};
+		}
+
+		return findGlobalThirdPartyEmote(word);
+	}
+
+	if (sevenTVEmotes.has(word)) {
+		const emote = sevenTVEmotes.get(word);
+
+		if (!showUnlisted7TV && emote.listed === false) {
+			return null;
+		}
+
+		return {
+			...emote,
+			provider: "7TV",
+		};
+	}
+
+	if (bttvEmotes.has(word)) {
+		return {
+			...bttvEmotes.get(word),
+
+			provider: "BTTV",
+		};
+	}
+
+	if (ffzEmotes.has(word)) {
+		const emote = ffzEmotes.get(word);
+
+		return {
+			...emote,
+
+			provider: "FFZ",
+
+			modifier: Boolean(emote.modifier),
+
+			modifierFlags: Number(emote.modifierFlags || 0),
+
+			effects: getFFZModifierEffects(emote),
+		};
+	}
+
+	return null;
 }
 
 function getPreviousEmote(container) {
-  let previous = container.lastElementChild;
+	let previous = container.lastElementChild;
 
-  while (previous) {
-    if (previous.classList.contains("emote-overlay-target")) {
-      const base = previous.querySelector(
-        ":scope > .emote:not(.seven-tv-zero-width)",
-      );
+	while (previous) {
+		if (previous.classList.contains("emote-overlay-target")) {
+			const base = previous.querySelector(
+				":scope > .emote:not(.seven-tv-zero-width)",
+			);
 
-      if (base) {
-        return base;
-      }
-    }
+			if (base) {
+				return base;
+			}
+		}
 
-    if (
-      previous.classList.contains("emote") &&
-      !previous.classList.contains("seven-tv-zero-width")
-    ) {
-      return previous;
-    }
+		if (
+			previous.classList.contains("emote") &&
+			!previous.classList.contains("seven-tv-zero-width")
+		) {
+			return previous;
+		}
 
-    previous = previous.previousElementSibling;
-  }
+		previous = previous.previousElementSibling;
+	}
 
-  return null;
+	return null;
 }
 
 function getPreviousOverlayTarget(container) {
-  const previous = container.lastElementChild;
+	const previous = container.lastElementChild;
 
-  if (previous?.classList.contains("emote-overlay-target")) {
-    return previous;
-  }
+	if (previous?.classList.contains("emote-overlay-target")) {
+		return previous;
+	}
 
-  return null;
+	return null;
 }
 
 function create7TVOverlay(container, url, alt) {
-  if (!url) {
-    return false;
-  }
+	if (!url) {
+		return false;
+	}
 
-  let target = getPreviousOverlayTarget(container);
+	let target = getPreviousOverlayTarget(container);
 
-  if (!target) {
-    const previous = getPreviousEmote(container);
+	if (!target) {
+		const previous = getPreviousEmote(container);
 
-    if (!previous) {
-      return false;
-    }
+		if (!previous) {
+			return false;
+		}
 
-    target = document.createElement("span");
+		target = document.createElement("span");
 
-    target.className = "emote-overlay-target";
+		target.className = "emote-overlay-target";
 
-    previous.replaceWith(target);
+		previous.replaceWith(target);
 
-    target.appendChild(previous);
-  }
+		target.appendChild(previous);
+	}
 
-  const overlay = createEmote(url, alt);
+	const overlay = createEmote(url, alt);
 
-  overlay.classList.add("seven-tv-zero-width");
+	overlay.classList.add("seven-tv-zero-width");
 
-  overlay.setAttribute("aria-hidden", "true");
+	overlay.setAttribute("aria-hidden", "true");
 
-  target.appendChild(overlay);
+	target.appendChild(overlay);
 
-  return true;
+	return true;
 }
 
 function widenEmote(emote, zero = false) {
-  const apply = () => {
-    if (!emote.naturalWidth || !emote.naturalHeight) {
-      return;
-    }
+	const apply = () => {
+		if (!emote.naturalWidth || !emote.naturalHeight) {
+			return;
+		}
 
-    const half = (65 * emote.naturalWidth) / emote.naturalHeight / 2;
+		const half = (65 * emote.naturalWidth) / emote.naturalHeight / 2;
 
-    emote.style.marginLeft = `${(zero ? 0 : 3) + half}px`;
-    emote.style.marginRight = `${3 + half}px`;
-  };
+		emote.style.marginLeft = `${(zero ? 0 : 3) + half}px`;
+		emote.style.marginRight = `${3 + half}px`;
+	};
 
-  if (emote.complete && emote.naturalWidth) {
-    apply();
-  } else {
-    emote.addEventListener("load", apply, { once: true });
-  }
+	if (emote.complete && emote.naturalWidth) {
+		apply();
+	} else {
+		emote.addEventListener("load", apply, { once: true });
+	}
 }
 
 function removeTrailingWhitespace(container) {
-  const last = container.lastChild;
+	const last = container.lastChild;
 
-  if (last && last.nodeType === Node.TEXT_NODE && !last.textContent.trim()) {
-    last.remove();
-  }
+	if (last && last.nodeType === Node.TEXT_NODE && !last.textContent.trim()) {
+		last.remove();
+	}
 }
 
 function applyBTTVModifiers(container, emote, modifiers) {
-  let scaleX = Number(emote.dataset.ffzScaleX || 1);
-  let scaleY = Number(emote.dataset.ffzScaleY || 1);
-  let rotate = Number(emote.dataset.ffzRotate || 0);
-  let transformed = false;
-  let wide = false;
+	let scaleX = Number(emote.dataset.ffzScaleX || 1);
+	let scaleY = Number(emote.dataset.ffzScaleY || 1);
+	let rotate = Number(emote.dataset.ffzRotate || 0);
+	let transformed = false;
+	let wide = false;
 
-  for (const modifier of modifiers) {
-    switch (modifier) {
-      case "h!":
-        scaleX *= -1;
-        transformed = true;
-        break;
+	for (const modifier of modifiers) {
+		switch (modifier) {
+			case "h!":
+				scaleX *= -1;
+				transformed = true;
+				break;
 
-      case "v!":
-        scaleY *= -1;
-        transformed = true;
-        break;
+			case "v!":
+				scaleY *= -1;
+				transformed = true;
+				break;
 
-      case "l!":
-        rotate -= 90;
-        transformed = true;
-        break;
+			case "l!":
+				rotate -= 90;
+				transformed = true;
+				break;
 
-      case "r!":
-        rotate += 90;
-        transformed = true;
-        break;
+			case "r!":
+				rotate += 90;
+				transformed = true;
+				break;
 
-      case "w!":
-        scaleX *= 2;
-        transformed = true;
-        wide = true;
-        break;
+			case "w!":
+				scaleX *= 2;
+				transformed = true;
+				wide = true;
+				break;
 
-      case "z!":
-        removeTrailingWhitespace(container);
-        emote.classList.add("bttv-effect-zero");
-        break;
+			case "z!":
+				removeTrailingWhitespace(container);
+				emote.classList.add("bttv-effect-zero");
+				break;
 
-      case "c!":
-        emote.classList.add("bttv-effect-cursed");
-        break;
+			case "c!":
+				emote.classList.add("bttv-effect-cursed");
+				break;
 
-      case "p!":
-        emote.classList.add("bttv-effect-party");
-        break;
+			case "p!":
+				emote.classList.add("bttv-effect-party");
+				break;
 
-      case "s!":
-        emote.classList.add("bttv-effect-shake");
-        break;
-    }
-  }
+			case "s!":
+				emote.classList.add("bttv-effect-shake");
+				break;
+		}
+	}
 
-  if (transformed) {
-    emote.dataset.ffzScaleX = String(scaleX);
-    emote.dataset.ffzScaleY = String(scaleY);
-    emote.dataset.ffzRotate = String(rotate);
+	if (transformed) {
+		emote.dataset.ffzScaleX = String(scaleX);
+		emote.dataset.ffzScaleY = String(scaleY);
+		emote.dataset.ffzRotate = String(rotate);
 
-    emote.classList.add("ffz-effect-transform");
-    emote.style.setProperty("--ffz-scale-x", String(scaleX));
-    emote.style.setProperty("--ffz-scale-y", String(scaleY));
-    emote.style.setProperty("--ffz-rotate", `${rotate}deg`);
-  }
+		emote.classList.add("ffz-effect-transform");
+		emote.style.setProperty("--ffz-scale-x", String(scaleX));
+		emote.style.setProperty("--ffz-scale-y", String(scaleY));
+		emote.style.setProperty("--ffz-rotate", `${rotate}deg`);
+	}
 
-  if (wide) {
-    widenEmote(emote, modifiers.includes("z!"));
-  }
+	if (wide) {
+		widenEmote(emote, modifiers.includes("z!"));
+	}
 }
 
-function renderExternalText(container, value, username = null) {
-  const parts = value.split(/(\s+)/);
+function renderExternalText(container, value, username = null, platform = "twitch") {
+	const parts = value.split(/(\s+)/);
 
-  let pendingModifiers = [];
-  let pendingNodes = [];
+	let pendingModifiers = [];
+	let pendingNodes = [];
 
-  const flushPending = () => {
-    for (const node of pendingNodes) {
-      container.appendChild(node);
-    }
+	const flushPending = () => {
+		for (const node of pendingNodes) {
+			container.appendChild(node);
+		}
 
-    pendingModifiers = [];
-    pendingNodes = [];
-  };
+		pendingModifiers = [];
+		pendingNodes = [];
+	};
 
-  for (const part of parts) {
-    if (!part) {
-      continue;
-    }
+	for (const part of parts) {
+		if (!part) {
+			continue;
+		}
 
-    if (pendingModifiers.length && /^\s+$/.test(part)) {
-      pendingNodes.push(document.createTextNode(part));
-      continue;
-    }
+		if (pendingModifiers.length && /^\s+$/.test(part)) {
+			pendingNodes.push(document.createTextNode(part));
+			continue;
+		}
 
-    if (BTTV_MODIFIERS.has(part)) {
-      pendingModifiers.push(part);
-      pendingNodes.push(document.createTextNode(part));
-      continue;
-    }
+		if (BTTV_MODIFIERS.has(part)) {
+			pendingModifiers.push(part);
+			pendingNodes.push(document.createTextNode(part));
+			continue;
+		}
 
-    const external = findThirdPartyEmote(part, username);
+		const external = findThirdPartyEmote(part, username, platform);
 
-    const isPlainEmote =
-      external &&
-      !(external.provider === "7TV" && external.zeroWidth) &&
-      !(external.provider === "FFZ" && external.modifier);
+		const isPlainEmote =
+			external &&
+			!(external.provider === "7TV" && external.zeroWidth) &&
+			!(external.provider === "FFZ" && external.modifier);
 
-    if (pendingModifiers.length && !isPlainEmote) {
-      flushPending();
-    }
+		if (pendingModifiers.length && !isPlainEmote) {
+			flushPending();
+		}
 
-    if (ffzEffects.has(part)) {
-      const applied = applyFFZEffectToPrevious(container, part);
+		if (ffzEffects.has(part)) {
+			const applied = applyFFZEffectToPrevious(container, part);
 
-      if (!applied) {
-        container.appendChild(document.createTextNode(part));
-      }
+			if (!applied) {
+				container.appendChild(document.createTextNode(part));
+			}
 
-      continue;
-    }
+			continue;
+		}
 
-    if (external) {
-      if (external.provider === "7TV" && external.zeroWidth) {
-        const applied = create7TVOverlay(
-          container,
-          external.url,
-          external.name,
-        );
+		if (external) {
+			if (external.provider === "7TV" && external.zeroWidth) {
+				const applied = create7TVOverlay(
+					container,
+					external.url,
+					external.name,
+				);
 
-        if (!applied) {
-          container.appendChild(createEmote(external.url, external.name));
-        }
+				if (!applied) {
+					container.appendChild(createEmote(external.url, external.name));
+				}
 
-        continue;
-      }
+				continue;
+			}
 
-      const emote = createEmote(external.url, external.name);
+			const emote = createEmote(external.url, external.name);
 
-      if (external.provider === "FFZ" && external.modifier) {
-        const effects = getFFZModifierEffects(external);
+			if (external.provider === "FFZ" && external.modifier) {
+				const effects = getFFZModifierEffects(external);
 
-        if (effects.length) {
-          const applied = applyEffectsToPreviousEmote(container, effects);
+				if (effects.length) {
+					const applied = applyEffectsToPreviousEmote(container, effects);
 
-          if (!applied) {
-            container.appendChild(emote);
-          }
+					if (!applied) {
+						container.appendChild(emote);
+					}
 
-          continue;
-        }
-      }
+					continue;
+				}
+			}
 
-      if (pendingModifiers.length) {
-        applyBTTVModifiers(container, emote, pendingModifiers);
-        pendingModifiers = [];
-        pendingNodes = [];
-      }
+			if (pendingModifiers.length) {
+				applyBTTVModifiers(container, emote, pendingModifiers);
+				pendingModifiers = [];
+				pendingNodes = [];
+			}
 
-      container.appendChild(emote);
+			container.appendChild(emote);
 
-      continue;
-    }
+			continue;
+		}
 
-    if (highlightsEnabled) {
-      try {
-        const mentionMatch = part.match(/^(@?)(\w{2,25})(\W*)$/);
+		if (highlightsEnabled) {
+			try {
+				const mentionMatch = part.match(/^(@?)(\w{2,25})(\W*)$/);
 
-        if (mentionMatch) {
-          const [, prefix, name, trailing] = mentionMatch;
+				if (mentionMatch) {
+					const [, prefix, name, trailing] = mentionMatch;
 
-          const chatter = knownChatters.get(name.toLowerCase());
+					const chatter = knownChatters.get(name.toLowerCase());
 
-          const isEmote = !prefix && findThirdPartyEmote(name, username);
+					const isEmote =
+						!prefix && findThirdPartyEmote(name, username, platform);
 
-          if (chatter && !isEmote) {
-            container.appendChild(createMention(chatter, prefix));
+					if (chatter && !isEmote) {
+						container.appendChild(createMention(chatter, prefix));
 
-            if (trailing) {
-              container.appendChild(document.createTextNode(trailing));
-            }
+						if (trailing) {
+							container.appendChild(document.createTextNode(trailing));
+						}
 
-            continue;
-          }
-        }
-      } catch (error) {
-        console.error("Mention error:", error);
-      }
-    }
+						continue;
+					}
+				}
+			} catch (error) {
+				console.error("Mention error:", error);
+			}
+		}
 
-    container.appendChild(document.createTextNode(part));
-  }
+		container.appendChild(document.createTextNode(part));
+	}
 
-  flushPending();
+	flushPending();
 }
 
 function parseTwitchEmoteRanges(tags) {
-  const result = [];
+	const result = [];
 
-  if (!tags.emotes) {
-    return result;
-  }
+	if (!tags.emotes) {
+		return result;
+	}
 
-  for (const group of tags.emotes.split("/")) {
-    const separator = group.indexOf(":");
+	for (const group of tags.emotes.split("/")) {
+		const separator = group.indexOf(":");
 
-    if (separator === -1) {
-      continue;
-    }
+		if (separator === -1) {
+			continue;
+		}
 
-    const id = group.substring(0, separator);
+		const id = group.substring(0, separator);
 
-    const ranges = group.substring(separator + 1);
+		const ranges = group.substring(separator + 1);
 
-    for (const range of ranges.split(",")) {
-      const dash = range.indexOf("-");
+		for (const range of ranges.split(",")) {
+			const dash = range.indexOf("-");
 
-      if (dash === -1) {
-        continue;
-      }
+			if (dash === -1) {
+				continue;
+			}
 
-      const start = Number(range.substring(0, dash));
+			const start = Number(range.substring(0, dash));
 
-      const end = Number(range.substring(dash + 1));
+			const end = Number(range.substring(dash + 1));
 
-      if (Number.isNaN(start) || Number.isNaN(end)) {
-        continue;
-      }
+			if (Number.isNaN(start) || Number.isNaN(end)) {
+				continue;
+			}
 
-      result.push({
-        start,
-        end,
-        id,
-      });
-    }
-  }
+			result.push({
+				start,
+				end,
+				id,
+			});
+		}
+	}
 
-  result.sort((a, b) => a.start - b.start);
+	result.sort((a, b) => a.start - b.start);
 
-  return result;
+	return result;
 }
 
 function parseTwitchGifRanges(tags) {
-  const result = [];
+	const result = [];
 
-  if (!gifsEnabled || !tags.gifs) {
-    return result;
-  }
+	if (!gifsEnabled || !tags.gifs) {
+		return result;
+	}
 
-  for (const entry of String(tags.gifs).split(",")) {
-    if (!entry) {
-      continue;
-    }
+	for (const entry of String(tags.gifs).split(",")) {
+		if (!entry) {
+			continue;
+		}
 
-    const firstPipe = entry.indexOf("|");
+		const firstPipe = entry.indexOf("|");
 
-    if (firstPipe === -1) {
-      continue;
-    }
+		if (firstPipe === -1) {
+			continue;
+		}
 
-    const secondPipe = entry.indexOf("|", firstPipe + 1);
+		const secondPipe = entry.indexOf("|", firstPipe + 1);
 
-    if (secondPipe === -1) {
-      continue;
-    }
+		if (secondPipe === -1) {
+			continue;
+		}
 
-    const rangeText = entry.substring(0, firstPipe);
+		const rangeText = entry.substring(0, firstPipe);
 
-    const gifId = entry.substring(firstPipe + 1, secondPipe);
+		const gifId = entry.substring(firstPipe + 1, secondPipe);
 
-    const gifUrl = entry.substring(secondPipe + 1);
+		const gifUrl = entry.substring(secondPipe + 1);
 
-    const dash = rangeText.indexOf("-");
+		const dash = rangeText.indexOf("-");
 
-    if (dash === -1 || !gifUrl) {
-      continue;
-    }
+		if (dash === -1 || !gifUrl) {
+			continue;
+		}
 
-    const start = Number(rangeText.substring(0, dash));
+		const start = Number(rangeText.substring(0, dash));
 
-    const end = Number(rangeText.substring(dash + 1));
+		const end = Number(rangeText.substring(dash + 1));
 
-    if (Number.isNaN(start) || Number.isNaN(end) || end < start) {
-      continue;
-    }
+		if (Number.isNaN(start) || Number.isNaN(end) || end < start) {
+			continue;
+		}
 
-    result.push({
-      start,
-      end,
-      id: gifId,
-      url: gifUrl,
-      type: "gif",
-    });
-  }
+		result.push({
+			start,
+			end,
+			id: gifId,
+			url: gifUrl,
+			type: "gif",
+		});
+	}
 
-  result.sort((a, b) => a.start - b.start || a.end - b.end);
+	result.sort((a, b) => a.start - b.start || a.end - b.end);
 
-  return result;
+	return result;
 }
 
 function createTwitchGif(url, alt = "Twitch GIF") {
-  if (!url) {
-    return null;
-  }
+	if (!url) {
+		return null;
+	}
 
-  const gif = createEmote(url, alt);
+	const gif = createEmote(url, alt);
 
-  gif.classList.add("twitch-gif", "twitch-gif-large");
+	gif.classList.add("twitch-gif", "twitch-gif-large");
 
-  gif.dataset.twitchGif = "true";
+	gif.dataset.twitchGif = "true";
 
-  gif.setAttribute("role", "img");
+	gif.setAttribute("role", "img");
 
-  gif.addEventListener("error", () => {
-    const fallback = document.createTextNode(alt);
+	gif.addEventListener("error", () => {
+		const fallback = document.createTextNode(alt);
 
-    gif.replaceWith(fallback);
-  });
+		gif.replaceWith(fallback);
+	});
 
-  return gif;
+	return gif;
 }
 
 function applyEffectsToPreviousEmote(container, effects) {
-  const previous = getPreviousEmote(container);
+	const previous = getPreviousEmote(container);
 
-  if (!previous) {
-    return false;
-  }
+	if (!previous) {
+		return false;
+	}
 
-  applyFFZEffects(previous, effects);
+	applyFFZEffects(previous, effects);
 
-  return true;
+	return true;
 }
 
 function renderMessageText(text, tags, username = null) {
-  const container = document.createElement("span");
+	const container = document.createElement("span");
 
-  container.className = "text";
+	container.className = "text";
 
-  const twitchRanges = parseTwitchEmoteRanges(tags);
+	if (Array.isArray(tags.segments)) {
+		const platform = tags.platform || "twitch";
 
-  const gifRanges = parseTwitchGifRanges(tags);
+		for (const segment of tags.segments) {
+			if (segment.type === "emote" && segment.url) {
+				container.appendChild(createEmote(segment.url, segment.name || ""));
+			} else if (segment.text) {
+				renderExternalText(container, segment.text, username, platform);
+			}
+		}
 
-  const mediaRanges = [
-    ...twitchRanges.map((range) => ({
-      ...range,
-      type: "emote",
-    })),
-    ...gifRanges,
-  ].sort((a, b) => a.start - b.start || a.end - b.end);
+		renderTwemoji(container);
 
-  if (!mediaRanges.length) {
-    renderExternalText(container, text, username);
+		return container;
+	}
 
-    renderTwemoji(container);
+	const twitchRanges = parseTwitchEmoteRanges(tags);
 
-    return container;
-  }
+	const gifRanges = parseTwitchGifRanges(tags);
 
-  let cursor = 0;
+	const mediaRanges = [
+		...twitchRanges.map((range) => ({
+			...range,
+			type: "emote",
+		})),
+		...gifRanges,
+	].sort((a, b) => a.start - b.start || a.end - b.end);
 
-  for (const range of mediaRanges) {
-    if (range.start < cursor) {
-      continue;
-    }
+	if (!mediaRanges.length) {
+		renderExternalText(container, text, username);
 
-    if (range.start > cursor) {
-      renderExternalText(
-        container,
-        text.substring(cursor, range.start),
-        username,
-      );
-    }
+		renderTwemoji(container);
 
-    if (range.type === "gif") {
-      const altText =
-        text.substring(range.start, range.end + 1) || "Twitch GIF";
+		return container;
+	}
 
-      const gif = createTwitchGif(range.url, altText);
+	let cursor = 0;
 
-      if (gif) {
-        if (range.id) {
-          gif.dataset.twitchGifId = String(range.id);
-        }
+	for (const range of mediaRanges) {
+		if (range.start < cursor) {
+			continue;
+		}
 
-        const lineBreak = document.createElement("br");
+		if (range.start > cursor) {
+			renderExternalText(
+				container,
+				text.substring(cursor, range.start),
+				username,
+			);
+		}
 
-        lineBreak.className = "twitch-gif-break";
+		if (range.type === "gif") {
+			const altText =
+				text.substring(range.start, range.end + 1) || "Twitch GIF";
 
-        container.appendChild(lineBreak);
+			const gif = createTwitchGif(range.url, altText);
 
-        container.appendChild(gif);
-      } else {
-        container.appendChild(
-          document.createTextNode(text.substring(range.start, range.end + 1)),
-        );
-      }
+			if (gif) {
+				if (range.id) {
+					gif.dataset.twitchGifId = String(range.id);
+				}
 
-      cursor = range.end + 1;
+				const lineBreak = document.createElement("br");
 
-      continue;
-    }
+				lineBreak.className = "twitch-gif-break";
 
-    const twitchEmote = twitchEmotes.get(String(range.id));
+				container.appendChild(lineBreak);
 
-    const url =
-      twitchEmote?.url ||
-      `https://static-cdn.jtvnw.net/` +
-        `emoticons/v2/${range.id}` +
-        `/default/dark/3.0`;
+				container.appendChild(gif);
+			} else {
+				container.appendChild(
+					document.createTextNode(text.substring(range.start, range.end + 1)),
+				);
+			}
 
-    const name =
-      twitchEmote?.name || text.substring(range.start, range.end + 1);
+			cursor = range.end + 1;
 
-    const emote = createEmote(url, name);
+			continue;
+		}
 
-    if (twitchEmote?.animated) {
-      emote.dataset.twitchAnimated = "true";
-    }
+		const twitchEmote = twitchEmotes.get(String(range.id));
 
-    container.appendChild(emote);
+		const url =
+			twitchEmote?.url ||
+			`https://static-cdn.jtvnw.net/` +
+			`emoticons/v2/${range.id}` +
+			`/default/dark/3.0`;
 
-    cursor = range.end + 1;
-  }
+		const name =
+			twitchEmote?.name || text.substring(range.start, range.end + 1);
 
-  if (cursor < text.length) {
-    renderExternalText(container, text.substring(cursor), username);
-  }
+		const emote = createEmote(url, name);
 
-  renderTwemoji(container);
+		if (twitchEmote?.animated) {
+			emote.dataset.twitchAnimated = "true";
+		}
 
-  return container;
+		container.appendChild(emote);
+
+		cursor = range.end + 1;
+	}
+
+	if (cursor < text.length) {
+		renderExternalText(container, text.substring(cursor), username);
+	}
+
+	renderTwemoji(container);
+
+	return container;
 }
 
 function getReplyInfo(tags, msg) {
-  const replyUsername = tags["reply-parent-display-name"] || null;
+	const replyUsername = tags["reply-parent-display-name"] || null;
 
-  if (!replyUsername) {
-    let cleanMessage = msg.trim();
+	if (!replyUsername) {
+		let cleanMessage = msg.trim();
 
-    if (tags["is-action"]) {
-      cleanMessage = cleanMessage
-        .replace(/^\x01?ACTION /, "")
-        .replace(/\x01$/, "");
-    }
+		if (tags["is-action"]) {
+			cleanMessage = cleanMessage
+				.replace(/^\x01?ACTION /, "")
+				.replace(/\x01$/, "");
+		}
 
-    return { username: null, message: cleanMessage };
-  }
+		return { username: null, message: cleanMessage };
+	}
 
-  let cleanMessage = msg.trim();
-  const escapedUsername = replyUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const replyPrefix = new RegExp(
-    `^\\x01?ACTION\\s+@${escapedUsername}\\s*`,
-    "i",
-  );
+	let cleanMessage = msg.trim();
+	const escapedUsername = replyUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const replyPrefix = new RegExp(
+		`^\\x01?ACTION\\s+@${escapedUsername}\\s*`,
+		"i",
+	);
 
-  cleanMessage = cleanMessage.replace(replyPrefix, "").replace(/\x01$/, "");
+	cleanMessage = cleanMessage.replace(replyPrefix, "").replace(/\x01$/, "");
 
-  return { username: replyUsername, message: cleanMessage };
+	return { username: replyUsername, message: cleanMessage };
 }
 
 function getTwitchDisplayColor(color, login) {
-  if (typeof color === "string" && color) {
-    let hex = color.trim();
+	if (typeof color === "string" && color) {
+		let hex = color.trim();
 
-    if (!hex.startsWith("#")) {
-      hex = `#${hex}`;
-    }
+		if (!hex.startsWith("#")) {
+			hex = `#${hex}`;
+		}
 
-    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
+		if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+			const r = parseInt(hex.slice(1, 3), 16);
+			const g = parseInt(hex.slice(3, 5), 16);
+			const b = parseInt(hex.slice(5, 7), 16);
 
-      const brightnessOf = (value) => {
-        const vr = parseInt(value.slice(1, 3), 16);
-        const vg = parseInt(value.slice(3, 5), 16);
-        const vb = parseInt(value.slice(5, 7), 16);
+			const brightnessOf = (value) => {
+				const vr = parseInt(value.slice(1, 3), 16);
+				const vg = parseInt(value.slice(3, 5), 16);
+				const vb = parseInt(value.slice(5, 7), 16);
 
-        return (vr * 299 + vg * 587 + vb * 114) / 1000;
-      };
+				return (vr * 299 + vg * 587 + vb * 114) / 1000;
+			};
 
-      if (brightnessOf(hex) >= MIN_NAME_BRIGHTNESS) {
-        return hex;
-      }
+			if (brightnessOf(hex) >= MIN_NAME_BRIGHTNESS) {
+				return hex;
+			}
 
-      for (let amount = 5; amount <= 60; amount += 5) {
-        const lightened = lightenColor(hex, amount);
+			for (let amount = 5; amount <= 60; amount += 5) {
+				const lightened = lightenColor(hex, amount);
 
-        if (brightnessOf(lightened) >= MIN_NAME_BRIGHTNESS) {
-          return lightened;
-        }
-      }
+				if (brightnessOf(lightened) >= MIN_NAME_BRIGHTNESS) {
+					return lightened;
+				}
+			}
 
-      return lightenColor(hex, 60);
-    }
-  }
+			return lightenColor(hex, 60);
+		}
+	}
 
-  const twitchColors = [
-    "#FF0000", // Red
-    "#0000FF", // Blue
-    "#008000", // Green
-    "#B22222", // FireBrick
-    "#FF7F50", // Coral
-    "#9ACD32", // YellowGreen
-    "#FF4500", // OrangeRed
-    "#2E8B57", // SeaGreen
-    "#DAA520", // GoldenRod
-    "#D2691E", // Chocolate
-    "#5F9EA0", // CadetBlue
-    "#1E90FF", // DodgerBlue
-    "#FF69B4", // HotPink
-    "#8A2BE2", // BlueViolet
-    "#00FF7F", // SpringGreen
-  ];
+	const nick = String(login || "").toLowerCase();
 
-  const nick = String(login || "").toLowerCase();
+	if (!nick.length) {
+		return TWITCH_DEFAULT_COLORS[0];
+	}
 
-  if (!nick.length) {
-    return twitchColors[0];
-  }
+	const index =
+		(nick.charCodeAt(0) + nick.charCodeAt(nick.length - 1)) %
+		TWITCH_DEFAULT_COLORS.length;
 
-  const index =
-    (nick.charCodeAt(0) + nick.charCodeAt(nick.length - 1)) %
-    twitchColors.length;
-
-  return twitchColors[index];
+	return TWITCH_DEFAULT_COLORS[index];
 }
 
 function lightenColor(hex, amount) {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
+	const r = parseInt(hex.slice(1, 3), 16) / 255;
+	const g = parseInt(hex.slice(3, 5), 16) / 255;
+	const b = parseInt(hex.slice(5, 7), 16) / 255;
 
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
+	const max = Math.max(r, g, b);
+	const min = Math.min(r, g, b);
 
-  let h, s;
-  const l = (max + min) / 2;
+	let h, s;
+	const l = (max + min) / 2;
 
-  if (max === min) {
-    h = s = 0;
-  } else {
-    const d = max - min;
+	if (max === min) {
+		h = s = 0;
+	} else {
+		const d = max - min;
 
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+		s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
 
-    switch (max) {
-      case r:
-        h = (g - b) / d + (g < b ? 6 : 0);
-        break;
-      case g:
-        h = (b - r) / d + 2;
-        break;
-      case b:
-        h = (r - g) / d + 4;
-        break;
-    }
+		switch (max) {
+			case r:
+				h = (g - b) / d + (g < b ? 6 : 0);
+				break;
+			case g:
+				h = (b - r) / d + 2;
+				break;
+			case b:
+				h = (r - g) / d + 4;
+				break;
+		}
 
-    h /= 6;
-  }
+		h /= 6;
+	}
 
-  const newL = Math.min(1, l + amount / 100);
+	const newL = Math.min(1, l + amount / 100);
 
-  return hslToHex(h, s, newL);
+	return hslToHex(h, s, newL);
 }
 
 function hslToHex(h, s, l) {
-  let r, g, b;
+	let r, g, b;
 
-  if (s === 0) {
-    r = g = b = l;
-  } else {
-    const hue2rgb = (p, q, t) => {
-      if (t < 0) t += 1;
-      if (t > 1) t -= 1;
-      if (t < 1 / 6) return p + (q - p) * 6 * t;
-      if (t < 1 / 2) return q;
-      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-      return p;
-    };
+	if (s === 0) {
+		r = g = b = l;
+	} else {
+		const hue2rgb = (p, q, t) => {
+			if (t < 0) t += 1;
+			if (t > 1) t -= 1;
+			if (t < 1 / 6) return p + (q - p) * 6 * t;
+			if (t < 1 / 2) return q;
+			if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+			return p;
+		};
 
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
+		const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+		const p = 2 * l - q;
 
-    r = hue2rgb(p, q, h + 1 / 3);
-    g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1 / 3);
-  }
+		r = hue2rgb(p, q, h + 1 / 3);
+		g = hue2rgb(p, q, h);
+		b = hue2rgb(p, q, h - 1 / 3);
+	}
 
-  const toHex = (x) => {
-    const hex = Math.round(x * 255).toString(16);
-    return hex.length === 1 ? "0" + hex : hex;
-  };
+	const toHex = (x) => {
+		const hex = Math.round(x * 255).toString(16);
+		return hex.length === 1 ? "0" + hex : hex;
+	};
 
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 const previewMessageCache = [];
@@ -1103,168 +1181,168 @@ const PREVIEW_CACHE_LIMIT = 12;
 const PREVIEW_FADE_OUT_MS = 1000;
 
 function removePreviewEntry(entry) {
-  clearTimeout(entry.fadeTimer);
-  clearTimeout(entry.removeTimer);
+	clearTimeout(entry.fadeTimer);
+	clearTimeout(entry.removeTimer);
 
-  const index = previewMessageCache.indexOf(entry);
+	const index = previewMessageCache.indexOf(entry);
 
-  if (index !== -1) {
-    previewMessageCache.splice(index, 1);
-  }
+	if (index !== -1) {
+		previewMessageCache.splice(index, 1);
+	}
 
-  const element = entry.element;
-  entry.element = null;
+	const element = entry.element;
+	entry.element = null;
 
-  if (!element) {
-    return;
-  }
+	if (!element) {
+		return;
+	}
 
-  element.remove();
+	element.remove();
 
-  const set = userMessageElements.get(entry.userId);
+	const set = userMessageElements.get(entry.userId);
 
-  if (set) {
-    set.delete(element);
+	if (set) {
+		set.delete(element);
 
-    if (set.size === 0) {
-      userMessageElements.delete(entry.userId);
-    }
-  }
+		if (set.size === 0) {
+			userMessageElements.delete(entry.userId);
+		}
+	}
 }
 
 function schedulePreviewFade(entry) {
-  clearTimeout(entry.fadeTimer);
-  clearTimeout(entry.removeTimer);
+	clearTimeout(entry.fadeTimer);
+	clearTimeout(entry.removeTimer);
 
-  const element = entry.element;
+	const element = entry.element;
 
-  if (!element) {
-    return;
-  }
+	if (!element) {
+		return;
+	}
 
-  element.style.animation = "";
+	element.style.animation = "";
 
-  if (fade === false) {
-    return;
-  }
+	if (fade === false) {
+		return;
+	}
 
-  const life = entry.createdAt + fade * 1000 - Date.now();
+	const life = entry.createdAt + fade * 1000 - Date.now();
 
-  if (life <= 0) {
-    removePreviewEntry(entry);
-    return;
-  }
+	if (life <= 0) {
+		removePreviewEntry(entry);
+		return;
+	}
 
-  entry.fadeTimer = setTimeout(
-    () => {
-      const left = Math.max(0, entry.createdAt + fade * 1000 - Date.now());
+	entry.fadeTimer = setTimeout(
+		() => {
+			const left = Math.max(0, entry.createdAt + fade * 1000 - Date.now());
 
-      const duration = Math.min(left, PREVIEW_FADE_OUT_MS);
-      const offset = PREVIEW_FADE_OUT_MS - duration;
+			const duration = Math.min(left, PREVIEW_FADE_OUT_MS);
+			const offset = PREVIEW_FADE_OUT_MS - duration;
 
-      element.style.animation = `messageFadeOut ${PREVIEW_FADE_OUT_MS}ms ease-in ${-offset}ms forwards`;
+			element.style.animation = `messageFadeOut ${PREVIEW_FADE_OUT_MS}ms ease-in ${-offset}ms forwards`;
 
-      entry.removeTimer = setTimeout(() => {
-        removePreviewEntry(entry);
-      }, duration);
-    },
-    Math.max(0, life - PREVIEW_FADE_OUT_MS),
-  );
+			entry.removeTimer = setTimeout(() => {
+				removePreviewEntry(entry);
+			}, duration);
+		},
+		Math.max(0, life - PREVIEW_FADE_OUT_MS),
+	);
 }
 
 function reschedulePreviewFades() {
-  for (const entry of [...previewMessageCache]) {
-    schedulePreviewFade(entry);
-  }
+	for (const entry of [...previewMessageCache]) {
+		schedulePreviewFade(entry);
+	}
 }
 
 function addPreviewMessage(user, msg, usernameColor, userId, tags = {}) {
-  const previewChat = document.getElementById("chat");
+	const previewChat = document.getElementById("chat");
 
-  if (!previewChat) {
-    return;
-  }
+	if (!previewChat) {
+		return;
+	}
 
-  const entry = {
-    user,
-    msg,
-    usernameColor,
-    userId,
-    tags,
-    createdAt: Date.now(),
-    element: null,
-    fadeTimer: null,
-    removeTimer: null,
-  };
+	const entry = {
+		user,
+		msg,
+		usernameColor,
+		userId,
+		tags,
+		createdAt: Date.now(),
+		element: null,
+		fadeTimer: null,
+		removeTimer: null,
+	};
 
-  previewMessageCache.push(entry);
+	previewMessageCache.push(entry);
 
-  while (previewMessageCache.length > PREVIEW_CACHE_LIMIT) {
-    removePreviewEntry(previewMessageCache[0]);
-  }
+	while (previewMessageCache.length > PREVIEW_CACHE_LIMIT) {
+		removePreviewEntry(previewMessageCache[0]);
+	}
 
-  const result = onMsg(
-    user,
-    msg,
-    usernameColor,
-    userId,
-    tags,
-    previewChat,
-    null,
-    entry,
-  );
+	const result = onMsg(
+		user,
+		msg,
+		usernameColor,
+		userId,
+		tags,
+		previewChat,
+		null,
+		entry,
+	);
 
-  requestAnimationFrame(() => {
-    previewChat.scrollTop = previewChat.scrollHeight;
-  });
+	requestAnimationFrame(() => {
+		previewChat.scrollTop = previewChat.scrollHeight;
+	});
 
-  return result;
+	return result;
 }
 
 function rerenderPreviewChat() {
-  const previewChat = document.getElementById("chat");
+	const previewChat = document.getElementById("chat");
 
-  if (!previewChat) {
-    return;
-  }
+	if (!previewChat) {
+		return;
+	}
 
-  for (const entry of previewMessageCache) {
-    clearTimeout(entry.fadeTimer);
-    clearTimeout(entry.removeTimer);
-    entry.element = null;
-  }
+	for (const entry of previewMessageCache) {
+		clearTimeout(entry.fadeTimer);
+		clearTimeout(entry.removeTimer);
+		entry.element = null;
+	}
 
-  previewChat.innerHTML = "";
-  messageElements.clear();
-  userMessageElements.clear();
+	previewChat.innerHTML = "";
+	messageElements.clear();
+	userMessageElements.clear();
 
-  const now = Date.now();
+	const now = Date.now();
 
-  for (const entry of [...previewMessageCache]) {
-    if (fade !== false && now - entry.createdAt >= fade * 1000) {
-      removePreviewEntry(entry);
-      continue;
-    }
+	for (const entry of [...previewMessageCache]) {
+		if (fade !== false && now - entry.createdAt >= fade * 1000) {
+			removePreviewEntry(entry);
+			continue;
+		}
 
-    if (entry.user === "JamiMeow" && !botsEnabled) {
-      continue;
-    }
+		if (entry.user === "JamiMeow" && !botsEnabled) {
+			continue;
+		}
 
-    onMsg(
-      entry.user,
-      entry.msg,
-      entry.usernameColor,
-      entry.userId,
-      entry.tags,
-      previewChat,
-      null,
-      entry,
-    );
-  }
+		onMsg(
+			entry.user,
+			entry.msg,
+			entry.usernameColor,
+			entry.userId,
+			entry.tags,
+			previewChat,
+			null,
+			entry,
+		);
+	}
 
-  requestAnimationFrame(() => {
-    previewChat.scrollTop = previewChat.scrollHeight;
-  });
+	requestAnimationFrame(() => {
+		previewChat.scrollTop = previewChat.scrollHeight;
+	});
 }
 
 window.addPreviewMessage = addPreviewMessage;
@@ -1272,143 +1350,160 @@ window.rerenderPreviewChat = rerenderPreviewChat;
 window.reschedulePreviewFades = reschedulePreviewFades;
 
 async function onMsg(
-  user,
-  msg,
-  usernameColor,
-  userId,
-  tags,
-  targetChat = null,
-  messageId = null,
-  previewEntry = null,
+	user,
+	msg,
+	usernameColor,
+	userId,
+	tags,
+	targetChat = null,
+	messageId = null,
+	previewEntry = null,
 ) {
-  const chat = targetChat || document.getElementById("chat");
+	const chat = targetChat || document.getElementById("chat");
 
-  if (!chat) {
-    return;
-  }
-  applyStrokeMode();
-  registerChatter(user, usernameColor, userId);
+	if (!chat) {
+		return;
+	}
+	applyStrokeMode();
 
-  const replyInfo = getReplyInfo(tags, msg);
+	const platform = tags.platform || "twitch";
+	const userKey =
+		userId == null ? null : platform === "twitch" ? userId : `${platform}:${userId}`;
 
-  const message = document.createElement("div");
+	registerChatter(user, usernameColor, userId, platform);
 
-  message.className = "message";
+	const replyInfo = getReplyInfo(tags, msg);
 
-  if (wrapEnabled) {
-    message.classList.add("wrap-message");
-  }
+	const message = document.createElement("div");
 
-  message.style.setProperty("--user-color", usernameColor);
+	message.className = "message";
 
-  const badges = badgesEnabled
-    ? createTwitchBadges(tags)
-    : document.createElement("span");
+	message.dataset.platform = platform;
 
-  const ffzRoomBadge = createFFZRoomBadge(tags);
+	if (wrapEnabled) {
+		message.classList.add("wrap-message");
+	}
 
-  if (ffzRoomBadge) {
-    const twitchBadge = badges.querySelector(
-      `.badge[data-badge-type="${ffzRoomBadge.type}"]`,
-    );
+	message.style.setProperty("--user-color", usernameColor);
 
-    if (twitchBadge) {
-      twitchBadge.replaceWith(ffzRoomBadge.img);
-    } else {
-      badges.appendChild(ffzRoomBadge.img);
-    }
-  }
+	const badges = badgesEnabled
+		? platform === "twitch"
+			? createTwitchBadges(tags)
+			: createPlatformBadges(tags)
+		: document.createElement("span");
 
-  const usernameElement = document.createElement("span");
+	const ffzRoomBadge = platform === "twitch" ? createFFZRoomBadge(tags) : null;
 
-  usernameElement.className = "username";
+	if (ffzRoomBadge) {
+		const twitchBadge = badges.querySelector(
+			`.badge[data-badge-type="${ffzRoomBadge.type}"]`,
+		);
 
-  usernameElement.textContent = user + (tags["is-action"] ? " " : ": ");
+		if (twitchBadge) {
+			twitchBadge.replaceWith(ffzRoomBadge.img);
+		} else {
+			badges.appendChild(ffzRoomBadge.img);
+		}
+	}
 
-  usernameElement.style.color = usernameColor;
+	const usernameElement = document.createElement("span");
 
-  usernameElement.style.webkitTextFillColor = usernameColor;
+	usernameElement.className = "username";
 
-  const text = renderMessageText(replyInfo.message, tags, user);
+	usernameElement.textContent = user + (tags["is-action"] ? " " : ": ");
 
-  if (tags["is-action"]) {
-    if (userId) {
-      get7TVPaint(userId).then((paint) => {
-        if (paint) {
-          applyPaint(text, paint);
-        } else {
-          text.style.color = usernameColor;
+	usernameElement.style.color = usernameColor;
 
-          text.style.webkitTextFillColor = usernameColor;
-        }
-      });
-    } else {
-      text.style.color = usernameColor;
+	usernameElement.style.webkitTextFillColor = usernameColor;
 
-      text.style.webkitTextFillColor = usernameColor;
-    }
-  }
+	const text = renderMessageText(replyInfo.message, tags, user);
 
-  message.appendChild(badges);
+	if (tags["is-action"]) {
+		if (userId) {
+			get7TVPaint(userId, platform).then((paint) => {
+				if (paint) {
+					applyPaint(text, paint);
+				} else {
+					text.style.color = usernameColor;
 
-  message.appendChild(usernameElement);
+					text.style.webkitTextFillColor = usernameColor;
+				}
+			});
+		} else {
+			text.style.color = usernameColor;
 
-  message.appendChild(text);
+			text.style.webkitTextFillColor = usernameColor;
+		}
+	}
 
-  applyMessageHighlights(message, tags, user);
+	message.appendChild(badges);
 
-  chat.appendChild(message);
+	message.appendChild(usernameElement);
 
-  if (messageId) {
-    message.dataset.messageId = messageId;
-    messageElements.set(messageId, message);
-  }
+	message.appendChild(text);
 
-  if (userId) {
-    if (!userMessageElements.has(userId)) {
-      userMessageElements.set(userId, new Set());
-    }
-    userMessageElements.get(userId).add(message);
-    get7TVPaint(userId).then((paint) => {
-      if (paint) {
-        applyPaint(usernameElement, paint);
-      }
-    });
+	applyMessageHighlights(message, tags, user);
 
-    if (badgesEnabled) {
-      createExternalBadges(userId, tags).then((externalBadges) => {
-        if (externalBadges.children.length > 0) {
-          message.insertBefore(externalBadges, usernameElement);
-        }
-      });
-    }
-  }
+	chat.appendChild(message);
 
-  if (previewEntry) {
-    previewEntry.element = message;
-    schedulePreviewFade(previewEntry);
-  } else if (fade !== false) {
-    setTimeout(
-      () => {
-        message.style.animation = "messageFadeOut 1s ease-in forwards";
+	if (messageId) {
+		message.dataset.messageId = messageId;
+		messageElements.set(messageId, message);
+	}
 
-        setTimeout(() => {
-          message.remove();
+	if (userId) {
+		if (!userMessageElements.has(userKey)) {
+			userMessageElements.set(userKey, new Set());
+		}
+		userMessageElements.get(userKey).add(message);
+		get7TVPaint(userId, platform).then((paint) => {
+			if (paint) {
+				applyPaint(usernameElement, paint);
+			}
+		});
 
-          if (messageId) {
-            messageElements.delete(messageId);
-          }
+		if (badgesEnabled && platform === "twitch") {
+			createExternalBadges(userId, tags).then((externalBadges) => {
+				if (externalBadges.children.length > 0) {
+					message.insertBefore(externalBadges, usernameElement);
+				}
+			});
+		}
 
-          if (userId && userMessageElements.has(userId)) {
-            userMessageElements.get(userId).delete(message);
+		if (badgesEnabled && platform === "kick") {
+			create7TVBadges(userId, "kick").then((sevenTVBadgeContainer) => {
+				if (sevenTVBadgeContainer.children.length > 0) {
+					message.insertBefore(sevenTVBadgeContainer, usernameElement);
+				}
+			});
+		}
+	}
 
-            if (userMessageElements.get(userId).size === 0) {
-              userMessageElements.delete(userId);
-            }
-          }
-        }, 1000);
-      },
-      fade * 1000 - 1000,
-    );
-  }
+	if (previewEntry) {
+		previewEntry.element = message;
+		schedulePreviewFade(previewEntry);
+	} else if (fade !== false) {
+		setTimeout(
+			() => {
+				message.style.animation = "messageFadeOut 1s ease-in forwards";
+
+				setTimeout(() => {
+					message.remove();
+
+					if (messageId) {
+						messageElements.delete(messageId);
+					}
+
+					if (userKey && userMessageElements.has(userKey)) {
+						userMessageElements.get(userKey).delete(message);
+
+						if (userMessageElements.get(userKey).size === 0) {
+							userMessageElements.delete(userKey);
+						}
+					}
+				}, 1000);
+			},
+			fade * 1000 - 1000,
+		);
+	}
 }

@@ -5,444 +5,521 @@ let sevenTVHeartbeatTimeout = null;
 let sevenTVReconnectTimer = null;
 
 const SEVENTV_OPCODES = Object.freeze({
-  DISPATCH: 0,
-  HELLO: 1,
-  HEARTBEAT: 2,
-  RECONNECT: 4,
-  ACK: 5,
-  ERROR: 6,
-  END_OF_STREAM: 7,
-  IDENTIFY: 33,
-  RESUME: 34,
-  SUBSCRIBE: 35,
-  UNSUBSCRIBE: 36,
+	DISPATCH: 0,
+	HELLO: 1,
+	HEARTBEAT: 2,
+	RECONNECT: 4,
+	ACK: 5,
+	ERROR: 6,
+	END_OF_STREAM: 7,
+	IDENTIFY: 33,
+	RESUME: 34,
+	SUBSCRIBE: 35,
+	UNSUBSCRIBE: 36,
 });
 
 function add7TVPersonalEmote(username, name, activeEmote) {
-  username = String(username || "")
-    .trim()
-    .toLowerCase();
+	username = String(username || "")
+		.trim()
+		.toLowerCase();
 
-  name = String(name || "").trim();
+	name = String(name || "").trim();
 
-  if (!username || !name || !activeEmote) {
-    return;
-  }
+	if (!username || !name || !activeEmote) {
+		return;
+	}
 
-  const data = activeEmote.data;
+	const data = activeEmote.data;
 
-  const host = get7TVHostUrl(activeEmote);
+	const host = get7TVHostUrl(activeEmote);
 
-  if (!data || !host) {
-    return;
-  }
+	if (!data || !host) {
+		return;
+	}
 
-  const webpFiles = Array.isArray(data.host?.files)
-    ? data.host.files
-        .filter((file) => file?.format === "WEBP")
-        .slice()
-        .sort((a, b) => Number(a?.width || 0) - Number(b?.width || 0))
-    : [];
+	const webpFiles = Array.isArray(data.host?.files)
+		? data.host.files
+			.filter((file) => file?.format === "WEBP")
+			.slice()
+			.sort((a, b) => Number(a?.width || 0) - Number(b?.width || 0))
+		: [];
 
-  const maxSizeName = webpFiles.length
-    ? webpFiles[webpFiles.length - 1]?.name
-    : null;
+	const maxSizeName = webpFiles.length
+		? webpFiles[webpFiles.length - 1]?.name
+		: null;
 
-  if (!maxSizeName) {
-    return;
-  }
+	if (!maxSizeName) {
+		return;
+	}
 
-  const zeroWidth =
-    Boolean(Number(activeEmote.flags || 0) & 1) ||
-    Boolean(Number(data.flags || 0) & 256);
+	const zeroWidth =
+		Boolean(Number(activeEmote.flags || 0) & 1) ||
+		Boolean(Number(data.flags || 0) & 256);
 
-  const normalizedEmote = {
-    platform: "7TV",
+	const normalizedEmote = {
+		platform: "7TV",
 
-    id: data.id
-      ? String(data.id)
-      : activeEmote.id
-        ? String(activeEmote.id)
-        : null,
+		id: data.id
+			? String(data.id)
+			: activeEmote.id
+				? String(activeEmote.id)
+				: null,
 
-    name,
+		name,
 
-    image: `${host}/${maxSizeName}`,
+		image: `${host}/${maxSizeName}`,
 
-    global: false,
+		global: false,
 
-    listed: data.listed !== false,
+		listed: data.listed !== false,
 
-    zeroWidth,
+		zeroWidth,
 
-    originalName: activeEmote.name === data.name ? null : data.name || null,
-  };
+		originalName: activeEmote.name === data.name ? null : data.name || null,
+	};
 
-  if (!sevenTVPersonalEmotes.has(username)) {
-    sevenTVPersonalEmotes.set(username, new Map());
-  }
+	if (!sevenTVPersonalEmotes.has(username)) {
+		sevenTVPersonalEmotes.set(username, new Map());
+	}
 
-  sevenTVPersonalEmotes.get(username).set(name, normalizedEmote);
+	sevenTVPersonalEmotes.get(username).set(name, normalizedEmote);
 
-  console.debug(
-    "[7TV] Personal emote added:",
-    username,
-    name,
-    normalizedEmote.image,
-  );
+	console.debug(
+		"[7TV] Personal emote added:",
+		username,
+		name,
+		normalizedEmote.image,
+	);
 }
 
 function remove7TVPersonalEmote(username, name) {
-  username = String(username || "")
-    .trim()
-    .toLowerCase();
+	username = String(username || "")
+		.trim()
+		.toLowerCase();
 
-  const userEmotes = sevenTVPersonalEmotes.get(username);
+	const userEmotes = sevenTVPersonalEmotes.get(username);
 
-  if (!userEmotes) {
-    return;
-  }
+	if (!userEmotes) {
+		return;
+	}
 
-  userEmotes.delete(String(name || ""));
+	userEmotes.delete(String(name || ""));
 
-  if (userEmotes.size === 0) {
-    sevenTVPersonalEmotes.delete(username);
-  }
+	if (userEmotes.size === 0) {
+		sevenTVPersonalEmotes.delete(username);
+	}
 
-  console.debug("[7TV] Personal emote removed:", username, name);
+	console.debug("[7TV] Personal emote removed:", username, name);
 }
 
 function get7TVPersonalEmotesForUser(username) {
-  username = String(username || "")
-    .trim()
-    .toLowerCase();
+	username = String(username || "")
+		.trim()
+		.toLowerCase();
 
-  if (sevenTVPersonalEmotes.has(username)) {
-    return sevenTVPersonalEmotes.get(username);
-  }
+	if (sevenTVPersonalEmotes.has(username)) {
+		return sevenTVPersonalEmotes.get(username);
+	}
 
-  return new Map();
+	return new Map();
 }
 
 async function get7TVUsernameById(userId) {
-  if (!userId) {
-    return null;
-  }
+	if (!userId) {
+		return null;
+	}
 
-  userId = String(userId);
+	userId = String(userId);
 
-  if (sevenTVUserIdToUsername.has(userId)) {
-    return sevenTVUserIdToUsername.get(userId);
-  }
+	if (sevenTVUserIdToUsername.has(userId)) {
+		return sevenTVUserIdToUsername.get(userId);
+	}
 
-  try {
-    const response = await fetch(
-      `https://7tv.io/v3/users/${encodeURIComponent(userId)}`,
-    );
+	try {
+		const response = await fetch(
+			`https://7tv.io/v3/users/${encodeURIComponent(userId)}`,
+		);
 
-    if (!response.ok) {
-      sevenTVUserIdToUsername.set(userId, null);
+		if (!response.ok) {
+			sevenTVUserIdToUsername.set(userId, null);
 
-      return null;
-    }
+			return null;
+		}
 
-    const data = await response.json();
+		const data = await response.json();
 
-    const username = data?.username
-      ? String(data.username).trim().toLowerCase()
-      : null;
+		const username = data?.username
+			? String(data.username).trim().toLowerCase()
+			: null;
 
-    sevenTVUserIdToUsername.set(userId, username);
+		sevenTVUserIdToUsername.set(userId, username);
 
-    console.debug("[7TV] actor_id -> username:", userId, username);
+		console.debug("[7TV] actor_id -> username:", userId, username);
 
-    return username;
-  } catch (error) {
-    console.error("7TV personal emote username lookup error:", error);
+		return username;
+	} catch (error) {
+		console.error("7TV personal emote username lookup error:", error);
 
-    sevenTVUserIdToUsername.set(userId, null);
+		sevenTVUserIdToUsername.set(userId, null);
 
-    return null;
-  }
+		return null;
+	}
 }
 
-function subscribeToSevenTVChannelEmoteSets(twitchChannelId) {
-  if (!sevenTVEventSocket || !twitchChannelId) {
-    return;
-  }
+function subscribeToSevenTVChannelEmoteSets(channelId, platform = "TWITCH") {
+	const twitchChannelId = channelId;
 
-  const payload = {
-    op: SEVENTV_OPCODES.SUBSCRIBE,
+	if (!sevenTVEventSocket || !twitchChannelId) {
+		return;
+	}
 
-    d: {
-      type: "emote_set.*",
+	const payload = {
+		op: SEVENTV_OPCODES.SUBSCRIBE,
 
-      condition: {
-        platform: "TWITCH",
+		d: {
+			type: "emote_set.*",
 
-        ctx: "channel",
+			condition: {
+				platform,
 
-        id: String(twitchChannelId),
-      },
-    },
-  };
+				ctx: "channel",
 
-  sevenTVEventSocket.send(JSON.stringify(payload));
+				id: String(twitchChannelId),
+			},
+		},
+	};
 
-  console.log("Subscribed to 7TV channel emote_set.* for:", twitchChannelId);
+	sevenTVEventSocket.send(JSON.stringify(payload));
+
+	console.log(
+		`Subscribed to 7TV ${platform} channel emote_set.* for:`,
+		twitchChannelId,
+	);
 }
 
 function connectSevenTVEvents(emoteSetId, url = null) {
-  if (!emoteSetId) {
-    return;
-  }
+	if (emoteSetId) {
+		sevenTVEmoteSetId = emoteSetId;
+	}
 
-  sevenTVEmoteSetId = emoteSetId;
+	if (
+		!sevenTVEmoteSetId &&
+		!sevenTVKickEmoteSetId &&
+		!TWITCH_USER_ID &&
+		!KICK_USER_ID
+	) {
+		return;
+	}
 
-  const socketUrl = url || "wss://events.7tv.io/v3";
+	if (sevenTVEventSocket) {
+		return sevenTVEventSocket;
+	}
 
-  console.log("Connecting to 7TV EventAPI:", socketUrl);
+	const socketUrl = url || "wss://events.7tv.io/v3";
 
-  const socket = new WebSocket(socketUrl);
-  sevenTVEventSocket = socket;
+	console.log("Connecting to 7TV EventAPI:", socketUrl);
 
-  socket.onopen = () => {
-    console.log("Connected to 7TV EventAPI WebSocket.");
-  };
+	const socket = new WebSocket(socketUrl);
+	sevenTVEventSocket = socket;
 
-  socket.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      handleSevenTVEventMessage(data);
-    } catch (error) {
-      console.error("7TV EventAPI message error:", error);
-    }
-  };
+	socket.onopen = () => {
+		console.log("Connected to 7TV EventAPI WebSocket.");
+	};
 
-  socket.onerror = (error) => {
-    console.error("7TV EventAPI WebSocket error:", error);
-  };
+	socket.onmessage = (event) => {
+		try {
+			const data = JSON.parse(event.data);
+			handleSevenTVEventMessage(data);
+		} catch (error) {
+			console.error("7TV EventAPI message error:", error);
+		}
+	};
 
-  socket.onclose = (event) => {
-    console.log("7TV EventAPI WebSocket closed:", event.code, event.reason);
+	socket.onerror = (error) => {
+		console.error("7TV EventAPI WebSocket error:", error);
+	};
 
-    sevenTVEventSocket = null;
-    sevenTVSessionId = null;
+	socket.onclose = (event) => {
+		console.log("7TV EventAPI WebSocket closed:", event.code, event.reason);
 
-    clearTimeout(sevenTVHeartbeatTimeout);
-    clearTimeout(sevenTVReconnectTimer);
+		sevenTVEventSocket = null;
+		sevenTVSessionId = null;
 
-    sevenTVReconnectTimer = setTimeout(() => {
-      if (sevenTVEmoteSetId && !sevenTVEventSocket) {
-        connectSevenTVEvents(sevenTVEmoteSetId);
-      }
-    }, 3000);
-  };
+		clearTimeout(sevenTVHeartbeatTimeout);
+		clearTimeout(sevenTVReconnectTimer);
 
-  return socket;
+		sevenTVReconnectTimer = setTimeout(() => {
+			if (!sevenTVEventSocket) {
+				connectSevenTVEvents(null);
+			}
+		}, 3000);
+	};
+
+	return socket;
 }
 
 function handleSevenTVEventMessage(data) {
-  const op = data?.op;
+	const op = data?.op;
 
-  if (op === SEVENTV_OPCODES.HELLO) {
-    sevenTVSessionId = data.d?.session_id || null;
+	if (op === SEVENTV_OPCODES.HELLO) {
+		sevenTVSessionId = data.d?.session_id || null;
 
-    console.log("7TV EventAPI session:", sevenTVSessionId);
+		console.log("7TV EventAPI session:", sevenTVSessionId);
 
-    resetSevenTVHeartbeatWatchdog(data.d?.heartbeat_interval);
+		resetSevenTVHeartbeatWatchdog(data.d?.heartbeat_interval);
 
-    subscribeToEmoteSetUpdates(sevenTVEmoteSetId);
-    subscribeToSevenTVChannelEmoteSets(TWITCH_USER_ID);
+		subscribeToEmoteSetUpdates(sevenTVEmoteSetId);
+		subscribeToEmoteSetUpdates(sevenTVKickEmoteSetId);
 
-    return;
-  }
+		subscribeToSevenTVChannelEmoteSets(TWITCH_USER_ID, "TWITCH");
+		subscribeToSevenTVChannelEmoteSets(KICK_USER_ID, "KICK");
 
-  if (op === SEVENTV_OPCODES.HEARTBEAT) {
-    resetSevenTVHeartbeatWatchdog(data.d?.heartbeat_interval);
-    return;
-  }
+		return;
+	}
 
-  if (op === SEVENTV_OPCODES.RECONNECT) {
-    console.log("7TV requested EventAPI reconnect.");
+	if (op === SEVENTV_OPCODES.HEARTBEAT) {
+		resetSevenTVHeartbeatWatchdog(data.d?.heartbeat_interval);
+		return;
+	}
 
-    if (sevenTVEventSocket) {
-      sevenTVEventSocket.close();
-    }
+	if (op === SEVENTV_OPCODES.RECONNECT) {
+		console.log("7TV requested EventAPI reconnect.");
 
-    return;
-  }
+		if (sevenTVEventSocket) {
+			sevenTVEventSocket.close();
+		}
 
-  if (op === SEVENTV_OPCODES.ERROR) {
-    console.error("7TV EventAPI error:", data.d);
-    return;
-  }
+		return;
+	}
 
-  if (op === SEVENTV_OPCODES.DISPATCH) {
-    const type = data.d?.type;
+	if (op === SEVENTV_OPCODES.ERROR) {
+		console.error("7TV EventAPI error:", data.d);
+		return;
+	}
 
-    if (type === "emote_set.update") {
-      handleSevenTVEmoteSetUpdate(data.d.body);
-    }
+	if (op === SEVENTV_OPCODES.DISPATCH) {
+		const type = data.d?.type;
 
-    return;
-  }
+		if (type === "emote_set.update") {
+			handleSevenTVEmoteSetUpdate(data.d.body);
+		}
+
+		return;
+	}
 }
 
 function resetSevenTVHeartbeatWatchdog(intervalMs) {
-  clearTimeout(sevenTVHeartbeatTimeout);
+	clearTimeout(sevenTVHeartbeatTimeout);
 
-  if (!intervalMs) {
-    return;
-  }
+	if (!intervalMs) {
+		return;
+	}
 
-  sevenTVHeartbeatTimeout = setTimeout(() => {
-    console.warn("7TV EventAPI heartbeat timeout, reconnecting.");
+	sevenTVHeartbeatTimeout = setTimeout(() => {
+		console.warn("7TV EventAPI heartbeat timeout, reconnecting.");
 
-    if (sevenTVEventSocket) {
-      sevenTVEventSocket.close();
-    }
-  }, intervalMs * 2);
+		if (sevenTVEventSocket) {
+			sevenTVEventSocket.close();
+		}
+	}, intervalMs * 2);
 }
 
 function subscribeToEmoteSetUpdates(emoteSetId) {
-  if (!sevenTVEventSocket || !emoteSetId) {
-    return;
-  }
+	if (!sevenTVEventSocket || !emoteSetId) {
+		return;
+	}
 
-  const payload = {
-    op: SEVENTV_OPCODES.SUBSCRIBE,
-    d: {
-      type: "emote_set.update",
-      condition: {
-        object_id: emoteSetId,
-      },
-    },
-  };
+	const payload = {
+		op: SEVENTV_OPCODES.SUBSCRIBE,
+		d: {
+			type: "emote_set.update",
+			condition: {
+				object_id: emoteSetId,
+			},
+		},
+	};
 
-  sevenTVEventSocket.send(JSON.stringify(payload));
+	sevenTVEventSocket.send(JSON.stringify(payload));
 
-  console.log("Subscribed to 7TV emote_set.update for:", emoteSetId);
+	console.log("Subscribed to 7TV emote_set.update for:", emoteSetId);
 }
 
 async function handleSevenTVEmoteSetUpdate(body) {
-  if (!body) {
-    return;
-  }
+	if (!body) {
+		return;
+	}
 
-  const emoteSetId = body.id || body.object_id || null;
+	const emoteSetId = body.id || body.object_id || null;
 
-  const personalEmoteSet = Boolean(
-    emoteSetId && emoteSetId !== sevenTVEmoteSetId,
-  );
+	const isKickChannelSet = Boolean(
+		emoteSetId && emoteSetId === sevenTVKickEmoteSetId,
+	);
 
-  const emotesUpdated = body.updated || [];
+	const personalEmoteSet = Boolean(
+		emoteSetId && emoteSetId !== sevenTVEmoteSetId && !isKickChannelSet,
+	);
 
-  const emotesRemoved = (body.pulled || [])
-    .map((entry) => entry?.old_value)
-    .filter(Boolean);
+	const targetEmotes = isKickChannelSet ? sevenTVKickEmotes : sevenTVEmotes;
 
-  const emotesAdded = (body.pushed || [])
-    .map((entry) => entry?.value)
-    .filter(Boolean);
+	const emotesUpdated = body.updated || [];
 
-  for (const update of emotesUpdated) {
-    const oldEmote = update?.old_value;
+	const emotesRemoved = (body.pulled || [])
+		.map((entry) => entry?.old_value)
+		.filter(Boolean);
 
-    const newActiveEmote = update?.value;
+	const emotesAdded = (body.pushed || [])
+		.map((entry) => entry?.value)
+		.filter(Boolean);
 
-    if (!oldEmote || !newActiveEmote) {
-      continue;
-    }
+	for (const update of emotesUpdated) {
+		const oldEmote = update?.old_value;
 
-    if (!personalEmoteSet) {
-      if (oldEmote.name) {
-        sevenTVEmotes.delete(oldEmote.name);
-      }
+		const newActiveEmote = update?.value;
 
-      add7TVEmote(newActiveEmote);
+		if (!oldEmote || !newActiveEmote) {
+			continue;
+		}
 
-      continue;
-    }
+		if (!personalEmoteSet) {
+			if (oldEmote.name) {
+				targetEmotes.delete(oldEmote.name);
+			}
 
-    const username = await get7TVUsernameById(newActiveEmote.actor_id);
+			add7TVEmote(newActiveEmote, targetEmotes);
 
-    if (!username) {
-      continue;
-    }
+			continue;
+		}
 
-    remove7TVPersonalEmote(username, oldEmote.name);
+		const username = await get7TVUsernameById(newActiveEmote.actor_id);
 
-    add7TVPersonalEmote(username, newActiveEmote.name, newActiveEmote);
-  }
+		if (!username) {
+			continue;
+		}
 
-  for (const emote of emotesRemoved) {
-    if (!personalEmoteSet) {
-      if (emote.name) {
-        sevenTVEmotes.delete(emote.name);
-      }
+		remove7TVPersonalEmote(username, oldEmote.name);
 
-      continue;
-    }
+		add7TVPersonalEmote(username, newActiveEmote.name, newActiveEmote);
+	}
 
-    const username = await get7TVUsernameById(emote.actor_id);
+	for (const emote of emotesRemoved) {
+		if (!personalEmoteSet) {
+			if (emote.name) {
+				targetEmotes.delete(emote.name);
+			}
 
-    if (username) {
-      remove7TVPersonalEmote(username, emote.name);
-    }
-  }
+			continue;
+		}
 
-  for (const activeEmote of emotesAdded) {
-    if (!personalEmoteSet) {
-      add7TVEmote(activeEmote);
+		const username = await get7TVUsernameById(emote.actor_id);
 
-      continue;
-    }
+		if (username) {
+			remove7TVPersonalEmote(username, emote.name);
+		}
+	}
 
-    const username = await get7TVUsernameById(activeEmote.actor_id);
+	for (const activeEmote of emotesAdded) {
+		if (!personalEmoteSet) {
+			add7TVEmote(activeEmote, targetEmotes);
 
-    if (username) {
-      add7TVPersonalEmote(username, activeEmote.name, activeEmote);
-    }
-  }
+			continue;
+		}
 
-  console.debug("7TV emote_set.update:", {
-    emoteSetId,
-    personalEmoteSet,
-    added: emotesAdded.length,
-    removed: emotesRemoved.length,
-    updated: emotesUpdated.length,
-  });
+		const username = await get7TVUsernameById(activeEmote.actor_id);
+
+		if (username) {
+			add7TVPersonalEmote(username, activeEmote.name, activeEmote);
+		}
+	}
+
+	console.debug("7TV emote_set.update:", {
+		emoteSetId,
+		personalEmoteSet,
+		added: emotesAdded.length,
+		removed: emotesRemoved.length,
+		updated: emotesUpdated.length,
+	});
 }
 
 function disconnectSevenTVEvents() {
-  clearTimeout(sevenTVHeartbeatTimeout);
-  clearTimeout(sevenTVReconnectTimer);
+	clearTimeout(sevenTVHeartbeatTimeout);
+	clearTimeout(sevenTVReconnectTimer);
 
-  sevenTVEmoteSetId = null;
+	sevenTVEmoteSetId = null;
+	sevenTVKickEmoteSetId = null;
 
-  if (sevenTVEventSocket) {
-    sevenTVEventSocket.close();
-    sevenTVEventSocket = null;
-  }
+	if (sevenTVEventSocket) {
+		sevenTVEventSocket.close();
+		sevenTVEventSocket = null;
+	}
 }
 
 async function load7TVGlobalEmotes() {
-  try {
-    const response = await fetch("https://7tv.io/v3/emote-sets/global");
+	try {
+		const response = await fetch("https://7tv.io/v3/emote-sets/global");
 
-    if (!response.ok) {
-      throw new Error(`7TV global emote error: ${response.status}`);
-    }
+		if (!response.ok) {
+			throw new Error(`7TV global emote error: ${response.status}`);
+		}
 
-    const data = await response.json();
+		const data = await response.json();
 
-    for (const emote of data.emotes || []) {
-      add7TVEmote(emote);
-    }
+		for (const emote of data.emotes || []) {
+			add7TVEmote(emote);
+			add7TVEmote(emote, sevenTVGlobalEmotes);
+		}
 
-    console.log(`Loaded ${sevenTVEmotes.size} total 7TV emotes.`);
-  } catch (error) {
-    console.error("7TV global emote error:", error);
-  }
+		console.log(`Loaded ${sevenTVEmotes.size} total 7TV emotes.`);
+	} catch (error) {
+		console.error("7TV global emote error:", error);
+	}
+}
+
+async function load7TVKickEmotes() {
+	if (!KICK_USER_ID) {
+		return;
+	}
+
+	try {
+		const userResponse = await fetch(
+			`https://7tv.io/v3/users/kick/${encodeURIComponent(KICK_USER_ID)}`,
+		);
+
+		if (userResponse.ok) {
+			const userData = await userResponse.json();
+			const emoteSetId = userData.emote_set?.id;
+
+			if (emoteSetId) {
+				const setResponse = await fetch(
+					`https://7tv.io/v3/emote-sets/${emoteSetId}`,
+				);
+
+				if (!setResponse.ok) {
+					throw new Error(`7TV Kick emote set error: ${setResponse.status}`);
+				}
+
+				const setData = await setResponse.json();
+
+				for (const emote of setData.emotes || []) {
+					add7TVEmote(emote, sevenTVKickEmotes);
+				}
+
+				sevenTVKickEmoteSetId = emoteSetId;
+			}
+
+			console.log(`Loaded ${sevenTVKickEmotes.size} 7TV Kick channel emotes.`);
+		} else {
+			console.warn(`7TV has no Kick user for ${KICK_USER_ID}: ${userResponse.status}`);
+		}
+	} catch (error) {
+		console.error("7TV Kick emote error:", error);
+	}
+
+	if (sevenTVEventSocket) {
+		if (sevenTVSessionId) {
+			subscribeToEmoteSetUpdates(sevenTVKickEmoteSetId);
+			subscribeToSevenTVChannelEmoteSets(KICK_USER_ID, "KICK");
+		}
+	} else {
+		connectSevenTVEvents(null);
+	}
 }

@@ -1,12 +1,12 @@
 function ensureEmoteScaleStyle() {
-  let style = document.getElementById("emote-scale-style");
+    let style = document.getElementById("emote-scale-style");
 
-  if (!style) {
-    style = document.createElement("style");
+    if (!style) {
+        style = document.createElement("style");
 
-    style.id = "emote-scale-style";
+        style.id = "emote-scale-style";
 
-    style.textContent = `
+        style.textContent = `
             .emote:not(.seven-tv-zero-width):not(.twitch-gif),
             .twemoji {
                 height:
@@ -42,25 +42,25 @@ function ensureEmoteScaleStyle() {
             }
         `;
 
-    (document.head || document.documentElement).appendChild(style);
-  }
+        (document.head || document.documentElement).appendChild(style);
+    }
 
-  document.documentElement.style.setProperty(
-    "--emote-scale",
-    Number(emoteScale) || 1,
-  );
+    document.documentElement.style.setProperty(
+        "--emote-scale",
+        Number(emoteScale) || 1,
+    );
 }
 
 function addGlobalStyle() {
-  if (document.getElementById("ffz-effects-style")) {
-    return;
-  }
+    if (document.getElementById("ffz-effects-style")) {
+        return;
+    }
 
-  const style = document.createElement("style");
+    const style = document.createElement("style");
 
-  style.id = "ffz-effects-style";
+    style.id = "ffz-effects-style";
 
-  style.textContent = `
+    style.textContent = `
 
         @keyframes ffzRainbow {
             0% {
@@ -613,7 +613,7 @@ function addGlobalStyle() {
         }
     `;
 
-  document.head.appendChild(style);
+    document.head.appendChild(style);
 }
 
 addGlobalStyle();
