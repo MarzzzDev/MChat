@@ -45,6 +45,13 @@ const previewMessages = [
         { badges: "vip/1,omecash/1" }
     ],
     [
+        "paidchatter",
+        "ur a great streamer",
+        "#8A2BE2",
+        "812345670",
+        { badges: "subtember/1", "first-msg": "1" }
+    ],
+    [
         "JamiMeow",
         "waga",
         "#FF69B4",
@@ -57,20 +64,6 @@ const previewMessages = [
         "#FF69B4",
         "406239629",
         { badges: "founder/1,noob/1" }
-    ],
-    [
-        "FreshChatter",
-        "hello chat first time here",
-        "#1E90FF",
-        "812345670",
-        { badges: "", "first-msg": "1" }
-    ],
-    [
-        "PointsGoblin",
-        "redeemed something cool",
-        "#32CD32",
-        "812345671",
-        { badges: "subscriber/1", "custom-reward-id": "preview-reward" }
     ]
 ];
 let currentPreviewMessage = 0;
