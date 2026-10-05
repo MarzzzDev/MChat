@@ -1,16 +1,11 @@
 const HL_FIRST_MESSAGE_COLOR = "#c832c8";
 const HL_FIRST_MESSAGE_LABEL = "First Message";
+const HL_REDEEM_COLOR = "#00e5ff";
+const HL_REDEEM_FALLBACK_LABEL = "Channel Point Redeem";
 const HL_OPACITY_PERCENT = 10;
 const HL_DEFAULT_ACCENT = "#755ebc";
 
 const channelRewards = new Map();
-
-const HL_POINTS_ICON =
-    '<svg width="1em" height="1em" viewBox="0 0 20 20" fill="currentColor">' +
-    '<path d="M10 6a4 4 0 014 4h-2a2 2 0 00-2-2V6z"></path>' +
-    '<path fill-rule="evenodd" clip-rule="evenodd" ' +
-    'd="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0a6 6 0 11-12 0 6 6 0 0112 0z"></path>' +
-    "</svg>";
 
 const HL_GIFT_ICON =
     '<svg viewBox="0 0 20 20" fill="currentColor">' +
@@ -37,6 +32,7 @@ function addHighlightStyles() {
             --hl-muted: #999;
             --hl-link: #bf94ff;
         }
+
 
         .message.has-highlight {
             position: relative;
@@ -89,49 +85,7 @@ function addHighlightStyles() {
             font-weight: 900;
         }
 
-        .message.hl-reward {
-            border-left: calc(0.35 * var(--hl-rem)) solid var(--hl-accent);
-            border-right: calc(0.35 * var(--hl-rem)) solid var(--hl-accent);
-            background-color: hsla(0, 0%, 50%, 0.05);
-        }
-
-        .hl-reward-part {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            margin-bottom: calc(0.5 * var(--hl-rem));
-        }
-
-        .hl-reward-left {
-            display: inline-block;
-            color: var(--hl-muted);
-        }
-
-        .hl-reward-left .text {
-            color: var(--hl-muted);
-        }
-
-        .hl-reward-cost {
-            margin-left: var(--hl-rem);
-            white-space: nowrap;
-            color: var(--hl-muted);
-        }
-
-        .hl-reward-cost .text {
-            color: var(--hl-muted);
-        }
-
-        .hl-reward-cost svg,
-        .hl-reward-cost .text {
-            display: inline-block;
-            vertical-align: middle;
-            margin: 0 calc(0.15 * var(--hl-rem));
-        }
-
-        .hl-reward-cost svg {
-            width: 50px;
-            height: 50px;
-        }
-
+        /* ---------- Gift subs (SubGift.vue / SubMysteryGift.vue) ---------- */
 
         .message.hl-gift {
             margin-top: calc(0.5 * var(--hl-rem));
@@ -261,42 +215,21 @@ function applyHighlight(message, color, label) {
     }
 }
 
-function applyRewardCard(message, tags, displayName) {
-    message.classList.add("hl-card", "hl-reward");
-
+function applyRewardHighlight(message, tags) {
     const reward =
         channelRewards.get(
             String(tags["custom-reward-id"] || "")
         );
 
-    const isHighlightedMessage =
-        tags["msg-id"] === "highlighted-message";
-
-    const rewardName =
+    const label =
         reward?.title ||
-        (isHighlightedMessage ? "Highlight My Message" : null);
+        (
+            tags["msg-id"] === "highlighted-message"
+                ? "Highlight My Message"
+                : HL_REDEEM_FALLBACK_LABEL
+        );
 
-    const part = hlEl("div", "hl-reward-part");
-    const left = hlEl("div", "hl-reward-left");
-
-    left.append(
-        hlText(displayName, "hl-bold"),
-        hlText(" redeemed "),
-        rewardName
-            ? hlText(rewardName, "hl-bold")
-            : hlText("a reward", "hl-bold")
-    );
-
-    part.appendChild(left);
-
-    if (reward?.cost != null) {
-        const cost = hlEl("span", "hl-reward-cost");
-        cost.insertAdjacentHTML("beforeend", HL_POINTS_ICON);
-        cost.appendChild(hlText(String(reward.cost), "hl-bold"));
-        part.appendChild(cost);
-    }
-
-    message.insertBefore(part, message.firstChild);
+    applyHighlight(message, HL_REDEEM_COLOR, label);
 }
 
 function applyMessageHighlights(message, tags, displayName) {
@@ -305,7 +238,7 @@ function applyMessageHighlights(message, tags, displayName) {
         tags["msg-id"] === "highlighted-message";
 
     if (isRedeem) {
-        applyRewardCard(message, tags, displayName);
+        applyRewardHighlight(message, tags);
         return;
     }
 
@@ -317,7 +250,6 @@ function applyMessageHighlights(message, tags, displayName) {
         );
     }
 }
-
 
 function createSubGiftCard({ gifter, plan, recipient }) {
     const card = hlEl("div", "message hl-card hl-gift");
@@ -432,6 +364,7 @@ function handleTwitchIRCUsernotice(message) {
         );
     }
 }
+
 async function loadChannelHighlightData() {
     if (!TWITCH_USER_ID) {
         return;
