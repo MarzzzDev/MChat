@@ -42,7 +42,6 @@ async function checkForGithubCommit() {
                 `[updater] New commit ${sha.slice(0, 7)} detected, refreshing in ${UPDATE_REFRESH_DELAY_MS / 1000}s`
             );
             updateRefreshScheduled = true;
-            console.log("New commit found.");
             setTimeout(hardRefreshOverlay, UPDATE_REFRESH_DELAY_MS);
         }
     } catch (error) {
