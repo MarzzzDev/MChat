@@ -1,0 +1,151 @@
+{
+ "api": [
+  {
+   "method": "GET",
+   "url": "https://api.betterttv.net/3/cached/emotes/global",
+   "body": "",
+   "file": "api/1j0gqs6.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.chatterino.com/badges",
+   "body": "",
+   "file": "api/108iuff.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.betterttv.net/3/cached/badges/twitch",
+   "body": "",
+   "file": "api/1g92c0h.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.betterttv.net/3/cached/users/twitch/1208634685",
+   "body": "",
+   "file": "api/1r5bepj.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.frankerfacez.com/v1/set/global",
+   "body": "",
+   "file": "api/uo01xk.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.frankerfacez.com/v1/user/id/1208634685",
+   "body": "",
+   "file": "api/1cw0gsx.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.frankerfacez.com/v1/badge/bot",
+   "body": "",
+   "file": "api/1c694ub.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://dank-chat-badges.marseceva.workers.dev",
+   "body": "",
+   "file": "api/oomfi3.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.frankerfacez.com/v1/room/marz_dev",
+   "body": "",
+   "file": "api/1el0ygw.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.moltorino.com/v2/badges",
+   "body": "",
+   "file": "api/1wf4sb8.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.frankerfacez.com/v1/room/marz_dev",
+   "body": "",
+   "file": "api/1el0ygw.json"
+  },
+  {
+   "method": "POST",
+   "url": "https://gql.twitch.tv/gql",
+   "body": "{\"query\":\"query {\\n                    badges {\\n                        imageURL(size: DOUBLE)\\n                        description\\n                        title\\n                        setID\\n                        version\\n                    }\\n                }\"}",
+   "file": "api/1grzaku.json"
+  },
+  {
+   "method": "POST",
+   "url": "https://gql.twitch.tv/gql",
+   "body": "{\"query\":\"query {\\n                        user(id: \\\"1208634685\\\") {\\n                            broadcastBadges {\\n                                imageURL(size: DOUBLE)\\n                                description\\n                                title\\n                                setID\\n                                version\\n                            }\\n                        }\\n                    }\"}",
+   "file": "api/1nfk0h7.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://7tv.io/v3/emote-sets/global",
+   "body": "",
+   "file": "api/16ktxr8.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://chatterinohomies.com/api/badges/list",
+   "body": "",
+   "file": "api/rlq1uk.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://7tv.io/v3/users/twitch/1208634685",
+   "body": "",
+   "file": "api/6o679o.json"
+  },
+  {
+   "method": "GET",
+   "url": "https://7tv.io/v3/emote-sets/01JP4Q16D18VGY7W9JWQAZZVW0",
+   "body": "",
+   "file": "api/1ml1vt4.json"
+  }
+ ],
+ "assets": {
+  "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap": "files/sesn88.com/c",
+  "https://static-cdn.jtvnw.net/badges/v1/b817aba4-fad8-49e2-b88a-7cc744dfa6ec/2": "files/9qnila.png",
+  "https://static-cdn.jtvnw.net/badges/v1/511b78a9-ab37-472f-9569-457753bbe7d3/3": "files/1tcxmaz.png",
+  "https://static-cdn.jtvnw.net/badges/v1/af11047c-a3b6-424d-808e-7fc7aaa0e74d/3": "files/1mnjh8a.png",
+  "https://cdn.7tv.app/emote/01JB6QMMEZ1RK618VR8S0NKSPB/4x.webp": "files/19qmoml.webp",
+  "https://cdn.7tv.app/emote/01J8V5CFVR0006G7P3TC1QF3WN/4x.webp": "files/1jawz9r.webp",
+  "https://cdn.7tv.app/paint/01KAJ3AVYAAKFSPZ5B05AB42WZ/layer/01KAJ3AVYA570TMQBWHCBCEKCC/4x": "files/11b0dln.webp",
+  "https://static-cdn.jtvnw.net/badges/v1/5527c58c-fb7d-422d-b71b-f309dcb85cc1/2": "files/1fyxesl.png",
+  "https://static-cdn.jtvnw.net/badges/v1/5d9f2208-5dd8-11e7-8513-2ff4adfae661/2": "files/1ypg8h9.png",
+  "https://static-cdn.jtvnw.net/badges/v1/a9c01f28-179e-486d-a4c7-2277e4f6adb4/3": "files/1kklgup.png",
+  "https://cdn.7tv.app/emote/01HS0YC6PR00053R068FSDQXNG/4x.webp": "files/rd7x91.webp",
+  "https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2": "files/15wfrop.png",
+  "https://static-cdn.jtvnw.net/badges/v1/20f214cf-36b0-4b42-8992-3b769bcb0461/3": "files/1supbzi.png",
+  "https://cdn.7tv.app/emote/01G7Q043F800029YRR37CZ206J/4x.webp": "files/1jxptq0.webp",
+  "https://static-cdn.jtvnw.net/badges/v1/4cae4630-f0fd-4642-bd2d-120017968d61/3": "files/41bt95.png",
+  "https://cdn.frankerfacez.com/emote/755233/4": "files/1udl6py.png",
+  "https://cdn.7tv.app/emote/01KHXR1F8BQN9J8CBWGR6YRSGK/4x.webp": "files/p10386.webp",
+  "https://cdn.7tv.app/paint/01KNA91M442MJHKC3RR4WFFFXZ/layer/01KNA91M44412EBRYX4K82E3G4/4x": "files/ymhsx5.webp",
+  "https://cdn.7tv.app/badge/01KMRP6RSZHBZ8R0JAZK6A8EPA/3x.webp": "files/16a4l9p.webp",
+  "https://cdn.frankerfacez.com/emote/714383/4": "files/1fcl53b.png",
+  "https://cdn.7tv.app/emote/01GFM5GHQR0004X9SDHTZ1AWSQ/4x.webp": "files/vr8rib.webp",
+  "https://cdn.7tv.app/emote/01G1N8W84800087QC0373CF714/4x.webp": "files/1btjc1d.webp",
+  "https://cdn.7tv.app/emote/01K7FHHAGT0J52WHQXSA2ZT17J/4x.webp": "files/rw4vxy.webp",
+  "https://cdn.7tv.app/paint/01M41S5QTX4S8D71Y810N3W2XG/layer/01M41S5QTX1HWSWKEA40SSHYQS/4x": "files/15tbkyr.webp",
+  "https://cdn.7tv.app/badge/01GAF994D8000E8VNG1S1RMTBC/3x.webp": "files/1rewq00.webp",
+  "https://cdn.frankerfacez.com/room-badge/mod/id/195845559/v/b25f904c/4": "files/fyoqp.png",
+  "https://cdn.7tv.app/emote/01FPQXMF6R0008ZYPTDH5TZB78/4x.webp": "files/yah73g.webp",
+  "https://static-cdn.jtvnw.net/badges/v1/aa891ef7-b24b-49ff-ae08-13819621fc4b/3": "files/1u8n0aj.png",
+  "https://cdn.7tv.app/badge/01KYQHQ7FVRR3X4S0F2KG74207/3x.webp": "files/1vh2usg.webp",
+  "https://cdn.7tv.app/emote/01J5E4NY8R000EBJQG04YD6Y3N/4x.webp": "files/jrvvk6.webp",
+  "https://cdn.frankerfacez.com/badge/3/4": "files/y9fc2h.png",
+  "https://cdn.7tv.app/badge/01KB4X7XGZWPSJBP7FTFSRGZ90/3x.webp": "files/19ndxo0.webp",
+  "https://itzalex.github.io/badgesusers/supporter2/badge3x.png": "files/18y57ok.png",
+  "https://static-cdn.jtvnw.net/badges/v1/3ffa9565-c35b-4cad-800b-041e60659cf2/3": "files/ojl5gh.net/b",
+  "https://cdn.7tv.app/emote/01JA78H1M8000E34SZ69AYAM77/4x.webp": "files/15nnimx.webp",
+  "https://cdn.7tv.app/badge/01JM3F4N2Y65KKHDGWDEDFTJNA/3x.webp": "files/i9zw0j.webp",
+  "https://cdn.frankerfacez.com/emote/517647/4": "files/1saxnaj.png",
+  "https://static-cdn.jtvnw.net/badges/v1/d87a78f5-76d9-451f-8f31-752a369e6045/3": "files/1m0kqpx.png",
+  "https://cdn.7tv.app/paint/01KFF35PWKKKNKYH0JYZ0FZCZE/layer/01KHGS15ST9TNNHFR9AQRGH72S/4x": "files/9kt8ps.webp",
+  "https://cdn.7tv.app/badge/01M3Q4RTMNFHTT58VNTFH8152G/3x.webp": "files/162c1n5.webp",
+  "https://api.betterttv.net/3/cached/emotes/global": "files/wutsae.json",
+  "https://api.betterttv.net/3/cached/badges/twitch": "files/u3fdip.json",
+  "https://api.betterttv.net/3/cached/users/twitch/1208634685": "files/1oj2gif.json"
+ }
+}
