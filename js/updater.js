@@ -1,6 +1,6 @@
 const GITHUB_REPO = "MarzzzDev/MChat";
 const GITHUB_BRANCH = "main";
-const UPDATE_POLL_MS = 60 * 1000;
+const UPDATE_POLL_MS = 300 * 1000;
 const UPDATE_REFRESH_DELAY_MS = 10 * 1000;
 
 const OVERLAY_FILES = [

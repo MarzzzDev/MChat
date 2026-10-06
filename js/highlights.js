@@ -192,7 +192,13 @@ function hlAppendToChat(element) {
 		return;
 	}
 
-	chat.appendChild(element);
+	if (typeof placeInChat === "function") {
+		placeInChat(chat, element);
+	} else {
+		chat.appendChild(element);
+	}
+
+	lastRepeat = null;
 
 	if (typeof fade === "number" && Number.isFinite(fade)) {
 		setTimeout(

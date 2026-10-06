@@ -188,7 +188,37 @@ function normaliseOverlaySettings(settings = {}) {
 			? settings.strokeColor
 			: "#000000";
 
+	result.cheers = settings.cheers !== false;
+
+	result.collapse = settings.collapse === true;
+
+	result.newestTop = settings.newestTop === true;
+
+	result.align = cleanAlign(settings.align);
+
+	result.msgFilter = parseQueryList(settings.msgFilter).join(",");
+
+	result.botFilter = parseQueryList(settings.botFilter, { stripAt: true }).join(
+		",",
+	);
+
 	return result;
+}
+
+function parseQueryList(raw, { stripAt = false } = {}) {
+	return String(raw || "")
+		.split(",")
+		.map((item) => item.trim().toLowerCase())
+		.map((item) => (stripAt ? item.replace(/^@/, "") : item))
+		.filter(Boolean);
+}
+
+function cleanAlign(value) {
+	const align = String(value || "")
+		.trim()
+		.toLowerCase();
+
+	return ["left", "center", "right"].includes(align) ? align : "left";
 }
 
 function fontValueToQueryKey(value) {
@@ -434,6 +464,30 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 
 	if (normalised.shadowOffset !== 3) {
 		query.push(["shadowOffset", String(normalised.shadowOffset)]);
+	}
+
+	if (normalised.cheers !== true) {
+		query.push(["cheers", normalised.cheers ? "1" : "0"]);
+	}
+
+	if (normalised.collapse === true) {
+		query.push(["collapse", "1"]);
+	}
+
+	if (normalised.newestTop === true) {
+		query.push(["newestTop", "1"]);
+	}
+
+	if (normalised.align !== "left") {
+		query.push(["align", normalised.align]);
+	}
+
+	if (normalised.msgFilter) {
+		query.push(["msgFilter", encodeURIComponent(normalised.msgFilter)]);
+	}
+
+	if (normalised.botFilter) {
+		query.push(["botFilter", encodeURIComponent(normalised.botFilter)]);
 	}
 
 	url.search = "?" + query.map(([key, value]) => `${key}=${value}`).join("&");
@@ -874,3 +928,113 @@ document.body.classList.toggle(
 let wrapEnabled = parseQueryBoolean("wrap", false);
 
 let showUnlisted7TV = parseQueryBoolean("unlisted", true);
+
+let cheersEnabled = parseQueryBoolean("cheers", true);
+
+let collapseEnabled = parseQueryBoolean("collapse", false);
+
+let newestTopEnabled = parseQueryBoolean("newestTop", false);
+
+let alignMode = cleanAlign(params.get("align"));
+
+let messageFilters = parseQueryList(params.get("msgFilter"));
+
+let botFilterUsers = parseQueryList(params.get("botFilter"), { stripAt: true });
+
+function ensureLayoutStyle() {
+	if (document.getElementById("layout-style")) {
+		return;
+	}
+
+	const style = document.createElement("style");
+
+	style.id = "layout-style";
+
+	style.textContent = `
+		body.newest-top #chat {
+			justify-content: flex-start !important;
+		}
+
+		body.align-center #chat > .message:not(.has-highlight):not(.hl-card) {
+			align-self: center;
+			text-align: center;
+		}
+
+		body.align-right #chat > .message:not(.has-highlight):not(.hl-card) {
+			align-self: flex-end;
+			text-align: right;
+		}
+
+		/* Highlights stay full-width; only their contents get aligned. */
+		body.align-center #chat > .message.has-highlight,
+		body.align-center #chat > .message.hl-card {
+			text-align: center;
+			justify-content: center;
+		}
+
+		body.align-right #chat > .message.has-highlight,
+		body.align-right #chat > .message.hl-card {
+			text-align: right;
+			justify-content: flex-end;
+		}
+
+		body.align-center #chat > .message.hl-card .hl-gift-part {
+			justify-content: center;
+		}
+
+		body.align-right #chat > .message.hl-card .hl-gift-part {
+			justify-content: flex-end;
+		}
+
+		body.align-center #chat > .message.hl-card .hl-gift-text {
+			text-align: center;
+		}
+
+		body.align-right #chat > .message.hl-card .hl-gift-text {
+			text-align: right;
+		}
+
+		.msg-count {
+			display: inline-block;
+			margin-left: 0.5em;
+			font-size: 0.85em;
+			font-weight: 900;
+			color: var(--text-color, #fff);
+			opacity: 0.75;
+			vertical-align: middle;
+		}
+
+		@keyframes msgCountPop {
+			0% { transform: scale(1.7); }
+			100% { transform: scale(1); }
+		}
+
+		.msg-count-pop {
+			animation: msgCountPop 0.25s ease-out;
+		}
+
+		.cheer {
+			display: inline-flex;
+			align-items: center;
+			gap: 2px;
+			vertical-align: middle;
+		}
+
+		.cheer-amount {
+			font-weight: 900;
+			margin-right: 6px;
+		}
+	`;
+
+	(document.head || document.documentElement).appendChild(style);
+}
+
+function applyLayoutSettings() {
+	ensureLayoutStyle();
+
+	document.body.classList.toggle("newest-top", newestTopEnabled);
+	document.body.classList.toggle("align-center", alignMode === "center");
+	document.body.classList.toggle("align-right", alignMode === "right");
+}
+
+applyLayoutSettings();

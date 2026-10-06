@@ -476,6 +476,37 @@ function createBadge(url, title) {
 	return img;
 }
 
+const TWITCH_BADGE_ORDER = [
+	"broadcaster",
+	"staff",
+	"admin",
+	"global_mod",
+	"moderator",
+	"lead_moderator",
+	"vip",
+	"artist-badge",
+	"founder",
+	"subscriber",
+	"sub-gifter",
+	"sub_gifter",
+	"bits-leader",
+	"bits",
+	"bits-charity",
+	"hype-train",
+	"predictions",
+	"partner",
+	"turbo",
+	"premium",
+];
+
+function twitchBadgeRank(entry) {
+	const slash = entry.indexOf("/");
+	const set = slash === -1 ? entry : entry.substring(0, slash);
+	const index = TWITCH_BADGE_ORDER.indexOf(set);
+
+	return index === -1 ? TWITCH_BADGE_ORDER.length : index;
+}
+
 function createTwitchBadges(tags) {
 	const container = document.createElement("span");
 
@@ -491,7 +522,17 @@ function createTwitchBadges(tags) {
 		return container;
 	}
 
-	for (const entry of badgeString.split(",").filter(Boolean)) {
+	const sortedEntries = badgeString
+		.split(",")
+		.filter(Boolean)
+		.map((entry, index) => ({ entry, index }))
+		.sort(
+			(a, b) =>
+				twitchBadgeRank(a.entry) - twitchBadgeRank(b.entry) || a.index - b.index,
+		)
+		.map(({ entry }) => entry);
+
+	for (const entry of sortedEntries) {
 		const slash = entry.indexOf("/");
 
 		if (slash === -1) {

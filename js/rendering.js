@@ -799,6 +799,16 @@ function renderExternalText(container, value, username = null, platform = "twitc
 			continue;
 		}
 
+		if (cheerRenderingActive) {
+			const cheer = parseCheermote(part);
+
+			if (cheer) {
+				container.appendChild(createCheermote(cheer, part));
+
+				continue;
+			}
+		}
+
 		if (highlightsEnabled) {
 			try {
 				const mentionMatch = part.match(/^(@?)(\w{2,25})(\W*)$/);
@@ -970,7 +980,119 @@ function applyEffectsToPreviousEmote(container, effects) {
 	return true;
 }
 
+let cheerRenderingActive = false;
+
+const CHEER_PREFIXES = new Set([
+	"cheer",
+	"bibblethump",
+	"cheerwhal",
+	"corgo",
+	"uni",
+	"showlove",
+	"party",
+	"seemsgood",
+	"pride",
+	"kappa",
+	"frankerz",
+	"heyguys",
+	"dansgame",
+	"elegiggle",
+	"trihard",
+	"kreygasm",
+	"4head",
+	"swiftrage",
+	"notlikethis",
+	"failfish",
+	"vohiyo",
+	"pjsalt",
+	"mrdestructoid",
+	"bday",
+	"ripcheer",
+	"shamrock",
+	"streamlabs",
+	"muxy",
+	"holidaycheer",
+	"goal",
+	"anon",
+	"charity",
+]);
+
+const CHEER_TIERS = [
+	{ id: 100000, color: "#ffb31a" },
+	{ id: 10000, color: "#f43021" },
+	{ id: 5000, color: "#0099fe" },
+	{ id: 1000, color: "#1db2a5" },
+	{ id: 100, color: "#9c3ee8" },
+	{ id: 1, color: "#979797" },
+];
+
+function parseCheermote(word) {
+	const match = /^([A-Za-z0-9]*?[A-Za-z])(\d{1,7})$/.exec(word);
+
+	if (!match) {
+		return null;
+	}
+
+	const prefix = match[1].toLowerCase();
+
+	if (!CHEER_PREFIXES.has(prefix)) {
+		return null;
+	}
+
+	const amount = Number(match[2]);
+
+	if (!(amount > 0)) {
+		return null;
+	}
+
+	const tier = CHEER_TIERS.find((entry) => amount >= entry.id);
+
+	return { prefix, amount, tier };
+}
+
+function createCheermote(info, word) {
+	const wrapper = document.createElement("span");
+
+	wrapper.className = "cheer";
+
+	const url =
+		`https://d3aqoihi2n8ty8.cloudfront.net/actions/` +
+		`${info.prefix}/dark/animated/${info.tier.id}/4.gif`;
+
+	const emote = createEmote(url, word);
+
+	emote.addEventListener(
+		"error",
+		() => {
+			wrapper.replaceWith(document.createTextNode(word));
+		},
+		{ once: true },
+	);
+
+	const amount = document.createElement("span");
+
+	amount.className = "cheer-amount";
+
+	amount.style.color = info.tier.color;
+
+	amount.textContent = String(info.amount);
+
+	wrapper.append(emote, amount);
+
+	return wrapper;
+}
+
 function renderMessageText(text, tags, username = null) {
+	cheerRenderingActive = cheersEnabled && Number(tags?.bits) > 0;
+
+	try {
+		return renderMessageTextInner(text, tags, username);
+	} finally {
+		cheerRenderingActive = false;
+	}
+}
+
+function renderMessageTextInner(text, tags, username = null) {
 	const container = document.createElement("span");
 
 	container.className = "text";
@@ -1232,6 +1354,148 @@ function hslToHex(h, s, l) {
 	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+let lastRepeat = null;
+
+function isMessageHidden(user, msg, tags = {}) {
+	if (botFilterUsers.length) {
+		const names = [user, tags.login, tags["display-name"]]
+			.filter(Boolean)
+			.map((name) => String(name).toLowerCase());
+
+		if (names.some((name) => botFilterUsers.includes(name))) {
+			return true;
+		}
+	}
+
+	if (messageFilters.length) {
+		const text = String(msg || "").toLowerCase();
+
+		if (messageFilters.some((word) => text.includes(word))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function getRepeatKey(replyInfo, tags) {
+	if (
+		tags["hl-kind"] ||
+		tags["custom-reward-id"] ||
+		tags["msg-id"] === "highlighted-message" ||
+		String(tags["first-msg"]) === "1" ||
+		Number(tags.bits) > 0 ||
+		tags.gifs ||
+		tags["reply-parent-display-name"]
+	) {
+		return null;
+	}
+
+	const key = String(replyInfo.message || "")
+		.trim()
+		.replace(/\s+/g, " ")
+		.toLowerCase();
+
+	return key || null;
+}
+
+function setRepeatBadge(element, count, animate = true) {
+	let badge = element.querySelector(":scope > .msg-count");
+
+	if (!badge) {
+		badge = document.createElement("span");
+
+		badge.className = "msg-count";
+
+		element.appendChild(badge);
+	}
+
+	badge.textContent = `x${count}`;
+
+	if (animate) {
+		badge.classList.remove("msg-count-pop");
+
+		void badge.offsetWidth;
+
+		badge.classList.add("msg-count-pop");
+	}
+}
+
+function bumpRepeat(state, previewEntry) {
+	state.count += 1;
+
+	setRepeatBadge(state.element, state.count);
+
+	if (state.entry) {
+		state.entry.count = state.count;
+		state.entry.createdAt = Date.now();
+
+		schedulePreviewFade(state.entry);
+
+		if (previewEntry && previewEntry !== state.entry) {
+			const index = previewMessageCache.indexOf(previewEntry);
+
+			if (index !== -1) {
+				previewMessageCache.splice(index, 1);
+			}
+		}
+
+		return;
+	}
+
+	scheduleMessageFade(
+		state.element,
+		state.element.dataset.messageId || null,
+		state.element.dataset.userKey || null,
+	);
+}
+
+function placeInChat(chat, element) {
+	if (newestTopEnabled && chat.firstChild) {
+		chat.insertBefore(element, chat.firstChild);
+	} else {
+		chat.appendChild(element);
+	}
+}
+
+function scrollPreviewToLatest(previewChat) {
+	previewChat.scrollTop = newestTopEnabled ? 0 : previewChat.scrollHeight;
+}
+
+function scheduleMessageFade(message, messageId, userKey) {
+	clearTimeout(message._fadeTimer);
+	clearTimeout(message._removeTimer);
+
+	message.style.animation = "";
+
+	if (fade === false) {
+		return;
+	}
+
+	message._fadeTimer = setTimeout(
+		() => {
+			message.style.animation = "messageFadeOut 1s ease-in forwards";
+
+			message._removeTimer = setTimeout(() => {
+				message.remove();
+
+				if (messageId) {
+					messageElements.delete(messageId);
+				}
+
+				if (userKey && userMessageElements.has(userKey)) {
+					userMessageElements.get(userKey).delete(message);
+
+					if (userMessageElements.get(userKey).size === 0) {
+						userMessageElements.delete(userKey);
+					}
+				}
+			}, 1000);
+		},
+		Math.max(0, fade * 1000 - 1000),
+	);
+}
+
 const previewMessageCache = [];
 const PREVIEW_CACHE_LIMIT = 12;
 const PREVIEW_FADE_OUT_MS = 1000;
@@ -1349,7 +1613,7 @@ function addPreviewMessage(user, msg, usernameColor, userId, tags = {}) {
 	);
 
 	requestAnimationFrame(() => {
-		previewChat.scrollTop = previewChat.scrollHeight;
+		scrollPreviewToLatest(previewChat);
 	});
 
 	return result;
@@ -1371,6 +1635,7 @@ function rerenderPreviewChat() {
 	previewChat.innerHTML = "";
 	messageElements.clear();
 	userMessageElements.clear();
+	lastRepeat = null;
 
 	const now = Date.now();
 
@@ -1397,7 +1662,7 @@ function rerenderPreviewChat() {
 	}
 
 	requestAnimationFrame(() => {
-		previewChat.scrollTop = previewChat.scrollHeight;
+		scrollPreviewToLatest(previewChat);
 	});
 }
 
@@ -1426,9 +1691,27 @@ async function onMsg(
 	const userKey =
 		userId == null ? null : platform === "twitch" ? userId : `${platform}:${userId}`;
 
+	if (isMessageHidden(user, msg, tags)) {
+		return;
+	}
+
 	registerChatter(user, usernameColor, userId, platform);
 
 	const replyInfo = getReplyInfo(tags, msg);
+
+	const repeatKey = collapseEnabled ? getRepeatKey(replyInfo, tags) : null;
+
+	if (
+		repeatKey &&
+		lastRepeat &&
+		lastRepeat.key === repeatKey &&
+		lastRepeat.element.isConnected &&
+		lastRepeat.element.parentNode === chat
+	) {
+		bumpRepeat(lastRepeat, previewEntry);
+
+		return;
+	}
 
 	const message = document.createElement("div");
 
@@ -1509,7 +1792,7 @@ async function onMsg(
 
 	applyMessageHighlights(message, tags, user);
 
-	chat.appendChild(message);
+	placeInChat(chat, message);
 
 	if (messageId) {
 		message.dataset.messageId = messageId;
@@ -1544,31 +1827,31 @@ async function onMsg(
 		}
 	}
 
+	if (userKey) {
+		message.dataset.userKey = userKey;
+	}
+
+	if (repeatKey) {
+		const count = previewEntry?.count > 1 ? previewEntry.count : 1;
+
+		lastRepeat = {
+			key: repeatKey,
+			element: message,
+			count,
+			entry: previewEntry,
+		};
+
+		if (count > 1) {
+			setRepeatBadge(message, count, false);
+		}
+	} else {
+		lastRepeat = null;
+	}
+
 	if (previewEntry) {
 		previewEntry.element = message;
 		schedulePreviewFade(previewEntry);
-	} else if (fade !== false) {
-		setTimeout(
-			() => {
-				message.style.animation = "messageFadeOut 1s ease-in forwards";
-
-				setTimeout(() => {
-					message.remove();
-
-					if (messageId) {
-						messageElements.delete(messageId);
-					}
-
-					if (userKey && userMessageElements.has(userKey)) {
-						userMessageElements.get(userKey).delete(message);
-
-						if (userMessageElements.get(userKey).size === 0) {
-							userMessageElements.delete(userKey);
-						}
-					}
-				}, 1000);
-			},
-			fade * 1000 - 1000,
-		);
+	} else {
+		scheduleMessageFade(message, messageId, userKey);
 	}
 }

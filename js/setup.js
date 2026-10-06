@@ -66,6 +66,13 @@ const previewMessages = [
 		{ badges: "vip/1,bot/1,omecash/1" },
 	],
 	[
+		"skibidifan5342",
+		"Cheer100 TAKE MY MONEY!",
+		"#1E90FF",
+		"733445521",
+		{ badges: "subscriber/1,omecash/1", bits: "100" },
+	],
+	[
 		"Underpaid_Actor",
 		"PagMan ffzSpin",
 		"#FF69B4",
@@ -1212,6 +1219,68 @@ function showOverlaySetupScreen() {
 			font-size: 10.5px;
 		}
 
+		#overlay-setup-screen .mc-send-dock {
+			position: relative;
+			flex: 0 0 auto;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px 12px;
+			border-top: 1px solid var(--mc-line);
+			background: var(--mc-surface);
+		}
+
+		#overlay-setup-screen .mc-send-badges {
+			flex: 0 0 auto;
+			display: flex;
+			align-items: center;
+		}
+
+		#overlay-setup-screen .mc-send-chips {
+			position: absolute;
+			left: 12px;
+			right: 12px;
+			bottom: calc(100% + 4px);
+			z-index: 5;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 4px;
+			pointer-events: none;
+		}
+
+		#overlay-setup-screen .mc-send-chips .mc-chip {
+			padding: 3px 8px;
+			pointer-events: auto;
+			background: var(--mc-surface);
+		}
+
+		#overlay-setup-screen .mc-send-badge-select {
+			width: 86px;
+		}
+
+		#overlay-setup-screen .mc-send-user {
+			flex: 0 0 120px;
+			width: 120px;
+		}
+
+		#overlay-setup-screen .mc-send-colon {
+			color: var(--mc-dim);
+			font-weight: 700;
+		}
+
+		#overlay-setup-screen .mc-send-text {
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		#overlay-setup-screen .mc-send-button {
+			flex: 0 0 auto;
+			width: auto;
+			margin: 0;
+			padding-left: 14px;
+			padding-right: 14px;
+		}
+
 		#overlay-setup-screen .mc-stage-canvas {
 			position: relative;
 			flex: 1;
@@ -1326,7 +1395,7 @@ function showOverlaySetupScreen() {
 
 			#overlay-setup-screen .mc-nav {
 				display: grid;
-				grid-template-columns: repeat(5, 1fr);
+				grid-template-columns: repeat(6, 1fr);
 			}
 
 			#overlay-setup-screen .mc-nav-button {
@@ -1509,6 +1578,52 @@ function showOverlaySetupScreen() {
 		#overlay-setup-screen .mc-multichat-close:hover {
 			border-color: var(--mc-dim);
 			background: #18181b;
+		}
+
+		#overlay-setup-screen .mc-textarea {
+			width: 100%;
+			min-height: 64px;
+			padding: 9px 11px;
+			border: 1px solid var(--mc-line-strong);
+			border-radius: 6px;
+			background: var(--mc-bg);
+			color: var(--mc-text);
+			outline: none;
+			font: inherit;
+			font-size: 11px;
+			resize: vertical;
+			box-sizing: border-box;
+		}
+
+		#overlay-setup-screen .mc-textarea:focus {
+			border-color: var(--mc-accent);
+		}
+
+		#overlay-setup-screen .mc-textarea::placeholder {
+			color: var(--mc-faint);
+		}
+
+		#overlay-setup-screen .mc-chip-row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+			margin-top: 8px;
+			min-height: 4px;
+		}
+
+		#overlay-setup-screen .mc-chip {
+			padding: 4px 9px;
+			border: 1px solid var(--mc-line-strong);
+			border-radius: 999px;
+			background: var(--mc-raised);
+			color: var(--mc-text);
+			font-size: 10px;
+			font-weight: 600;
+			cursor: pointer;
+		}
+
+		#overlay-setup-screen .mc-chip:hover {
+			border-color: var(--mc-dim);
 		}
 	`;
 
@@ -2267,6 +2382,45 @@ function showOverlaySetupScreen() {
 		showUnlisted7TV,
 	);
 
+	const cheersCheckbox = addToggle(
+		appearancePanel,
+		"Bit / cheer emotes",
+		"Show cheermotes (Cheer100 etc.) as images with the bit amount.",
+		"cheers",
+		cheersEnabled,
+	);
+	const collapseCheckbox = addToggle(
+		appearancePanel,
+		"Collapse repeated messages",
+		"Merge back-to-back identical messages into one with a counter (x4).",
+		"collapse",
+		collapseEnabled,
+	);
+	const newestTopCheckbox = addToggle(
+		appearancePanel,
+		"Newest on top",
+		"Show new messages at the top instead of the bottom.",
+		"newestTop",
+		newestTopEnabled,
+	);
+
+	const alignSelect = document.createElement("select");
+	alignSelect.className = "mc-select";
+
+	for (const [value, label] of [
+		["left", "Left"],
+		["center", "Center"],
+		["right", "Right"],
+	]) {
+		const option = document.createElement("option");
+		option.value = value;
+		option.textContent = label;
+		option.selected = value === alignMode;
+		alignSelect.appendChild(option);
+	}
+
+	addField(appearancePanel, "Message alignment", alignSelect);
+
 	const hlGroup = document.createElement("div");
 	hlGroup.className = "mc-group";
 
@@ -2558,11 +2712,219 @@ function showOverlaySetupScreen() {
 		"04",
 	);
 
+	const filtersPanel = createPanel(
+		"filters",
+		"Filters",
+		"Hide messages containing words, or messages from specific users and bots.",
+		"05",
+	);
+
+	const msgFilterInput = document.createElement("input");
+	msgFilterInput.type = "text";
+	msgFilterInput.className = "mc-input";
+	msgFilterInput.placeholder = "word, another word, spoiler";
+	msgFilterInput.value = messageFilters.join(", ");
+	msgFilterInput.autocomplete = "off";
+	msgFilterInput.spellcheck = false;
+	addField(filtersPanel, "Message filter (comma separated)", msgFilterInput);
+
+	const botFilterInput = document.createElement("input");
+	botFilterInput.type = "text";
+	botFilterInput.className = "mc-input";
+	botFilterInput.placeholder = "nightbot, streamelements, moobot";
+	botFilterInput.value = botFilterUsers.join(", ");
+	botFilterInput.autocomplete = "off";
+	botFilterInput.spellcheck = false;
+	addField(filtersPanel, "Bot / user filter (comma separated)", botFilterInput);
+
+	const filtersNote = document.createElement("div");
+	filtersNote.className = "mc-muted";
+	filtersNote.textContent =
+		"Message filter hides any message containing one of the words (not case sensitive). Bot filter hides everything sent by those usernames. Both are empty by default.";
+	filtersPanel.appendChild(filtersNote);
+
+	const sendPanel = document.createElement("section");
+	sendPanel.className = "mc-send-dock";
+	stage.appendChild(sendPanel);
+
+	const sendBadgeOptions = [
+		["broadcaster/1", "Broadcaster"],
+		["moderator/1", "Moderator"],
+		["vip/1", "VIP"],
+		["subscriber/1", "Subscriber"],
+		["founder/1", "Founder"],
+		["turbo/1", "Turbo"],
+		["premium/1", "Prime"],
+		["bot/1", "Bot"],
+	];
+	const sendBadges = [];
+
+	const sendBadgeWrap = document.createElement("div");
+	sendBadgeWrap.className = "mc-send-badges";
+
+	const sendChipRow = document.createElement("div");
+	sendChipRow.className = "mc-send-chips";
+
+	const sendBadgeSelect = document.createElement("select");
+	sendBadgeSelect.className = "mc-select mc-send-badge-select";
+	sendBadgeSelect.title = "Add badges";
+
+	const sendBadgePlaceholder = document.createElement("option");
+	sendBadgePlaceholder.value = "";
+	sendBadgePlaceholder.textContent = "Badge +";
+	sendBadgeSelect.appendChild(sendBadgePlaceholder);
+
+	for (const [value, label] of sendBadgeOptions) {
+		const option = document.createElement("option");
+		option.value = value;
+		option.textContent = label;
+		sendBadgeSelect.appendChild(option);
+	}
+
+	function renderSendBadgeChips() {
+		sendChipRow.innerHTML = "";
+
+		for (const badge of sendBadges) {
+			const chip = document.createElement("button");
+			chip.type = "button";
+			chip.className = "mc-chip";
+			chip.title = "Click to remove";
+			chip.textContent = `${badge.label} ✕`;
+			chip.addEventListener("click", () => {
+				sendBadges.splice(sendBadges.indexOf(badge), 1);
+				renderSendBadgeChips();
+			});
+			sendChipRow.appendChild(chip);
+		}
+	}
+
+	sendBadgeSelect.addEventListener("change", () => {
+		const value = sendBadgeSelect.value;
+		sendBadgeSelect.value = "";
+
+		if (!value || sendBadges.some((badge) => badge.value === value)) {
+			return;
+		}
+
+		const found = sendBadgeOptions.find(([optionValue]) => optionValue === value);
+		sendBadges.push({ value, label: found ? found[1] : value });
+		renderSendBadgeChips();
+	});
+
+	sendBadgeWrap.appendChild(sendBadgeSelect);
+
+	const sendUserInput = document.createElement("input");
+	sendUserInput.type = "text";
+	sendUserInput.className = "mc-input mc-send-user";
+	sendUserInput.placeholder = "Username";
+	sendUserInput.value = "marz_dev";
+	sendUserInput.autocomplete = "off";
+	sendUserInput.spellcheck = false;
+
+	const sendColon = document.createElement("span");
+	sendColon.className = "mc-send-colon";
+	sendColon.textContent = ":";
+
+	const sendTextInput = document.createElement("input");
+	sendTextInput.type = "text";
+	sendTextInput.className = "mc-input mc-send-text";
+	sendTextInput.placeholder = "Message (emotes work too)";
+	sendTextInput.autocomplete = "off";
+	sendTextInput.spellcheck = false;
+
+	const sendButton = document.createElement("button");
+	sendButton.type = "button";
+	sendButton.className = "mc-button mc-send-button";
+	sendButton.textContent = "Send";
+
+	sendPanel.append(
+		sendChipRow,
+		sendBadgeWrap,
+		sendUserInput,
+		sendColon,
+		sendTextInput,
+		sendButton,
+	);
+
+	const sendUserColors = new Map();
+
+	function randomUserColor() {
+		const hue = Math.floor(Math.random() * 360);
+		const s = 0.7;
+		const l = 0.6;
+		const a = s * Math.min(l, 1 - l);
+		const channel = (n) => {
+			const k = (n + hue / 30) % 12;
+			const value = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+			return Math.round(value * 255)
+				.toString(16)
+				.padStart(2, "0");
+		};
+
+		return `#${channel(0)}${channel(8)}${channel(4)}`;
+	}
+
+	function sendTestMessage() {
+		const text = sendTextInput.value.trim();
+
+		if (!text) {
+			sendTextInput.focus();
+			return;
+		}
+
+		const user = sendUserInput.value.trim() || "viewer";
+		const key = user.toLowerCase();
+
+		if (!sendUserColors.has(key)) {
+			sendUserColors.set(key, randomUserColor());
+		}
+
+		const tags = {};
+
+		if (sendBadges.length) {
+			tags.badges = sendBadges.map((badge) => badge.value).join(",");
+		}
+
+		let bits = 0;
+
+		for (const word of text.split(/\s+/)) {
+			const cheer = parseCheermote(word);
+
+			if (cheer) {
+				bits += cheer.amount;
+			}
+		}
+
+		if (bits > 0) {
+			tags.bits = String(bits);
+		}
+
+		addPreviewMessage(
+			user,
+			text,
+			sendUserColors.get(key),
+			String(900000000 + Math.floor(Math.random() * 99999999)),
+			tags,
+		);
+
+		sendTextInput.value = "";
+		sendTextInput.focus();
+	}
+
+	sendButton.addEventListener("click", sendTestMessage);
+
+	sendTextInput.addEventListener("keydown", (event) => {
+		if (event.key === "Enter") {
+			event.preventDefault();
+			sendTestMessage();
+		}
+	});
+
 	const helpPanel = createPanel(
 		"help",
 		"Help",
 		"Learn what MChat can do and how to use the overlay.",
-		"05",
+		"06",
 	);
 
 	const helpFeatures = [
@@ -2580,6 +2942,8 @@ function showOverlaySetupScreen() {
 		"You can scale the text and emotes independently.",
 		"You can set a fade time for messages or disable fading.",
 		"You can choose a background color and opacity for the whole chat, or disable the background.",
+		"Cheermotes, message and user filters, newest-on-top, alignment and repeated-message collapsing are all available.",
+		"Use Send Message to test how any message, badge or cheer looks in the preview.",
 		"Once adjusted to your liking, you may copy the link.",
 	];
 
@@ -2763,6 +3127,42 @@ function showOverlaySetupScreen() {
 		hlGiftsEnabled = hlGiftsCheckbox.checked;
 		rerenderPreviewChat();
 	});
+
+	cheersCheckbox.addEventListener("change", () => {
+		cheersEnabled = cheersCheckbox.checked;
+		rerenderPreviewChat();
+	});
+
+	collapseCheckbox.addEventListener("change", () => {
+		collapseEnabled = collapseCheckbox.checked;
+		rerenderPreviewChat();
+	});
+
+	newestTopCheckbox.addEventListener("change", () => {
+		newestTopEnabled = newestTopCheckbox.checked;
+		applyLayoutSettings();
+		rerenderPreviewChat();
+	});
+
+	alignSelect.addEventListener("change", () => {
+		alignMode = cleanAlign(alignSelect.value);
+		applyLayoutSettings();
+	});
+
+	let filterApplyTimer = null;
+
+	function applyFilterChange() {
+		clearTimeout(filterApplyTimer);
+
+		filterApplyTimer = setTimeout(() => {
+			messageFilters = parseQueryList(msgFilterInput.value);
+			botFilterUsers = parseQueryList(botFilterInput.value, { stripAt: true });
+			rerenderPreviewChat();
+		}, 400);
+	}
+
+	msgFilterInput.addEventListener("input", applyFilterChange);
+	botFilterInput.addEventListener("input", applyFilterChange);
 
 	function syncShadowState() {
 		shadowIntensityInput.disabled = !shadowCheckbox.checked;
@@ -2990,6 +3390,18 @@ function showOverlaySetupScreen() {
 			hlRedeems: hlRedeemsCheckbox.checked,
 
 			hlGifts: hlGiftsCheckbox.checked,
+
+			cheers: cheersCheckbox.checked,
+
+			collapse: collapseCheckbox.checked,
+
+			newestTop: newestTopCheckbox.checked,
+
+			align: alignSelect.value,
+
+			msgFilter: msgFilterInput.value,
+
+			botFilter: botFilterInput.value,
 
 			scale: Math.max(0.25, Math.min(Number(textScaleInput.value) || 1, 3)),
 
