@@ -965,6 +965,65 @@ function ensureLayoutStyle() {
 			text-align: right;
 		}
 
+		/* Wrapped lines must follow the alignment too, not just the first line. */
+		body.align-center #chat > .message,
+		body.align-center #chat > .message .text {
+			text-align: center !important;
+		}
+
+		body.align-right #chat > .message,
+		body.align-right #chat > .message .text {
+			text-align: right !important;
+		}
+
+		body.align-center #chat > .message.wrap-message:not(.hl-card) {
+			justify-content: center !important;
+		}
+
+		body.align-right #chat > .message.wrap-message:not(.hl-card) {
+			justify-content: flex-end !important;
+		}
+
+		body.align-center #chat > .message.wrap-message .text,
+		body.align-right #chat > .message.wrap-message .text {
+			flex: 0 1 auto;
+		}
+
+		/* In wrap mode the text is a fit-content block that sits at the left
+		   edge of the message box; auto margins move the box itself. */
+		body.align-center #chat > .message.wrap-message > .text {
+			margin-left: auto !important;
+			margin-right: auto !important;
+		}
+
+		body.align-right #chat > .message.wrap-message > .text {
+			margin-left: auto !important;
+			margin-right: 0 !important;
+		}
+
+		/* The text span lays its emotes out as flex items, so text-align alone
+		   does nothing there; justify each line explicitly. */
+		body.align-center #chat > .message .text {
+			justify-content: center !important;
+		}
+
+		body.align-right #chat > .message .text {
+			justify-content: flex-end !important;
+		}
+
+		/* Block-level GIFs need auto margins to move inside the message box. */
+		body.align-center #chat > .message .twitch-gif {
+			margin-left: auto !important;
+			margin-right: auto !important;
+			object-position: center center !important;
+		}
+
+		body.align-right #chat > .message .twitch-gif {
+			margin-left: auto !important;
+			margin-right: 0 !important;
+			object-position: right center !important;
+		}
+
 		/* Highlights stay full-width; only their contents get aligned. */
 		body.align-center #chat > .message.has-highlight,
 		body.align-center #chat > .message.hl-card {
@@ -997,7 +1056,7 @@ function ensureLayoutStyle() {
 		.msg-count {
 			display: inline-block;
 			margin-left: 0.5em;
-			font-size: 0.85em;
+			font-size: 1.2em;
 			font-weight: 900;
 			color: var(--text-color, #fff);
 			opacity: 0.75;

@@ -1357,27 +1357,38 @@ function hslToHex(h, s, l) {
 let lastRepeat = null;
 
 function isMessageHidden(user, msg, tags = {}) {
-	if (botFilterUsers.length) {
-		const names = [user, tags.login, tags["display-name"]]
-			.filter(Boolean)
-			.map((name) => String(name).toLowerCase());
+    if (botFilterUsers.length) {
+        const names = [user, tags.login, tags["display-name"]]
+            .filter(Boolean)
+            .map((name) => String(name).toLowerCase());
 
-		if (names.some((name) => botFilterUsers.includes(name))) {
-			return true;
-		}
-	}
+        if (names.some((name) => botFilterUsers.includes(name))) {
+            return true;
+        }
+    }
 
-	if (messageFilters.length) {
-		const text = String(msg || "").toLowerCase();
+    if (messageFilters.length) {
+        const text = String(msg || "");
 
-		if (messageFilters.some((word) => text.includes(word))) {
-			return true;
-		}
-	}
+        if (
+            messageFilters.some((word) => {
+                const filter = String(word || "").trim();
 
-	return false;
+                if (!filter) {
+                    return false;
+                }
+
+                const escaped = filter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+                return new RegExp(`(^|\\s)${escaped}(?=\\s|$)`, "i").test(text);
+            })
+        ) {
+            return true;
+        }
+    }
+
+    return false;
 }
-
 function getRepeatKey(replyInfo, tags) {
 	if (
 		tags["hl-kind"] ||
@@ -1793,6 +1804,10 @@ async function onMsg(
 	applyMessageHighlights(message, tags, user);
 
 	placeInChat(chat, message);
+
+	if (typeof applyMessageAlignment === "function") {
+		applyMessageAlignment(message);
+	}
 
 	if (messageId) {
 		message.dataset.messageId = messageId;

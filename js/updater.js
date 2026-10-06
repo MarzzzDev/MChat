@@ -21,7 +21,9 @@ const OVERLAY_FILES = [
     "setup.js",
     "main.js",
     "privacy.html",
-    "proxy.js"
+    "proxy.js",
+    "highlights.js",
+    "style.css"
 ];
 
 let lastKnownCommitSha = null;

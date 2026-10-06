@@ -81,6 +81,38 @@ const previewMessages = [
 	],
 ];
 let currentPreviewMessage = 0;
+
+const SIMULATE_CLIPS = [
+	"https://media.marz.lol/cs_1.mp4",
+	"https://media.marz.lol/cs_2.mp4",
+	"https://media.marz.lol/cs_3.mp4",
+	"https://media.marz.lol/cs_4.mp4",
+	"https://media.marz.lol/cs_5.mp4",
+	"https://media.marz.lol/cs_6.mp4",
+	"https://media.marz.lol/cs_7.mp4",
+	"https://media.marz.lol/cs_8.mp4",
+	"https://media.marz.lol/cs_9.mp4",
+	"https://media.marz.lol/cs_10.mp4",
+	"https://media.marz.lol/cs_11.mp4",
+	"https://media.marz.lol/cs_12.mp4",
+	"https://media.marz.lol/cs_13.mp4",
+];
+
+const SIM_ORIGIN = "https://media.marz.lol";
+
+function ensureMediaPreconnect() {
+	if (document.querySelector("link[data-mc-preconnect]")) {
+		return;
+	}
+
+	const link = document.createElement("link");
+	link.rel = "preconnect";
+	link.href = SIM_ORIGIN;
+	link.crossOrigin = "anonymous";
+	link.dataset.mcPreconnect = "true";
+	document.head.appendChild(link);
+}
+
 let badgeSources = {
 	twitch: badgeTwitch,
 	ffz: badgeFfz,
@@ -1219,68 +1251,6 @@ function showOverlaySetupScreen() {
 			font-size: 10.5px;
 		}
 
-		#overlay-setup-screen .mc-send-dock {
-			position: relative;
-			flex: 0 0 auto;
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			padding: 8px 12px;
-			border-top: 1px solid var(--mc-line);
-			background: var(--mc-surface);
-		}
-
-		#overlay-setup-screen .mc-send-badges {
-			flex: 0 0 auto;
-			display: flex;
-			align-items: center;
-		}
-
-		#overlay-setup-screen .mc-send-chips {
-			position: absolute;
-			left: 12px;
-			right: 12px;
-			bottom: calc(100% + 4px);
-			z-index: 5;
-			display: flex;
-			flex-wrap: wrap;
-			gap: 4px;
-			pointer-events: none;
-		}
-
-		#overlay-setup-screen .mc-send-chips .mc-chip {
-			padding: 3px 8px;
-			pointer-events: auto;
-			background: var(--mc-surface);
-		}
-
-		#overlay-setup-screen .mc-send-badge-select {
-			width: 86px;
-		}
-
-		#overlay-setup-screen .mc-send-user {
-			flex: 0 0 120px;
-			width: 120px;
-		}
-
-		#overlay-setup-screen .mc-send-colon {
-			color: var(--mc-dim);
-			font-weight: 700;
-		}
-
-		#overlay-setup-screen .mc-send-text {
-			flex: 1 1 auto;
-			min-width: 0;
-		}
-
-		#overlay-setup-screen .mc-send-button {
-			flex: 0 0 auto;
-			width: auto;
-			margin: 0;
-			padding-left: 14px;
-			padding-right: 14px;
-		}
-
 		#overlay-setup-screen .mc-stage-canvas {
 			position: relative;
 			flex: 1;
@@ -1625,6 +1595,151 @@ function showOverlaySetupScreen() {
 		#overlay-setup-screen .mc-chip:hover {
 			border-color: var(--mc-dim);
 		}
+
+		#overlay-setup-screen .mc-sim-btn {
+			height: 28px;
+			padding: 0 12px;
+			border: 1px solid var(--mc-line-strong);
+			border-radius: 6px;
+			background: var(--mc-raised);
+			color: var(--mc-text);
+			font-size: 10.5px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: background .15s ease, border-color .15s ease, color .15s ease;
+		}
+
+		#overlay-setup-screen .mc-sim-btn:hover {
+			border-color: var(--mc-accent);
+		}
+
+		#overlay-setup-screen .mc-sim-btn.is-active {
+			background: var(--mc-accent);
+			border-color: var(--mc-accent);
+			color: var(--mc-accent-ink);
+		}
+
+		#overlay-setup-screen .mc-sim-hint {
+			white-space: nowrap;
+		}
+
+		#overlay-setup-screen .mc-preview-frame.is-sim {
+			flex: none;
+			justify-content: flex-start;
+			background: #000;
+		}
+
+		#overlay-setup-screen .mc-sim-video {
+			position: absolute;
+			inset: 0;
+			z-index: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			background: #000;
+			pointer-events: none;
+		}
+
+		#overlay-setup-screen .mc-sim-note {
+			position: absolute;
+			inset: 0;
+			z-index: 1;
+			display: none;
+			place-items: center;
+			padding: 24px;
+			text-align: center;
+			color: var(--mc-dim);
+			font-size: 11px;
+			background: radial-gradient(circle at 50% 40%, #1b1b20, #09090b);
+			pointer-events: none;
+		}
+
+		#overlay-setup-screen .mc-sim-box {
+			position: absolute;
+			z-index: 3;
+			cursor: move;
+			touch-action: none;
+			user-select: none;
+			-webkit-user-select: none;
+			outline: 1px dashed transparent;
+		}
+
+		#overlay-setup-screen .mc-sim-box:hover,
+		#overlay-setup-screen .mc-sim-box.is-dragging {
+			outline-color: var(--mc-accent);
+		}
+
+		#overlay-setup-screen .mc-sim-inner {
+			transform-origin: 0 0;
+			pointer-events: none;
+			overflow: hidden;
+			overflow: clip;
+		}
+
+		#overlay-setup-screen .mc-sim-handle {
+			position: absolute;
+			right: -6px;
+			bottom: -6px;
+			width: 13px;
+			height: 13px;
+			border-radius: 3px;
+			background: var(--mc-accent);
+			cursor: nwse-resize;
+			opacity: 0;
+			transition: opacity .12s ease;
+		}
+
+		#overlay-setup-screen .mc-sim-box:hover .mc-sim-handle,
+		#overlay-setup-screen .mc-sim-box.is-dragging .mc-sim-handle {
+			opacity: 1;
+		}
+
+		#overlay-setup-screen .mc-sim-edge {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			width: 12px;
+			cursor: ew-resize;
+		}
+
+		#overlay-setup-screen .mc-sim-edge::after {
+			content: "";
+			position: absolute;
+			top: calc(50% - 18px);
+			height: 36px;
+			width: 4px;
+			border-radius: 2px;
+			background: var(--mc-accent);
+			opacity: 0;
+			transition: opacity .12s ease;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-l {
+			left: -6px;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-l::after {
+			left: 4px;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-r {
+			right: -6px;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-r::after {
+			right: 4px;
+		}
+
+		#overlay-setup-screen .mc-sim-box:hover .mc-sim-edge::after,
+		#overlay-setup-screen .mc-sim-box.is-dragging .mc-sim-edge::after {
+			opacity: 1;
+		}
+
+		@media (max-width: 1020px) {
+			#overlay-setup-screen .mc-sim-hint {
+				display: none !important;
+			}
+		}
 	`;
 
 	screen.appendChild(style);
@@ -1894,6 +2009,495 @@ function showOverlaySetupScreen() {
 			el.scrollLeft = 0;
 		});
 	}
+
+	const simulateButton = document.createElement("button");
+	simulateButton.type = "button";
+	simulateButton.className = "mc-sim-btn";
+	simulateButton.textContent = "Simulate";
+
+	const simNextButton = document.createElement("button");
+	simNextButton.type = "button";
+	simNextButton.className = "mc-sim-btn";
+	simNextButton.textContent = "Next clip";
+
+	const simResetButton = document.createElement("button");
+	simResetButton.type = "button";
+	simResetButton.className = "mc-sim-btn";
+	simResetButton.textContent = "Reset overlay";
+
+	const simHint = document.createElement("span");
+	simHint.className = "mc-sim-hint";
+
+	for (const el of [simHint, simNextButton, simResetButton]) {
+		el.style.display = "none";
+	}
+
+	stageMeta.appendChild(simHint);
+	stageMeta.appendChild(simNextButton);
+	stageMeta.appendChild(simResetButton);
+	stageMeta.appendChild(simulateButton);
+
+	const sim = {
+		active: false,
+		x: null,
+		y: null,
+		scale: 1,
+		w: 380,
+		h: 520,
+		clip: null,
+		failed: new Set(),
+	};
+
+	let simBox = null;
+	let simInner = null;
+	let simHandle = null;
+	let simEdgeL = null;
+	let simEdgeR = null;
+	let simVideo = null;
+	let simVideoNext = null;
+	let simActiveVideo = 0;
+	let simNextClip = null;
+	let simNote = null;
+	let simObserver = null;
+
+	const clampSimScale = (value) => Math.max(0.2, Math.min(4, value));
+	const clampSimWidth = (value) => Math.max(120, Math.min(1920, value));
+	const SIM_DEFAULT_WIDTH = 380;
+
+	function framePoint(event) {
+		const rect = previewFrame.getBoundingClientRect();
+		const k = rect.width / previewFrame.offsetWidth || 1;
+
+		return {
+			x: (event.clientX - rect.left) / k - previewFrame.clientLeft,
+			y: (event.clientY - rect.top) / k - previewFrame.clientTop,
+		};
+	}
+
+	function fitSimFrame() {
+		const cs = getComputedStyle(stageCanvas);
+		const availW =
+			stageCanvas.clientWidth -
+			parseFloat(cs.paddingLeft) -
+			parseFloat(cs.paddingRight);
+		const availH =
+			stageCanvas.clientHeight -
+			parseFloat(cs.paddingTop) -
+			parseFloat(cs.paddingBottom);
+
+		let w = availW;
+		let h = (w * 9) / 16;
+
+		if (h > availH) {
+			h = availH;
+			w = (h * 16) / 9;
+		}
+
+		previewFrame.style.width = `${Math.max(0, w)}px`;
+		previewFrame.style.height = `${Math.max(0, h)}px`;
+	}
+
+	function applySimBox() {
+		if (!simBox) {
+			return;
+		}
+
+		const fw = previewFrame.clientWidth;
+		const fh = previewFrame.clientHeight;
+		const bw = sim.w * sim.scale;
+		const bh = sim.h * sim.scale;
+
+		sim.x = Math.min(Math.max(sim.x, 48 - bw), fw - 48);
+		sim.y = Math.min(Math.max(sim.y, 48 - bh), fh - 48);
+
+		simBox.style.left = `${sim.x}px`;
+		simBox.style.top = `${sim.y}px`;
+		simBox.style.width = `${bw}px`;
+		simBox.style.height = `${bh}px`;
+
+		simInner.style.width = `${sim.w}px`;
+		simInner.style.height = `${sim.h}px`;
+		simInner.style.transform = `scale(${sim.scale})`;
+
+		simHint.textContent = `Drag to move | sides = width | corner / scroll = scale | ${Math.round(sim.w)}px | ${Math.round(sim.scale * 100)}%`;
+	}
+
+	function resetSimBox() {
+		const fw = previewFrame.clientWidth;
+		const fh = previewFrame.clientHeight;
+
+		sim.w = SIM_DEFAULT_WIDTH;
+		sim.scale = clampSimScale(Math.min(1, (fh - 32) / sim.h));
+		sim.x = Math.max(0, fw - sim.w * sim.scale - 16);
+		sim.y = Math.max(0, fh - sim.h * sim.scale - 16);
+
+		applySimBox();
+	}
+
+	function getRandomClip() {
+		const usable = SIMULATE_CLIPS.filter((clip) => !sim.failed.has(clip));
+
+		if (!usable.length) {
+			return null;
+		}
+
+		const others = usable.filter((clip) => clip !== sim.clip);
+		const pool = others.length ? others : usable;
+
+		return pool[Math.floor(Math.random() * pool.length)];
+	}
+
+	function prewarmFirstClip() {
+		ensureMediaPreconnect();
+	}
+
+	function preloadNextClip() {
+		if (!sim.active || !simVideoNext) {
+			return;
+		}
+
+		const clip = getRandomClip();
+
+		if (!clip) {
+			return;
+		}
+
+		simNextClip = clip;
+		simVideoNext.preload = "metadata";
+		simVideoNext.src = clip;
+		simVideoNext.load();
+	}
+
+	function switchToNextClip() {
+		if (!sim.active || !simVideo || !simVideoNext) {
+			return;
+		}
+
+		if (!simNextClip) {
+			playRandomClip();
+			return;
+		}
+		const oldVideo = simVideo;
+		const newVideo = simVideoNext;
+
+		simActiveVideo = simActiveVideo === 0 ? 1 : 0;
+
+		simVideo = newVideo;
+		simVideoNext = oldVideo;
+
+		sim.clip = simNextClip;
+		simNextClip = null;
+
+		oldVideo.pause();
+		oldVideo.removeAttribute("src");
+		oldVideo.load();
+
+		simVideo.preload = "auto";
+		simVideo.style.display = "block";
+		simVideoNext.style.display = "none";
+
+		simNote.style.display = "none";
+
+		simVideo.currentTime = 0;
+		simVideo.play().catch(() => {});
+
+		preloadNextClip();
+	}
+
+	function playRandomClip() {
+		if (!sim.active || !simVideo || !simVideoNext) {
+			return;
+		}
+
+		const clip = getRandomClip();
+
+		if (!clip) {
+			simNote.style.display = "";
+			return;
+		}
+
+		sim.clip = clip;
+
+		simVideo.preload = "auto";
+		simVideo.src = clip;
+		simVideo.load();
+
+		simVideoNext.removeAttribute("src");
+		simVideoNext.load();
+
+		simVideo.style.display = "block";
+		simVideoNext.style.display = "none";
+
+		simNote.style.display = "none";
+
+		simVideo.play().catch(() => {});
+
+		preloadNextClip();
+	}
+
+	function enterSimulation() {
+		if (sim.active) {
+			return;
+		}
+
+		sim.active = true;
+
+		previewFrame.classList.add("is-sim");
+		stageTitle.textContent = "Simulation";
+		simulateButton.textContent = "Return to Preview";
+		simulateButton.classList.add("is-active");
+
+		for (const el of [simHint, simNextButton, simResetButton]) {
+			el.style.display = "";
+		}
+
+		simVideo = document.createElement("video");
+		simVideoNext = document.createElement("video");
+
+		for (const video of [simVideo, simVideoNext]) {
+			video.className = "mc-sim-video";
+			video.muted = false;
+			video.autoplay = false;
+			video.playsInline = true;
+			video.preload = "auto";
+			video.style.display = "none";
+		}
+
+		simVideo.style.display = "block";
+
+		const onVideoEnded = (event) => {
+			if (event.target === simVideo) {
+				switchToNextClip();
+			}
+		};
+
+		const onVideoError = (event) => {
+			if (!sim.active) {
+				return;
+			}
+
+			if (event.target === simVideo) {
+				if (!sim.clip) {
+					return;
+				}
+
+				console.warn(`Simulation clip failed to load: ${sim.clip}`);
+				sim.failed.add(sim.clip);
+				sim.clip = null;
+				playRandomClip();
+			} else if (event.target === simVideoNext) {
+				if (!simNextClip) {
+					return;
+				}
+
+				console.warn(`Simulation clip failed to preload: ${simNextClip}`);
+				sim.failed.add(simNextClip);
+				simNextClip = null;
+				preloadNextClip();
+			}
+		};
+
+		for (const video of [simVideo, simVideoNext]) {
+			video.addEventListener("ended", onVideoEnded);
+			video.addEventListener("error", onVideoError);
+		}
+
+		simNote = document.createElement("div");
+		simNote.className = "mc-sim-note";
+
+		simBox = document.createElement("div");
+		simBox.className = "mc-sim-box";
+
+		simInner = document.createElement("div");
+		simInner.className = "mc-sim-inner";
+
+		simHandle = document.createElement("div");
+		simHandle.className = "mc-sim-handle";
+
+		simEdgeL = document.createElement("div");
+		simEdgeL.className = "mc-sim-edge mc-sim-edge-l";
+
+		simEdgeR = document.createElement("div");
+		simEdgeR.className = "mc-sim-edge mc-sim-edge-r";
+
+		simBox.appendChild(simInner);
+		simBox.appendChild(simEdgeL);
+		simBox.appendChild(simEdgeR);
+		simBox.appendChild(simHandle);
+
+		simInner.appendChild(previewChat);
+
+		previewFrame.appendChild(simVideo);
+		previewFrame.appendChild(simVideoNext);
+		previewFrame.appendChild(simNote);
+		previewFrame.appendChild(simBox);
+
+		fitSimFrame();
+
+		if (sim.x === null) {
+			resetSimBox();
+		} else {
+			applySimBox();
+		}
+
+		let drag = null;
+
+		simBox.addEventListener("pointerdown", (event) => {
+			if (event.button !== 0) {
+				return;
+			}
+
+			const p = framePoint(event);
+
+			let mode = "move";
+
+			if (event.target === simHandle) {
+				mode = "scale";
+			} else if (event.target === simEdgeL) {
+				mode = "width-l";
+			} else if (event.target === simEdgeR) {
+				mode = "width-r";
+			}
+
+			drag = {
+				mode,
+				dx: p.x - sim.x,
+				dy: p.y - sim.y,
+				right: sim.x + sim.w * sim.scale,
+			};
+
+			simBox.classList.add("is-dragging");
+			simBox.setPointerCapture(event.pointerId);
+			event.preventDefault();
+		});
+
+		simBox.addEventListener("pointermove", (event) => {
+			if (!drag) {
+				return;
+			}
+
+			const p = framePoint(event);
+
+			if (drag.mode === "move") {
+				sim.x = p.x - drag.dx;
+				sim.y = p.y - drag.dy;
+			} else if (drag.mode === "width-r") {
+				sim.w = clampSimWidth((p.x - sim.x) / sim.scale);
+			} else if (drag.mode === "width-l") {
+				sim.w = clampSimWidth((drag.right - p.x) / sim.scale);
+				sim.x = drag.right - sim.w * sim.scale;
+			} else {
+				sim.scale = clampSimScale(
+					Math.max((p.x - sim.x) / sim.w, (p.y - sim.y) / sim.h),
+				);
+			}
+
+			applySimBox();
+		});
+
+		const endDrag = () => {
+			drag = null;
+			simBox.classList.remove("is-dragging");
+		};
+
+		simBox.addEventListener("pointerup", endDrag);
+		simBox.addEventListener("pointercancel", endDrag);
+
+		simBox.addEventListener(
+			"wheel",
+			(event) => {
+				event.preventDefault();
+
+				const p = framePoint(event);
+				const next = clampSimScale(
+					sim.scale * (event.deltaY < 0 ? 1.06 : 1 / 1.06),
+				);
+				const lx = (p.x - sim.x) / sim.scale;
+				const ly = (p.y - sim.y) / sim.scale;
+
+				sim.scale = next;
+				sim.x = p.x - lx * next;
+				sim.y = p.y - ly * next;
+
+				applySimBox();
+			},
+			{ passive: false },
+		);
+
+		simObserver = new ResizeObserver(() => {
+			fitSimFrame();
+			applySimBox();
+		});
+		simObserver.observe(stageCanvas);
+
+		playRandomClip();
+	}
+
+	function exitSimulation() {
+		if (!sim.active) {
+			return;
+		}
+
+		sim.active = false;
+		sim.clip = null;
+
+		if (simObserver) {
+			simObserver.disconnect();
+			simObserver = null;
+		}
+
+		for (const video of [simVideo, simVideoNext]) {
+			if (video) {
+				video.pause();
+				video.removeAttribute("src");
+				video.load();
+				video.remove();
+			}
+		}
+
+		simVideo = null;
+		simVideoNext = null;
+		simNextClip = null;
+		simActiveVideo = 0;
+
+		previewFrame.appendChild(previewChat);
+
+		simBox.remove();
+		simNote.remove();
+
+		simBox = simInner = simHandle = simEdgeL = simEdgeR = simNote = null;
+
+		previewFrame.classList.remove("is-sim");
+		previewFrame.style.width = "";
+		previewFrame.style.height = "";
+
+		stageTitle.textContent = "Preview Chat";
+		simulateButton.textContent = "Simulate";
+		simulateButton.classList.remove("is-active");
+
+		for (const el of [simHint, simNextButton, simResetButton]) {
+			el.style.display = "none";
+		}
+	}
+
+	simulateButton.addEventListener("click", () => {
+		if (sim.active) {
+			exitSimulation();
+		} else {
+			enterSimulation();
+		}
+	});
+
+	simNextButton.addEventListener("click", () => {
+		sim.failed.clear();
+		playRandomClip();
+	});
+
+	simResetButton.addEventListener("click", () => {
+		resetSimBox();
+	});
+
+	screen._exitSimulation = exitSimulation;
 
 	function createPanel(id, navTitle, navDesc, icon) {
 		const panel = document.createElement("section");
@@ -2743,183 +3347,6 @@ function showOverlaySetupScreen() {
 		"Message filter hides any message containing one of the words (not case sensitive). Bot filter hides everything sent by those usernames. Both are empty by default.";
 	filtersPanel.appendChild(filtersNote);
 
-	const sendPanel = document.createElement("section");
-	sendPanel.className = "mc-send-dock";
-	stage.appendChild(sendPanel);
-
-	const sendBadgeOptions = [
-		["broadcaster/1", "Broadcaster"],
-		["moderator/1", "Moderator"],
-		["vip/1", "VIP"],
-		["subscriber/1", "Subscriber"],
-		["founder/1", "Founder"],
-		["turbo/1", "Turbo"],
-		["premium/1", "Prime"],
-		["bot/1", "Bot"],
-	];
-	const sendBadges = [];
-
-	const sendBadgeWrap = document.createElement("div");
-	sendBadgeWrap.className = "mc-send-badges";
-
-	const sendChipRow = document.createElement("div");
-	sendChipRow.className = "mc-send-chips";
-
-	const sendBadgeSelect = document.createElement("select");
-	sendBadgeSelect.className = "mc-select mc-send-badge-select";
-	sendBadgeSelect.title = "Add badges";
-
-	const sendBadgePlaceholder = document.createElement("option");
-	sendBadgePlaceholder.value = "";
-	sendBadgePlaceholder.textContent = "Badge +";
-	sendBadgeSelect.appendChild(sendBadgePlaceholder);
-
-	for (const [value, label] of sendBadgeOptions) {
-		const option = document.createElement("option");
-		option.value = value;
-		option.textContent = label;
-		sendBadgeSelect.appendChild(option);
-	}
-
-	function renderSendBadgeChips() {
-		sendChipRow.innerHTML = "";
-
-		for (const badge of sendBadges) {
-			const chip = document.createElement("button");
-			chip.type = "button";
-			chip.className = "mc-chip";
-			chip.title = "Click to remove";
-			chip.textContent = `${badge.label} ✕`;
-			chip.addEventListener("click", () => {
-				sendBadges.splice(sendBadges.indexOf(badge), 1);
-				renderSendBadgeChips();
-			});
-			sendChipRow.appendChild(chip);
-		}
-	}
-
-	sendBadgeSelect.addEventListener("change", () => {
-		const value = sendBadgeSelect.value;
-		sendBadgeSelect.value = "";
-
-		if (!value || sendBadges.some((badge) => badge.value === value)) {
-			return;
-		}
-
-		const found = sendBadgeOptions.find(([optionValue]) => optionValue === value);
-		sendBadges.push({ value, label: found ? found[1] : value });
-		renderSendBadgeChips();
-	});
-
-	sendBadgeWrap.appendChild(sendBadgeSelect);
-
-	const sendUserInput = document.createElement("input");
-	sendUserInput.type = "text";
-	sendUserInput.className = "mc-input mc-send-user";
-	sendUserInput.placeholder = "Username";
-	sendUserInput.value = "marz_dev";
-	sendUserInput.autocomplete = "off";
-	sendUserInput.spellcheck = false;
-
-	const sendColon = document.createElement("span");
-	sendColon.className = "mc-send-colon";
-	sendColon.textContent = ":";
-
-	const sendTextInput = document.createElement("input");
-	sendTextInput.type = "text";
-	sendTextInput.className = "mc-input mc-send-text";
-	sendTextInput.placeholder = "Message (emotes work too)";
-	sendTextInput.autocomplete = "off";
-	sendTextInput.spellcheck = false;
-
-	const sendButton = document.createElement("button");
-	sendButton.type = "button";
-	sendButton.className = "mc-button mc-send-button";
-	sendButton.textContent = "Send";
-
-	sendPanel.append(
-		sendChipRow,
-		sendBadgeWrap,
-		sendUserInput,
-		sendColon,
-		sendTextInput,
-		sendButton,
-	);
-
-	const sendUserColors = new Map();
-
-	function randomUserColor() {
-		const hue = Math.floor(Math.random() * 360);
-		const s = 0.7;
-		const l = 0.6;
-		const a = s * Math.min(l, 1 - l);
-		const channel = (n) => {
-			const k = (n + hue / 30) % 12;
-			const value = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-			return Math.round(value * 255)
-				.toString(16)
-				.padStart(2, "0");
-		};
-
-		return `#${channel(0)}${channel(8)}${channel(4)}`;
-	}
-
-	function sendTestMessage() {
-		const text = sendTextInput.value.trim();
-
-		if (!text) {
-			sendTextInput.focus();
-			return;
-		}
-
-		const user = sendUserInput.value.trim() || "viewer";
-		const key = user.toLowerCase();
-
-		if (!sendUserColors.has(key)) {
-			sendUserColors.set(key, randomUserColor());
-		}
-
-		const tags = {};
-
-		if (sendBadges.length) {
-			tags.badges = sendBadges.map((badge) => badge.value).join(",");
-		}
-
-		let bits = 0;
-
-		for (const word of text.split(/\s+/)) {
-			const cheer = parseCheermote(word);
-
-			if (cheer) {
-				bits += cheer.amount;
-			}
-		}
-
-		if (bits > 0) {
-			tags.bits = String(bits);
-		}
-
-		addPreviewMessage(
-			user,
-			text,
-			sendUserColors.get(key),
-			String(900000000 + Math.floor(Math.random() * 99999999)),
-			tags,
-		);
-
-		sendTextInput.value = "";
-		sendTextInput.focus();
-	}
-
-	sendButton.addEventListener("click", sendTestMessage);
-
-	sendTextInput.addEventListener("keydown", (event) => {
-		if (event.key === "Enter") {
-			event.preventDefault();
-			sendTestMessage();
-		}
-	});
-
 	const helpPanel = createPanel(
 		"help",
 		"Help",
@@ -2932,6 +3359,7 @@ function showOverlaySetupScreen() {
 		"7TV Paints, FFZ, BTTV and Twitch badges are supported.",
 		"MChat is the only overlay that supports all effects, including FFZ and BTTV effect (ffzCursed, h!, etc)",
 		"We have support for badges from every single platform available, and if there's a platform we're missing let us know!",
+		"We are the first overlay with support of previewing the overlay with REAL clips, so you dont have to guess how it will look, you will know right in this setup.",
 		"We support Kick, Twitch and Youtube all together.",
 		"If any new feature is added, the overlay will be automatically refreshed to have the newest features at all times, with no need to do it manually.",
 		"GIFs are supported, but can be disabled for performance.",
@@ -2943,7 +3371,6 @@ function showOverlaySetupScreen() {
 		"You can set a fade time for messages or disable fading.",
 		"You can choose a background color and opacity for the whole chat, or disable the background.",
 		"Cheermotes, message and user filters, newest-on-top, alignment and repeated-message collapsing are all available.",
-		"Use Send Message to test how any message, badge or cheer looks in the preview.",
 		"Once adjusted to your liking, you may copy the link.",
 	];
 
@@ -3488,6 +3915,7 @@ function showOverlaySetupScreen() {
 	});
 
 	syncFadeState();
+	prewarmFirstClip();
 	startPreviewMessages();
 }
 
@@ -3515,6 +3943,10 @@ function hideOverlaySetupScreen() {
 	}
 
 	stopPreviewMessages();
+
+	if (typeof screen._exitSimulation === "function") {
+		screen._exitSimulation();
+	}
 
 	const chat = document.getElementById("chat");
 
