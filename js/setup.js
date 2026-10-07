@@ -1730,9 +1730,68 @@ function showOverlaySetupScreen() {
 			right: 4px;
 		}
 
+		#overlay-setup-screen .mc-sim-edge-t,
+		#overlay-setup-screen .mc-sim-edge-b {
+			left: 0;
+			right: 0;
+			width: auto;
+			height: 12px;
+			cursor: ns-resize;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-t::after,
+		#overlay-setup-screen .mc-sim-edge-b::after {
+			left: calc(50% - 18px);
+			width: 36px;
+			height: 4px;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-t {
+			top: -6px;
+			bottom: auto;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-t::after {
+			top: 4px;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-b {
+			top: auto;
+			bottom: -6px;
+		}
+
+		#overlay-setup-screen .mc-sim-edge-b::after {
+			top: auto;
+			bottom: 4px;
+		}
+
 		#overlay-setup-screen .mc-sim-box:hover .mc-sim-edge::after,
 		#overlay-setup-screen .mc-sim-box.is-dragging .mc-sim-edge::after {
 			opacity: 1;
+		}
+
+		#overlay-setup-screen .mc-sim-drag {
+			display: inline-flex;
+			align-items: center;
+			cursor: grab;
+			user-select: none;
+			-webkit-user-select: none;
+		}
+
+		#overlay-setup-screen .mc-sim-drag:active {
+			cursor: grabbing;
+		}
+
+		#overlay-setup-screen .mc-drag-button {
+			display: grid;
+			place-items: center;
+			cursor: grab;
+			user-select: none;
+			-webkit-user-select: none;
+		}
+
+		#overlay-setup-screen .mc-drag-button:active {
+			cursor: grabbing;
 		}
 
 		@media (max-width: 1020px) {
@@ -2025,16 +2084,22 @@ function showOverlaySetupScreen() {
 	simResetButton.className = "mc-sim-btn";
 	simResetButton.textContent = "Reset overlay";
 
+	const simExportButton = document.createElement("div");
+	simExportButton.className = "mc-sim-btn mc-sim-drag";
+	simExportButton.draggable = true;
+	simExportButton.textContent = "Drag me into OBS";
+
 	const simHint = document.createElement("span");
 	simHint.className = "mc-sim-hint";
 
-	for (const el of [simHint, simNextButton, simResetButton]) {
+	for (const el of [simHint, simNextButton, simResetButton, simExportButton]) {
 		el.style.display = "none";
 	}
 
 	stageMeta.appendChild(simHint);
 	stageMeta.appendChild(simNextButton);
 	stageMeta.appendChild(simResetButton);
+	stageMeta.appendChild(simExportButton);
 	stageMeta.appendChild(simulateButton);
 
 	const sim = {
@@ -2053,6 +2118,8 @@ function showOverlaySetupScreen() {
 	let simHandle = null;
 	let simEdgeL = null;
 	let simEdgeR = null;
+	let simEdgeT = null;
+	let simEdgeB = null;
 	let simVideo = null;
 	let simVideoNext = null;
 	let simActiveVideo = 0;
@@ -2062,7 +2129,9 @@ function showOverlaySetupScreen() {
 
 	const clampSimScale = (value) => Math.max(0.2, Math.min(4, value));
 	const clampSimWidth = (value) => Math.max(120, Math.min(1920, value));
+	const clampSimHeight = (value) => Math.max(80, Math.min(2160, value));
 	const SIM_DEFAULT_WIDTH = 380;
+	const SIM_DEFAULT_HEIGHT = 520;
 
 	function framePoint(event) {
 		const rect = previewFrame.getBoundingClientRect();
@@ -2107,6 +2176,8 @@ function showOverlaySetupScreen() {
 		const bw = sim.w * sim.scale;
 		const bh = sim.h * sim.scale;
 
+		sim.fw = fw;
+
 		sim.x = Math.min(Math.max(sim.x, 48 - bw), fw - 48);
 		sim.y = Math.min(Math.max(sim.y, 48 - bh), fh - 48);
 
@@ -2119,7 +2190,7 @@ function showOverlaySetupScreen() {
 		simInner.style.height = `${sim.h}px`;
 		simInner.style.transform = `scale(${sim.scale})`;
 
-		simHint.textContent = `Drag to move | sides = width | corner / scroll = scale | ${Math.round(sim.w)}px | ${Math.round(sim.scale * 100)}%`;
+		simHint.textContent = `Drag to move | sides = width | top/bottom = height | corner / scroll = scale | ${Math.round(sim.w)}x${Math.round(sim.h)}px | ${Math.round(sim.scale * 100)}%`;
 	}
 
 	function resetSimBox() {
@@ -2127,12 +2198,63 @@ function showOverlaySetupScreen() {
 		const fh = previewFrame.clientHeight;
 
 		sim.w = SIM_DEFAULT_WIDTH;
+		sim.h = SIM_DEFAULT_HEIGHT;
 		sim.scale = clampSimScale(Math.min(1, (fh - 32) / sim.h));
 		sim.x = Math.max(0, fw - sim.w * sim.scale - 16);
 		sim.y = Math.max(0, fh - sim.h * sim.scale - 16);
 
 		applySimBox();
 	}
+
+	function buildDropUrl() {
+		const url = getOverlayUrl();
+
+		if (!url) {
+			return null;
+		}
+
+		const dropUrl = new URL(url);
+
+		dropUrl.searchParams.set("layer-name", "MChat");
+
+		if (sim.x !== null) {
+			const k = 1920 / (sim.fw || 1);
+
+			dropUrl.searchParams.set(
+				"layer-width",
+				String(Math.max(1, Math.round(sim.w * sim.scale * k))),
+			);
+			dropUrl.searchParams.set(
+				"layer-height",
+				String(Math.max(1, Math.round(sim.h * sim.scale * k))),
+			);
+			dropUrl.searchParams.set(
+				"mcfit",
+				`${Math.round(sim.w)},${Math.round(sim.h)}`,
+			);
+		}
+
+		return dropUrl.toString();
+	}
+
+	function attachDropDrag(element) {
+		element.draggable = true;
+
+		element.addEventListener("dragstart", (event) => {
+			const dropUrl = buildDropUrl();
+
+			if (!dropUrl) {
+				event.preventDefault();
+				return;
+			}
+
+			event.dataTransfer.effectAllowed = "copyLink";
+			event.dataTransfer.setData("text/uri-list", dropUrl);
+			event.dataTransfer.setData("text/plain", dropUrl);
+		});
+	}
+
+	attachDropDrag(simExportButton);
 
 	function getRandomClip() {
 		const usable = SIMULATE_CLIPS.filter((clip) => !sim.failed.has(clip));
@@ -2247,7 +2369,7 @@ function showOverlaySetupScreen() {
 		simulateButton.textContent = "Return to Preview";
 		simulateButton.classList.add("is-active");
 
-		for (const el of [simHint, simNextButton, simResetButton]) {
+		for (const el of [simHint, simNextButton, simResetButton, simExportButton]) {
 			el.style.display = "";
 		}
 
@@ -2320,12 +2442,21 @@ function showOverlaySetupScreen() {
 		simEdgeR = document.createElement("div");
 		simEdgeR.className = "mc-sim-edge mc-sim-edge-r";
 
+		simEdgeT = document.createElement("div");
+		simEdgeT.className = "mc-sim-edge mc-sim-edge-t";
+
+		simEdgeB = document.createElement("div");
+		simEdgeB.className = "mc-sim-edge mc-sim-edge-b";
+
 		simBox.appendChild(simInner);
+		simBox.appendChild(simEdgeT);
+		simBox.appendChild(simEdgeB);
 		simBox.appendChild(simEdgeL);
 		simBox.appendChild(simEdgeR);
 		simBox.appendChild(simHandle);
 
 		simInner.appendChild(previewChat);
+		previewChat.style.padding = previewChat.dataset.originalPadding || "";
 
 		previewFrame.appendChild(simVideo);
 		previewFrame.appendChild(simVideoNext);
@@ -2357,6 +2488,10 @@ function showOverlaySetupScreen() {
 				mode = "width-l";
 			} else if (event.target === simEdgeR) {
 				mode = "width-r";
+			} else if (event.target === simEdgeT) {
+				mode = "height-t";
+			} else if (event.target === simEdgeB) {
+				mode = "height-b";
 			}
 
 			drag = {
@@ -2364,6 +2499,7 @@ function showOverlaySetupScreen() {
 				dx: p.x - sim.x,
 				dy: p.y - sim.y,
 				right: sim.x + sim.w * sim.scale,
+				bottom: sim.y + sim.h * sim.scale,
 			};
 
 			simBox.classList.add("is-dragging");
@@ -2386,6 +2522,11 @@ function showOverlaySetupScreen() {
 			} else if (drag.mode === "width-l") {
 				sim.w = clampSimWidth((drag.right - p.x) / sim.scale);
 				sim.x = drag.right - sim.w * sim.scale;
+			} else if (drag.mode === "height-b") {
+				sim.h = clampSimHeight((p.y - sim.y) / sim.scale);
+			} else if (drag.mode === "height-t") {
+				sim.h = clampSimHeight((drag.bottom - p.y) / sim.scale);
+				sim.y = drag.bottom - sim.h * sim.scale;
 			} else {
 				sim.scale = clampSimScale(
 					Math.max((p.x - sim.x) / sim.w, (p.y - sim.y) / sim.h),
@@ -2460,12 +2601,21 @@ function showOverlaySetupScreen() {
 		simNextClip = null;
 		simActiveVideo = 0;
 
+		previewChat.style.padding = "22px";
 		previewFrame.appendChild(previewChat);
 
 		simBox.remove();
 		simNote.remove();
 
-		simBox = simInner = simHandle = simEdgeL = simEdgeR = simNote = null;
+		simBox =
+			simInner =
+			simHandle =
+			simEdgeL =
+			simEdgeR =
+			simEdgeT =
+			simEdgeB =
+			simNote =
+				null;
 
 		previewFrame.classList.remove("is-sim");
 		previewFrame.style.width = "";
@@ -2475,7 +2625,7 @@ function showOverlaySetupScreen() {
 		simulateButton.textContent = "Simulate";
 		simulateButton.classList.remove("is-active");
 
-		for (const el of [simHint, simNextButton, simResetButton]) {
+		for (const el of [simHint, simNextButton, simResetButton, simExportButton]) {
 			el.style.display = "none";
 		}
 	}
@@ -2812,7 +2962,7 @@ function showOverlaySetupScreen() {
 	const connectionText = document.createElement("div");
 	connectionText.className = "mc-muted";
 	connectionText.textContent =
-		"Generate the URL with the current overlay settings. Paste it into an OBS Browser Source.";
+		"Drag the button below into the OBS preview and confirm the prompt. OBS adds the overlay as a browser source with your current settings. If you used Simulate, it also gets the size and scale from there.";
 	connectionText.style.lineHeight = "1.55";
 	connectionPanel.appendChild(connectionText);
 
@@ -3360,6 +3510,7 @@ function showOverlaySetupScreen() {
 		"MChat is the only overlay that supports all effects, including FFZ and BTTV effect (ffzCursed, h!, etc)",
 		"We have support for badges from every single platform available, and if there's a platform we're missing let us know!",
 		"We are the first overlay with support of previewing the overlay with REAL clips, so you dont have to guess how it will look, you will know right in this setup.",
+		"In Simulate mode you can drag the overlay, resize its width and height from the sides, top and bottom, scale it, and drag it into OBS with the same size and scale using the Drag me into OBS button.",
 		"We support Kick, Twitch and Youtube all together.",
 		"If any new feature is added, the overlay will be automatically refreshed to have the newest features at all times, with no need to do it manually.",
 		"GIFs are supported, but can be disabled for performance.",
@@ -3436,11 +3587,10 @@ function showOverlaySetupScreen() {
 	const actions = document.createElement("div");
 	actions.className = "mc-actions";
 
-	const copyButton = document.createElement("button");
-	copyButton.type = "button";
-	copyButton.className = "mc-button mc-button-full";
-
-	copyButton.textContent = "Copy overlay link";
+	const copyButton = document.createElement("div");
+	copyButton.className = "mc-button mc-button-full mc-drag-button";
+	copyButton.textContent = "Drag me into OBS";
+	attachDropDrag(copyButton);
 
 	actions.appendChild(copyButton);
 
@@ -3746,7 +3896,7 @@ function showOverlaySetupScreen() {
 		input.addEventListener("keydown", (event) => {
 			if (event.key === "Enter") {
 				event.preventDefault();
-				copyButton.click();
+				event.target.blur();
 			}
 		});
 	}
@@ -3754,7 +3904,7 @@ function showOverlaySetupScreen() {
 	channelInput.addEventListener("keydown", (event) => {
 		if (event.key === "Enter") {
 			event.preventDefault();
-			copyButton.click();
+			event.target.blur();
 		}
 	});
 
@@ -3889,31 +4039,6 @@ function showOverlaySetupScreen() {
 		return url.toString();
 	}
 
-	copyButton.addEventListener("click", async () => {
-		const url = getOverlayUrl();
-		if (!url) {
-			return;
-		}
-
-		try {
-			await navigator.clipboard.writeText(url);
-		} catch {
-			const textarea = document.createElement("textarea");
-			textarea.value = url;
-			textarea.style.position = "fixed";
-			textarea.style.opacity = "0";
-			document.body.appendChild(textarea);
-			textarea.select();
-			document.execCommand("copy");
-			textarea.remove();
-		}
-
-		copyButton.textContent = "Link copied";
-		window.setTimeout(() => {
-			copyButton.textContent = "Copy overlay link";
-		}, 1500);
-	});
-
 	syncFadeState();
 	prewarmFirstClip();
 	startPreviewMessages();
@@ -3985,3 +4110,45 @@ function hideOverlaySetupScreen() {
 	screen.remove();
 	applyChatBackground();
 }
+
+(function applyFitParams() {
+	const raw = new URLSearchParams(window.location.search).get("mcfit");
+
+	if (!raw) {
+		return;
+	}
+
+	const [w, h] = raw.split(",").map(Number);
+
+	if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+		return;
+	}
+
+	function apply() {
+		if (document.getElementById("overlay-setup-screen")) {
+			return;
+		}
+
+		const chat = document.getElementById("chat");
+
+		if (!chat) {
+			return;
+		}
+
+		const set = (key, value) => chat.style.setProperty(key, value, "important");
+
+		set("position", "fixed");
+		set("left", "0px");
+		set("top", "0px");
+		set("right", "auto");
+		set("bottom", "auto");
+		set("width", `${w}px`);
+		set("height", `${h}px`);
+		set("transform-origin", "0 0");
+		set("transform", `scale(${window.innerWidth / w})`);
+	}
+
+	document.addEventListener("DOMContentLoaded", apply);
+	window.addEventListener("resize", apply);
+	window.setInterval(apply, 500);
+})();
