@@ -1,6 +1,7 @@
 # Marz' Overlay
 
 A feature-packed chat overlay built with customization in mind, bringing effects, badges, and more to your stream.
+This README Isn't frequently updated, so check out the site at https://mchat.marz.lol !
 
 ### Features
 
