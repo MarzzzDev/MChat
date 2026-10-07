@@ -3587,10 +3587,11 @@ function showOverlaySetupScreen() {
 	const actions = document.createElement("div");
 	actions.className = "mc-actions";
 
-	const copyButton = document.createElement("div");
-	copyButton.className = "mc-button mc-button-full mc-drag-button";
-	copyButton.textContent = "Drag me into OBS";
-	attachDropDrag(copyButton);
+	const copyButton = document.createElement("button");
+	copyButton.type = "button";
+	copyButton.className = "mc-button mc-button-full";
+
+	copyButton.textContent = "Copy overlay link";
 
 	actions.appendChild(copyButton);
 
@@ -3896,7 +3897,7 @@ function showOverlaySetupScreen() {
 		input.addEventListener("keydown", (event) => {
 			if (event.key === "Enter") {
 				event.preventDefault();
-				event.target.blur();
+				copyButton.click();
 			}
 		});
 	}
@@ -3904,7 +3905,7 @@ function showOverlaySetupScreen() {
 	channelInput.addEventListener("keydown", (event) => {
 		if (event.key === "Enter") {
 			event.preventDefault();
-			event.target.blur();
+			copyButton.click();
 		}
 	});
 
@@ -4038,6 +4039,31 @@ function showOverlaySetupScreen() {
 
 		return url.toString();
 	}
+
+	copyButton.addEventListener("click", async () => {
+		const url = getOverlayUrl();
+		if (!url) {
+			return;
+		}
+
+		try {
+			await navigator.clipboard.writeText(url);
+		} catch {
+			const textarea = document.createElement("textarea");
+			textarea.value = url;
+			textarea.style.position = "fixed";
+			textarea.style.opacity = "0";
+			document.body.appendChild(textarea);
+			textarea.select();
+			document.execCommand("copy");
+			textarea.remove();
+		}
+
+		copyButton.textContent = "Link copied";
+		window.setTimeout(() => {
+			copyButton.textContent = "Copy overlay link";
+		}, 1500);
+	});
 
 	syncFadeState();
 	prewarmFirstClip();
