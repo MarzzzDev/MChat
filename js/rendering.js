@@ -1787,7 +1787,7 @@ async function onMsg(
 
 	usernameElement.className = "username";
 
-	usernameElement.textContent = user + (tags["is-action"] ? " " : ": ");
+	usernameElement.textContent = user + (tags["is-action"] ? "\u00A0" : ":\u00A0");
 
 	usernameElement.style.color = usernameColor;
 

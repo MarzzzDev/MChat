@@ -435,3 +435,7 @@ body.uppercase .text,
 body.uppercase .reply-to {
     text-transform: uppercase;
 }
+
+.badges:empty {
+    min-width: calc(45px * var(--badge-scale, 1));
+}
