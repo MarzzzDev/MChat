@@ -13,12 +13,25 @@ body {
     --chat-font: 'Open Sans', sans-serif;
     --chat-bg: transparent;
     --text-color: rgb(255, 255, 255);
+    --username-font: var(--chat-font);
+    --message-font: var(--chat-font);
+    --username-font-size: 50px;
+    --message-font-size: 50px;
+    --badge-scale: 1;
     --shadow-offset-x: 2px;
     --shadow-offset-y: 2px;
     --shadow-blur: 8px;
     --shadow-color: black;
     --chat-weight: 900;
     --gif-scale: 1;
+    --message-card-bg: rgba(20, 20, 20, 0.72);
+    --message-card-radius: 10px;
+    --message-card-border-width: 0px;
+    --message-card-border-color: #3a3a3a;
+    --message-card-border-style: solid;
+    --message-card-padding: 0px;
+    --message-spacing: 3px;
+    --message-entry-animation: messageIn;
     --stroke-shadow: 0 0 0 transparent;
     --shadow-filter: drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-color));
     --ffz-effect-filter: ;
@@ -29,7 +42,7 @@ body {
     width: auto;
     max-width: 98%;
     box-sizing: border-box;
-    margin: 0 0 3px 0;
+    margin: 0 0 var(--message-spacing) 0;
     padding: 2px 12px 7px 12px;
     line-height: normal;
     flex-shrink: 0;
@@ -37,10 +50,20 @@ body {
     background: transparent;
     border-left: none;
     box-shadow: none;
-    animation: messageIn 0.25s ease-out forwards;
+    animation: var(--message-entry-animation, messageIn) 0.25s ease-out forwards;
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.message-cards #chat > .message:not(.has-highlight):not(.hl-card) {
+    border-radius: var(--message-card-radius);
+    background: var(--message-card-bg);
+    border: var(--message-card-border-width) var(--message-card-border-style) var(--message-card-border-color);
+    padding:
+        calc(2px + var(--message-card-padding))
+        calc(12px + var(--message-card-padding))
+        calc(7px + var(--message-card-padding));
 }
 
 .message.wrap-message {
@@ -61,6 +84,37 @@ body {
     word-break: break-word;
 }
 
+body.wrap-after-colon #chat > .message:not(.hl-card) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+}
+
+body.wrap-after-colon #chat > .message:not(.hl-card) > .badges,
+body.wrap-after-colon #chat > .message:not(.hl-card) > .platform-indicator,
+body.wrap-after-colon #chat > .message:not(.hl-card) > .username {
+    flex: 0 0 auto;
+}
+
+body.wrap-after-colon #chat > .message:not(.hl-card) > .text {
+    flex: 1 1 0%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+body.pixel-font #chat > .message > .text.has-twitch-gif,
+body.wrap-after-colon #chat > .message > .text.has-twitch-gif {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+body.pixel-font #chat .text.has-twitch-gif .twitch-gif,
+body.wrap-after-colon #chat .text.has-twitch-gif .twitch-gif {
+    max-width: 100% !important;
+}
+
 body.pixel-font .message.wrap-message > .text {
     flex: 0 0 100%;
     width: 100%;
@@ -79,6 +133,10 @@ body.pixel-font .text {
     line-height: 1.36;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+body.pixel-username-font .username {
+    font-weight: 400;
 }
 
 #chat {
@@ -116,6 +174,38 @@ body.pixel-font .text {
     }
 }
 
+@keyframes messageFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-28px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes messageFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(28px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+body[data-entry-animation="from-left"] {
+    --message-entry-animation: messageFromLeft;
+}
+
+body[data-entry-animation="from-right"] {
+    --message-entry-animation: messageFromRight;
+}
+
 @keyframes messageFadeOut {
     from {
         opacity: 1;
@@ -151,14 +241,23 @@ body.pixel-font .text {
     flex: 0 0 auto;
 }
 
+.badge:not(.platform-indicator-badge) {
+    width: calc(45px * var(--badge-scale, 1)) !important;
+    height: calc(45px * var(--badge-scale, 1)) !important;
+    min-width: calc(45px * var(--badge-scale, 1)) !important;
+    min-height: calc(45px * var(--badge-scale, 1)) !important;
+    max-width: calc(45px * var(--badge-scale, 1)) !important;
+    max-height: calc(45px * var(--badge-scale, 1)) !important;
+}
+
 .badges.no-badges {
     display: none;
 }
 
 .username {
-    font-family: var(--chat-font);
+    font-family: var(--username-font, var(--chat-font));
     font-style: normal;
-    font-size: 50px;
+    font-size: var(--username-font-size, 50px);
     font-weight: 900;
     margin-right: 5px;
     display: inline;
@@ -178,9 +277,9 @@ body.pixel-font .text {
 
 .text {
     color: var(--text-color);
-    font-family: var(--chat-font);
+    font-family: var(--message-font, var(--chat-font));
     font-style: normal;
-    font-size: 50px;
+    font-size: var(--message-font-size, 50px);
     font-weight: 900;
     letter-spacing: 0.2px;
     display: inline;

@@ -18,7 +18,7 @@ const previewMessages = [
 		"hello men",
 		"#00FF7F",
 		"405299735",
-		{ badges: "custommod/1,ewcgold/1", "msg-id": "highlighted-message" },
+		{ badges: "mod/1,ewcgold/1", "msg-id": "highlighted-message" },
 	],
 	[
 		"XDR412",
@@ -882,6 +882,39 @@ function showOverlaySetupScreen() {
 			border-bottom: 1px solid var(--mc-line);
 		}
 
+		#overlay-setup-screen .mc-message-layout-grid {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 0 10px;
+			padding: 10px 12px 0;
+		}
+
+		#overlay-setup-screen .mc-message-layout-grid > .mc-toggle-row {
+			grid-column: 1 / -1;
+			min-height: 40px;
+			padding: 7px 10px;
+			margin-bottom: 8px;
+		}
+
+		#overlay-setup-screen .mc-message-layout-grid > .mc-field {
+			min-width: 0;
+			margin-bottom: 6px;
+		}
+
+		#overlay-setup-screen .mc-message-layout-grid .mc-label {
+			margin-bottom: 3px;
+		}
+
+		#overlay-setup-screen .mc-message-layout-grid > .mc-field.is-disabled {
+			opacity: .4;
+		}
+
+		@media (max-width: 520px) {
+			#overlay-setup-screen .mc-message-layout-grid {
+				grid-template-columns: minmax(0, 1fr);
+			}
+		}
+
 		#overlay-setup-screen .mc-group-title {
 			color: var(--mc-text);
 			font-size: 11px;
@@ -1251,6 +1284,75 @@ function showOverlaySetupScreen() {
 			gap: 10px;
 			color: var(--mc-faint);
 			font-size: 10.5px;
+		}
+
+		#overlay-setup-screen .mc-sim-config,
+		#overlay-setup-screen .mc-sim-actions,
+		#overlay-setup-screen .mc-sim-tool-group {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		#overlay-setup-screen .mc-sim-tool-group + .mc-sim-tool-group {
+			padding-left: 10px;
+			border-left: 1px solid var(--mc-line);
+		}
+
+		#overlay-setup-screen .mc-stage-head.is-sim {
+			height: auto;
+			flex: 0 0 auto;
+			flex-direction: column;
+			align-items: stretch;
+			gap: 10px;
+			padding: 12px 20px;
+		}
+
+		#overlay-setup-screen .mc-stage-head.is-sim .mc-stage-meta {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr);
+			gap: 8px;
+			align-items: start;
+		}
+
+		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-config,
+		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-actions {
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+
+		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-actions {
+			justify-content: space-between;
+		}
+
+		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-actions > .mc-sim-btn.is-active {
+			margin-left: auto;
+		}
+
+		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-config {
+			padding-bottom: 8px;
+			border-bottom: 1px solid var(--mc-line);
+		}
+
+		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-hint {
+			order: initial;
+			flex: none;
+			color: var(--mc-dim);
+			font-variant-numeric: tabular-nums;
+			line-height: 1.45;
+			text-align: left;
+			white-space: normal;
+		}
+
+		@media (max-width: 520px) {
+			#overlay-setup-screen .mc-stage-head.is-sim {
+				padding: 10px 12px;
+			}
+
+			#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-config,
+			#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-actions {
+				gap: 6px;
+			}
 		}
 
 		#overlay-setup-screen .mc-stage-canvas {
@@ -1827,8 +1929,8 @@ function showOverlaySetupScreen() {
 		}
 
 		@media (max-width: 1020px) {
-			#overlay-setup-screen .mc-sim-hint {
-				display: none !important;
+			#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-hint {
+				display: block !important;
 			}
 		}
 	`;
@@ -2140,6 +2242,46 @@ function showOverlaySetupScreen() {
 	freqWrap.appendChild(freqInput);
 	freqWrap.appendChild(document.createTextNode("s"));
 
+	const simBackgroundWrap = document.createElement("label");
+	simBackgroundWrap.style.cssText =
+		"display:inline-flex;align-items:center;gap:6px;";
+	simBackgroundWrap.appendChild(document.createTextNode("Background"));
+
+	const simBackgroundSelect = document.createElement("select");
+	simBackgroundSelect.className = "mc-select";
+	simBackgroundSelect.title = "Choose the simulation background";
+	simBackgroundSelect.style.cssText = "width:126px;height:28px;padding:0 8px;";
+	for (const [value, label] of [
+		["clips", "Random clips"],
+		["local", "Your video"],
+		["color", "Solid color"],
+	]) {
+		const option = document.createElement("option");
+		option.value = value;
+		option.textContent = label;
+		simBackgroundSelect.appendChild(option);
+	}
+	simBackgroundWrap.appendChild(simBackgroundSelect);
+
+	const simBackgroundColor = document.createElement("input");
+	simBackgroundColor.type = "color";
+	simBackgroundColor.value = "#171717";
+	simBackgroundColor.title = "Choose the simulation background color";
+	simBackgroundColor.setAttribute("aria-label", "Simulation background color");
+	simBackgroundColor.style.cssText =
+		"display:none;width:32px;height:28px;padding:2px;border:1px solid var(--mc-line-strong);border-radius:4px;background:var(--mc-surface);cursor:pointer;";
+	simBackgroundWrap.appendChild(simBackgroundColor);
+
+	const simBackgroundFile = document.createElement("input");
+	simBackgroundFile.type = "file";
+	simBackgroundFile.accept = "video/*,.mp4,.webm,.mov,.m4v";
+	simBackgroundFile.hidden = true;
+
+	const simConfigGroup = document.createElement("div");
+	simConfigGroup.className = "mc-sim-config";
+	simConfigGroup.appendChild(freqWrap);
+	simConfigGroup.appendChild(simBackgroundWrap);
+
 	freqInput.addEventListener("input", () => {
 		const v = Number(freqInput.value);
 		if (!Number.isFinite(v) || v <= 0) {
@@ -2170,7 +2312,26 @@ function showOverlaySetupScreen() {
 	simZoomIn.textContent = "+";
 	simZoomIn.title = "Zoom in view";
 
+	const simZoomGroup = document.createElement("div");
+	simZoomGroup.className = "mc-sim-tool-group";
+	simZoomGroup.appendChild(simZoomOut);
+	simZoomGroup.appendChild(simZoomReset);
+	simZoomGroup.appendChild(simZoomIn);
+
+	const simClipGroup = document.createElement("div");
+	simClipGroup.className = "mc-sim-tool-group";
+	simClipGroup.appendChild(simNextButton);
+	simClipGroup.appendChild(simResetButton);
+
+	const simActionGroup = document.createElement("div");
+	simActionGroup.className = "mc-sim-actions";
+	simActionGroup.appendChild(simZoomGroup);
+	simActionGroup.appendChild(simClipGroup);
+	simActionGroup.appendChild(simExportButton);
+	simActionGroup.appendChild(simulateButton);
+
 	const simOnlyEls = [
+		simBackgroundWrap,
 		simHint,
 		simNextButton,
 		simResetButton,
@@ -2184,15 +2345,10 @@ function showOverlaySetupScreen() {
 		el.style.display = "none";
 	}
 
-	stageMeta.appendChild(freqWrap);
+	stageMeta.appendChild(simConfigGroup);
+	stageMeta.appendChild(simActionGroup);
 	stageMeta.appendChild(simHint);
-	stageMeta.appendChild(simZoomOut);
-	stageMeta.appendChild(simZoomReset);
-	stageMeta.appendChild(simZoomIn);
-	stageMeta.appendChild(simNextButton);
-	stageMeta.appendChild(simResetButton);
-	stageMeta.appendChild(simExportButton);
-	stageMeta.appendChild(simulateButton);
+	stageMeta.appendChild(simBackgroundFile);
 
 	const sim = {
 		active: false,
@@ -2203,6 +2359,9 @@ function showOverlaySetupScreen() {
 		h: 520,
 		clip: null,
 		failed: new Set(),
+		backgroundMode: "clips",
+		backgroundColor: simBackgroundColor.value,
+		localClipUrl: null,
 	};
 
 	let simBox = null;
@@ -2266,6 +2425,49 @@ function showOverlaySetupScreen() {
 	simZoomIn.addEventListener("click", () => zoomViewAt(1.3, frameCenter()));
 	simZoomOut.addEventListener("click", () => zoomViewAt(1 / 1.3, frameCenter()));
 	simZoomReset.addEventListener("click", resetView);
+	simBackgroundSelect.addEventListener("change", () =>
+		setSimulationBackground(simBackgroundSelect.value),
+	);
+	simBackgroundColor.addEventListener("input", () => {
+		sim.backgroundColor = simBackgroundColor.value;
+		if (sim.backgroundMode === "color") {
+			previewFrame.style.backgroundColor = sim.backgroundColor;
+		}
+	});
+	simBackgroundFile.addEventListener("change", () => {
+		const file = simBackgroundFile.files?.[0];
+		if (!file) {
+			simBackgroundSelect.value = sim.backgroundMode;
+			return;
+		}
+
+		if (file.type && !file.type.startsWith("video/")) {
+			simBackgroundSelect.value = sim.backgroundMode;
+			return;
+		}
+
+		if (sim.localClipUrl) {
+			stopSimulationVideos();
+			URL.revokeObjectURL(sim.localClipUrl);
+		}
+		sim.localClipUrl = URL.createObjectURL(file);
+		playLocalSimulationVideo();
+	});
+	simBackgroundFile.addEventListener("cancel", () => {
+		simBackgroundSelect.value = sim.backgroundMode;
+	});
+	previewFrame.addEventListener(
+		"wheel",
+		(event) => {
+			if (!sim.active || (!event.ctrlKey && !event.metaKey)) {
+				return;
+			}
+
+			event.preventDefault();
+			zoomViewAt(event.deltaY < 0 ? 1.1 : 1 / 1.1, framePoint(event));
+		},
+		{ passive: false },
+	);
 
 	let pan = null;
 
@@ -2323,7 +2525,7 @@ function showOverlaySetupScreen() {
 	});
 
 	previewFrame.addEventListener("contextmenu", (event) => {
-		if (!sim.active || (simBox && simBox.contains(event.target))) {
+		if (!sim.active) {
 			return;
 		}
 
@@ -2388,7 +2590,9 @@ function showOverlaySetupScreen() {
 		simInner.style.height = `${sim.h}px`;
 		simInner.style.transform = `scale(${sim.scale})`;
 
-		simHint.textContent = `Drag to move | sides = width | top/bottom = height | corner / scroll on chat = scale | click = zoom in, right click = zoom out, drag = pan | ${Math.round(sim.w)}x${Math.round(sim.h)}px | ${Math.round(sim.scale * 100)}%`;
+		simHint.textContent = `${Math.round(sim.w)} x ${Math.round(sim.h)} px - ${Math.round(sim.scale * 100)}%`;
+		simHint.title =
+			"Drag the chat to move it; drag edges to resize; drag the corner or scroll to scale. Click to zoom in, right-click to zoom out, and drag outside the chat to pan.";
 	}
 
 	function resetSimBox() {
@@ -2472,7 +2676,7 @@ function showOverlaySetupScreen() {
 	}
 
 	function preloadNextClip() {
-		if (!sim.active || !simVideoNext) {
+		if (!sim.active || sim.backgroundMode !== "clips" || !simVideoNext) {
 			return;
 		}
 
@@ -2489,7 +2693,12 @@ function showOverlaySetupScreen() {
 	}
 
 	function switchToNextClip() {
-		if (!sim.active || !simVideo || !simVideoNext) {
+		if (
+			!sim.active ||
+			sim.backgroundMode !== "clips" ||
+			!simVideo ||
+			!simVideoNext
+		) {
 			return;
 		}
 
@@ -2525,7 +2734,12 @@ function showOverlaySetupScreen() {
 	}
 
 	function playRandomClip() {
-		if (!sim.active || !simVideo || !simVideoNext) {
+		if (
+			!sim.active ||
+			sim.backgroundMode !== "clips" ||
+			!simVideo ||
+			!simVideoNext
+		) {
 			return;
 		}
 
@@ -2555,12 +2769,84 @@ function showOverlaySetupScreen() {
 		preloadNextClip();
 	}
 
+	function stopSimulationVideos() {
+		sim.clip = null;
+		simNextClip = null;
+
+		for (const video of [simVideo, simVideoNext]) {
+			if (!video) {
+				continue;
+			}
+
+			video.pause();
+			video.loop = false;
+			video.removeAttribute("src");
+			video.load();
+			video.style.display = "none";
+		}
+	}
+
+	function playLocalSimulationVideo() {
+		if (!sim.active || !sim.localClipUrl || !simVideo) {
+			return;
+		}
+
+		sim.backgroundMode = "local";
+		simBackgroundSelect.value = "local";
+		simBackgroundColor.style.display = "none";
+		simNextButton.disabled = true;
+		previewFrame.style.backgroundColor = "#000";
+		stopSimulationVideos();
+
+		simVideo.loop = true;
+		simVideo.style.display = "block";
+		simVideo.src = sim.localClipUrl;
+		simVideo.load();
+		simVideo.play().catch(() => {});
+	}
+
+	function setSimulationBackground(mode) {
+		if (!sim.active) {
+			return;
+		}
+
+		if (mode === "clips") {
+			sim.backgroundMode = "clips";
+			simBackgroundColor.style.display = "none";
+			previewFrame.style.backgroundColor = "";
+			stopSimulationVideos();
+			playRandomClip();
+		} else if (mode === "local") {
+			if (sim.localClipUrl) {
+				playLocalSimulationVideo();
+			} else {
+				simBackgroundSelect.value = sim.backgroundMode;
+				simBackgroundFile.value = "";
+				simBackgroundFile.click();
+			}
+		} else if (mode === "color") {
+			sim.backgroundMode = "color";
+			simBackgroundColor.style.display = "";
+			previewFrame.style.backgroundColor = sim.backgroundColor;
+			stopSimulationVideos();
+		}
+
+		simNextButton.disabled = sim.backgroundMode !== "clips";
+	}
+
 	function enterSimulation() {
 		if (sim.active) {
 			return;
 		}
 
 		sim.active = true;
+		stageHead.classList.add("is-sim");
+		sim.backgroundMode = "clips";
+		simBackgroundSelect.value = "clips";
+		simBackgroundColor.style.display = "none";
+		simBackgroundWrap.style.display = "inline-flex";
+		simNextButton.disabled = false;
+		previewFrame.style.backgroundColor = "";
 
 		previewFrame.classList.add("is-sim");
 		stageTitle.textContent = "Simulation";
@@ -2586,13 +2872,13 @@ function showOverlaySetupScreen() {
 		simVideo.style.display = "block";
 
 		const onVideoEnded = (event) => {
-			if (event.target === simVideo) {
+			if (sim.backgroundMode === "clips" && event.target === simVideo) {
 				switchToNextClip();
 			}
 		};
 
 		const onVideoError = (event) => {
-			if (!sim.active) {
+			if (!sim.active || sim.backgroundMode !== "clips") {
 				return;
 			}
 
@@ -2741,10 +3027,19 @@ function showOverlaySetupScreen() {
 
 		simBox.addEventListener("pointerup", endDrag);
 		simBox.addEventListener("pointercancel", endDrag);
+		simBox.addEventListener("click", (event) => {
+			if (event.target === simBox) {
+				zoomViewAt(1.5, framePoint(event));
+			}
+		});
 
 		simBox.addEventListener(
 			"wheel",
 			(event) => {
+				if (event.ctrlKey || event.metaKey) {
+					return;
+				}
+
 				event.preventDefault();
 
 				const p = framePoint(event);
@@ -2780,6 +3075,12 @@ function showOverlaySetupScreen() {
 
 		sim.active = false;
 		sim.clip = null;
+		sim.backgroundMode = "clips";
+		simBackgroundSelect.value = "clips";
+		simBackgroundColor.style.display = "none";
+		simBackgroundWrap.style.display = "none";
+		simBackgroundFile.value = "";
+		previewFrame.style.backgroundColor = "";
 
 		if (simObserver) {
 			simObserver.disconnect();
@@ -2799,6 +3100,10 @@ function showOverlaySetupScreen() {
 		simVideoNext = null;
 		simNextClip = null;
 		simActiveVideo = 0;
+		if (sim.localClipUrl) {
+			URL.revokeObjectURL(sim.localClipUrl);
+			sim.localClipUrl = null;
+		}
 
 		previewChat.style.padding = "22px";
 		previewFrame.appendChild(previewChat);
@@ -2817,6 +3122,7 @@ function showOverlaySetupScreen() {
 				null;
 
 		previewFrame.classList.remove("is-sim");
+		stageHead.classList.remove("is-sim");
 		previewFrame.style.width = "";
 		previewFrame.style.height = "";
 		resetView();
@@ -3256,6 +3562,13 @@ function showOverlaySetupScreen() {
 		"wrap",
 		wrapEnabled,
 	);
+	const wrapAfterColonCheckbox = addToggle(
+		appearancePanel,
+		"Wrap after colon",
+		"Keep the first line after the username and align wrapped lines with the message text.",
+		"wrapAfterColon",
+		wrapAfterColonEnabled,
+	);
 	const badgesCheckbox = addToggle(
 		appearancePanel,
 		"Badges",
@@ -3374,6 +3687,215 @@ function showOverlaySetupScreen() {
 	}
 
 	addField(appearancePanel, "Message alignment", alignSelect);
+
+	const messageStyleGroup = document.createElement("div");
+	messageStyleGroup.className = "mc-group";
+	const messageStyleHead = document.createElement("div");
+	messageStyleHead.className = "mc-group-head";
+	const messageStyleTitle = document.createElement("div");
+	messageStyleTitle.className = "mc-group-title";
+	messageStyleTitle.textContent = "Message layout";
+	const messageStyleNote = document.createElement("div");
+	messageStyleNote.className = "mc-group-note";
+	messageStyleNote.textContent =
+		"Set card styling and spacing around messages and announcements.";
+	messageStyleHead.append(messageStyleTitle, messageStyleNote);
+	messageStyleGroup.appendChild(messageStyleHead);
+	const messageStyleGrid = document.createElement("div");
+	messageStyleGrid.className = "mc-message-layout-grid";
+	messageStyleGroup.appendChild(messageStyleGrid);
+	appearancePanel.appendChild(messageStyleGroup);
+
+	const messageCardsCheckbox = addToggle(
+		messageStyleGrid,
+		"Message cards",
+		"Give each regular message its own adjustable background card.",
+		"messageCards",
+		messageCardsEnabled,
+	);
+
+	const messageCardColorInput = document.createElement("input");
+	messageCardColorInput.type = "color";
+	messageCardColorInput.className = "mc-color";
+	messageCardColorInput.value = messageCardColor;
+	messageCardColorInput.setAttribute("aria-label", "Message card color");
+	const messageCardColorField = addField(
+		messageStyleGrid,
+		"Card color",
+		messageCardColorInput,
+	);
+
+	function createMessageCardRange(labelText, min, max, value, suffix) {
+		const field = document.createElement("div");
+		field.className = "mc-field";
+		const label = document.createElement("label");
+		label.className = "mc-label";
+		label.textContent = labelText;
+		const line = document.createElement("div");
+		line.className = "mc-range-line";
+		const input = document.createElement("input");
+		input.type = "range";
+		input.className = "mc-range";
+		input.min = String(min);
+		input.max = String(max);
+		input.step = "1";
+		input.value = String(value);
+		const output = document.createElement("span");
+		output.className = "mc-percent";
+		output.textContent = `${value}${suffix}`;
+		line.append(input, output);
+		field.append(label, line);
+		messageStyleGrid.appendChild(field);
+		return { field, input, output };
+	}
+
+	const messageCardOpacityControl = createMessageCardRange(
+		"Card opacity",
+		0,
+		100,
+		Math.round(messageCardOpacity * 100),
+		"%",
+	);
+	const messageCardRadiusControl = createMessageCardRange(
+		"Card corners",
+		0,
+		32,
+		messageCardRadius,
+		" px",
+	);
+	const messageCardBorderWidthControl = createMessageCardRange(
+		"Border width",
+		0,
+		8,
+		messageCardBorderWidth,
+		" px",
+	);
+
+	const messageCardBorderColorInput = document.createElement("input");
+	messageCardBorderColorInput.type = "color";
+	messageCardBorderColorInput.className = "mc-color";
+	messageCardBorderColorInput.value = messageCardBorderColor;
+	messageCardBorderColorInput.setAttribute("aria-label", "Card border color");
+	const messageCardBorderColorField = addField(
+		messageStyleGrid,
+		"Border color",
+		messageCardBorderColorInput,
+	);
+
+	const messageCardBorderStyleSelect = document.createElement("select");
+	messageCardBorderStyleSelect.className = "mc-select";
+	for (const [value, label] of [
+		["solid", "Solid"],
+		["dashed", "Dashed"],
+		["dotted", "Dotted"],
+	]) {
+		const option = document.createElement("option");
+		option.value = value;
+		option.textContent = label;
+		option.selected = value === messageCardBorderStyle;
+		messageCardBorderStyleSelect.appendChild(option);
+	}
+	const messageCardBorderStyleField = addField(
+		messageStyleGrid,
+		"Border style",
+		messageCardBorderStyleSelect,
+	);
+
+	const messageCardPaddingControl = createMessageCardRange(
+		"Extra card padding",
+		0,
+		24,
+		messageCardPadding,
+		" px",
+	);
+	const messageSpacingControl = createMessageCardRange(
+		"Message spacing",
+		0,
+		32,
+		messageSpacing,
+		" px",
+	);
+
+	const messageCardControls = [
+		messageCardColorField,
+		messageCardOpacityControl.field,
+		messageCardRadiusControl.field,
+		messageCardBorderWidthControl.field,
+		messageCardBorderColorField,
+		messageCardBorderStyleField,
+		messageCardPaddingControl.field,
+	];
+	function syncMessageCardControls() {
+		const cardsDisabled = !messageCardsCheckbox.checked;
+		const borderDisabled =
+			cardsDisabled || messageCardBorderWidthControl.input.value === "0";
+		messageCardControls.forEach((control, index) => {
+			control.classList.toggle(
+				"is-disabled",
+				index === 4 || index === 5 ? borderDisabled : cardsDisabled,
+			);
+		});
+		messageCardColorInput.disabled = cardsDisabled;
+		messageCardOpacityControl.input.disabled = cardsDisabled;
+		messageCardRadiusControl.input.disabled = cardsDisabled;
+		messageCardBorderWidthControl.input.disabled = cardsDisabled;
+		messageCardBorderColorInput.disabled = borderDisabled;
+		messageCardBorderStyleSelect.disabled = borderDisabled;
+		messageCardPaddingControl.input.disabled = cardsDisabled;
+	}
+	syncMessageCardControls();
+
+	messageCardsCheckbox.addEventListener("change", () => {
+		messageCardsEnabled = messageCardsCheckbox.checked;
+		applyMessageCardSettings();
+		syncMessageCardControls();
+	});
+
+	messageCardColorInput.addEventListener("input", () => {
+		messageCardColor = messageCardColorInput.value;
+		applyMessageCardSettings();
+	});
+
+	messageCardOpacityControl.input.addEventListener("input", () => {
+		messageCardOpacity = Number(messageCardOpacityControl.input.value) / 100;
+		messageCardOpacityControl.output.textContent = `${messageCardOpacityControl.input.value}%`;
+		applyMessageCardSettings();
+	});
+
+	messageCardRadiusControl.input.addEventListener("input", () => {
+		messageCardRadius = Number(messageCardRadiusControl.input.value);
+		messageCardRadiusControl.output.textContent = `${messageCardRadius} px`;
+		applyMessageCardSettings();
+	});
+
+	messageCardBorderWidthControl.input.addEventListener("input", () => {
+		messageCardBorderWidth = Number(messageCardBorderWidthControl.input.value);
+		messageCardBorderWidthControl.output.textContent = `${messageCardBorderWidth} px`;
+		applyMessageCardSettings();
+		syncMessageCardControls();
+	});
+
+	messageCardBorderColorInput.addEventListener("input", () => {
+		messageCardBorderColor = messageCardBorderColorInput.value;
+		applyMessageCardSettings();
+	});
+
+	messageCardBorderStyleSelect.addEventListener("change", () => {
+		messageCardBorderStyle = messageCardBorderStyleSelect.value;
+		applyMessageCardSettings();
+	});
+
+	messageCardPaddingControl.input.addEventListener("input", () => {
+		messageCardPadding = Number(messageCardPaddingControl.input.value);
+		messageCardPaddingControl.output.textContent = `${messageCardPadding} px`;
+		applyMessageCardSettings();
+	});
+
+	messageSpacingControl.input.addEventListener("input", () => {
+		messageSpacing = Number(messageSpacingControl.input.value);
+		messageSpacingControl.output.textContent = `${messageSpacing} px`;
+		applyMessageCardSettings();
+	});
 
 	const hlGroup = document.createElement("div");
 	hlGroup.className = "mc-group";
@@ -3517,7 +4039,7 @@ function showOverlaySetupScreen() {
 	const typographyPanel = createPanel(
 		"typography",
 		"Typography",
-		"Choose the font. Changes are applied to the live preview immediately.",
+		"Tune the shared style or set username and message typography separately.",
 		"03",
 	);
 
@@ -3536,6 +4058,25 @@ function showOverlaySetupScreen() {
 
 	addField(typographyPanel, "Chat font", fontSelect);
 
+	const entryAnimationSelect = document.createElement("select");
+	entryAnimationSelect.className = "mc-select";
+	for (const [value, label] of [
+		["classic", "Classic"],
+		["from-right", "From right"],
+		["from-left", "From left"],
+	]) {
+		const option = document.createElement("option");
+		option.value = value;
+		option.textContent = label;
+		option.selected = value === entryAnimation;
+		entryAnimationSelect.appendChild(option);
+	}
+	addField(typographyPanel, "Message entry animation", entryAnimationSelect);
+	entryAnimationSelect.addEventListener("change", () => {
+		entryAnimation = entryAnimationSelect.value;
+		applyEntryAnimation();
+	});
+
 	const customFontInput = document.createElement("input");
 	customFontInput.type = "text";
 	customFontInput.className = "mc-input";
@@ -3550,11 +4091,165 @@ function showOverlaySetupScreen() {
 		customFontInput,
 	);
 
+	const roleTypographyTitle = document.createElement("h2");
+	roleTypographyTitle.className = "mc-subhead";
+	roleTypographyTitle.textContent = "Username and message typography";
+	const separateTypographyCheckbox = addToggle(
+		typographyPanel,
+		"Separate username/message typography",
+		"Choose independent fonts and sizes for usernames and messages.",
+		"separateTypography",
+		roleTypographyEnabled,
+	);
+
+	const roleTypographyControls = document.createElement("div");
+	roleTypographyControls.className = "mc-role-typography-controls";
+	roleTypographyControls.style.display = roleTypographyEnabled ? "" : "none";
+	roleTypographyControls.appendChild(roleTypographyTitle);
+
+	const roleFontGrid = document.createElement("div");
+	roleFontGrid.className = "mc-two-col";
+
+	const roleFontOptions = [
+		["chat", "Match chat font"],
+		["opensans", "Open Sans"],
+		["arial", "Arial"],
+		["comicsans", "Comic Sans MS"],
+		["roboto", "Roboto"],
+		["montserrat", "Montserrat"],
+		["minecraft", "Minecraft"],
+		["custom", "Custom Google Font"],
+	];
+
+	function createRoleFontField(labelText, selectedMode, customName, ariaLabel) {
+		const field = document.createElement("div");
+		field.className = "mc-field";
+		const label = document.createElement("label");
+		label.className = "mc-label";
+		label.textContent = labelText;
+		const select = document.createElement("select");
+		select.className = "mc-select";
+		for (const [value, optionLabel] of roleFontOptions) {
+			const option = document.createElement("option");
+			option.value = value;
+			option.textContent = optionLabel;
+			option.selected = value === selectedMode;
+			select.appendChild(option);
+		}
+		const customInput = document.createElement("input");
+		customInput.type = "text";
+		customInput.className = "mc-input";
+		customInput.placeholder = "Google Font name";
+		customInput.value = customName;
+		customInput.autocomplete = "off";
+		customInput.spellcheck = false;
+		customInput.setAttribute("aria-label", ariaLabel);
+		customInput.style.display = selectedMode === "custom" ? "" : "none";
+		field.append(label, select, customInput);
+		roleFontGrid.appendChild(field);
+		return { field, select, customInput };
+	}
+
+	const usernameFontControl = createRoleFontField(
+		"Username font",
+		usernameFontMode,
+		usernameFontName,
+		"Custom username font",
+	);
+	const messageFontControl = createRoleFontField(
+		"Message font",
+		messageFontMode,
+		messageFontName,
+		"Custom message font",
+	);
+	roleTypographyControls.appendChild(roleFontGrid);
+
+	const roleSizeGrid = document.createElement("div");
+	roleSizeGrid.className = "mc-two-col";
+	const usernameSizeInput = document.createElement("input");
+	usernameSizeInput.type = "number";
+	usernameSizeInput.className = "mc-input";
+	usernameSizeInput.min = "8";
+	usernameSizeInput.max = "100";
+	usernameSizeInput.step = "1";
+	usernameSizeInput.value = String(usernameFontSize);
+	addField(roleSizeGrid, "Username size (px)", usernameSizeInput);
+	const messageSizeInput = document.createElement("input");
+	messageSizeInput.type = "number";
+	messageSizeInput.className = "mc-input";
+	messageSizeInput.min = "8";
+	messageSizeInput.max = "100";
+	messageSizeInput.step = "1";
+	messageSizeInput.value = String(messageFontSize);
+	addField(roleSizeGrid, "Message size (px)", messageSizeInput);
+	roleTypographyControls.appendChild(roleSizeGrid);
+	typographyPanel.appendChild(roleTypographyControls);
+
 	function syncCustomFontField() {
 		customFontField.style.display = fontSelect.value === "custom" ? "" : "none";
 	}
 
 	syncCustomFontField();
+
+	function syncRoleFontFields() {
+		usernameFontControl.customInput.style.display =
+			usernameFontControl.select.value === "custom" ? "" : "none";
+		messageFontControl.customInput.style.display =
+			messageFontControl.select.value === "custom" ? "" : "none";
+	}
+
+	function updateRoleFont(role) {
+		if (role === "username") {
+			usernameFontMode = cleanFontMode(usernameFontControl.select.value);
+			usernameFontName = sanitizeFontName(usernameFontControl.customInput.value);
+		} else {
+			messageFontMode = cleanFontMode(messageFontControl.select.value);
+			messageFontName = sanitizeFontName(messageFontControl.customInput.value);
+		}
+		applyRoleTypography();
+	}
+
+	usernameFontControl.select.addEventListener("change", () => {
+		syncRoleFontFields();
+		updateRoleFont("username");
+	});
+	messageFontControl.select.addEventListener("change", () => {
+		syncRoleFontFields();
+		updateRoleFont("message");
+	});
+
+	let roleFontTimer = null;
+	for (const [role, control] of [
+		["username", usernameFontControl],
+		["message", messageFontControl],
+	]) {
+		control.customInput.addEventListener("input", () => {
+			clearTimeout(roleFontTimer);
+			roleFontTimer = setTimeout(() => updateRoleFont(role), 400);
+		});
+	}
+
+	usernameSizeInput.addEventListener("input", () => {
+		const value = Number(usernameSizeInput.value);
+		if (!Number.isFinite(value)) return;
+		usernameFontSize = Math.max(8, Math.min(value, 100));
+		usernameSizeInput.value = String(usernameFontSize);
+		applyRoleTypography();
+	});
+
+	messageSizeInput.addEventListener("input", () => {
+		const value = Number(messageSizeInput.value);
+		if (!Number.isFinite(value)) return;
+		messageFontSize = Math.max(8, Math.min(value, 100));
+		messageSizeInput.value = String(messageFontSize);
+		applyRoleTypography();
+	});
+
+	separateTypographyCheckbox.addEventListener("change", () => {
+		roleTypographyEnabled = separateTypographyCheckbox.checked;
+		roleTypographyControls.style.display = roleTypographyEnabled ? "" : "none";
+		applyRoleTypography();
+	});
 
 	const typographyNote = document.createElement("div");
 	typographyNote.className = "mc-muted";
@@ -3581,6 +4276,34 @@ function showOverlaySetupScreen() {
 	emoteScaleInput.value = String(emoteScale);
 
 	addField(typographyPanel, "Emote scale", emoteScaleInput);
+
+	const badgeScaleField = document.createElement("div");
+	badgeScaleField.className = "mc-field";
+	const badgeScaleLabel = document.createElement("label");
+	badgeScaleLabel.className = "mc-label";
+	badgeScaleLabel.textContent = "Badge size";
+	const badgeScaleLine = document.createElement("div");
+	badgeScaleLine.className = "mc-range-line";
+	const badgeScaleInput = document.createElement("input");
+	badgeScaleInput.type = "range";
+	badgeScaleInput.className = "mc-range";
+	badgeScaleInput.min = "25";
+	badgeScaleInput.max = "200";
+	badgeScaleInput.step = "5";
+	badgeScaleInput.value = String(Math.round(badgeScale * 100));
+	badgeScaleInput.setAttribute("aria-label", "Badge size");
+	const badgeScaleOutput = document.createElement("span");
+	badgeScaleOutput.className = "mc-percent";
+	badgeScaleOutput.textContent = `${Math.round(badgeScale * 100)}%`;
+	badgeScaleLine.append(badgeScaleInput, badgeScaleOutput);
+	badgeScaleField.append(badgeScaleLabel, badgeScaleLine);
+	typographyPanel.appendChild(badgeScaleField);
+
+	badgeScaleInput.addEventListener("input", () => {
+		badgeScale = Number(badgeScaleInput.value) / 100;
+		badgeScaleOutput.textContent = `${badgeScaleInput.value}%`;
+		document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
+	});
 
 	const gifScaleInput = document.createElement("input");
 	gifScaleInput.type = "number";
@@ -3905,6 +4628,21 @@ function showOverlaySetupScreen() {
 
 	wrapCheckbox.addEventListener("change", () => {
 		wrapEnabled = wrapCheckbox.checked;
+		if (wrapEnabled && wrapAfterColonCheckbox.checked) {
+			wrapAfterColonCheckbox.checked = false;
+			wrapAfterColonEnabled = false;
+		}
+		applyLayoutSettings();
+		rerenderPreviewChat();
+	});
+
+	wrapAfterColonCheckbox.addEventListener("change", () => {
+		wrapAfterColonEnabled = wrapAfterColonCheckbox.checked;
+		if (wrapAfterColonEnabled && wrapCheckbox.checked) {
+			wrapCheckbox.checked = false;
+			wrapEnabled = false;
+		}
+		applyLayoutSettings();
 		rerenderPreviewChat();
 	});
 
@@ -4042,6 +4780,7 @@ function showOverlaySetupScreen() {
 		chatFont = fontSelect.value;
 		syncCustomFontField();
 		applyChatFont();
+		applyRoleTypography();
 	});
 
 	let customFontTimer = null;
@@ -4052,6 +4791,7 @@ function showOverlaySetupScreen() {
 		customFontTimer = setTimeout(() => {
 			customFontName = sanitizeFontName(customFontInput.value);
 			applyChatFont();
+			applyRoleTypography();
 		}, 500);
 	});
 
@@ -4149,9 +4889,21 @@ function showOverlaySetupScreen() {
 	});
 
 	function getOverlayUrl() {
-		const channel = channelInput.value.trim().toLowerCase().replace(/^#/, "");
+		const rawChannel = channelInput.value.trim();
+		const channel = normalizeTwitchChannel(rawChannel);
 		const kickChannel = cleanKickInput(kickInput.value);
 		const youtubeChannel = cleanYouTubeInput(youtubeInput.value);
+
+		if (rawChannel && !channel) {
+			error.textContent =
+				"Twitch channel names can only contain letters, numbers, and underscores (up to 25 characters).";
+
+			error.style.display = "block";
+			activatePanel("connection");
+			channelInput.focus();
+
+			return null;
+		}
 
 		if (!channel && !kickChannel && !youtubeChannel) {
 			error.textContent =
@@ -4173,6 +4925,24 @@ function showOverlaySetupScreen() {
 			backgroundColor: backgroundColorInput.value,
 
 			textColor: textColorInput.value,
+
+			messageCards: messageCardsCheckbox.checked,
+
+			messageCardColor: messageCardColorInput.value,
+
+			messageCardOpacity: Number(messageCardOpacityControl.input.value) / 100,
+
+			messageCardRadius: Number(messageCardRadiusControl.input.value),
+
+			messageCardBorderWidth: Number(messageCardBorderWidthControl.input.value),
+
+			messageCardBorderColor: messageCardBorderColorInput.value,
+
+			messageCardBorderStyle: messageCardBorderStyleSelect.value,
+
+			messageCardPadding: Number(messageCardPaddingControl.input.value),
+
+			messageSpacing: Number(messageSpacingControl.input.value),
 
 			fade: noFade.checked ? false : Math.max(1, Number(fadeInput.value) || 15),
 
@@ -4227,13 +4997,33 @@ function showOverlaySetupScreen() {
 				Math.min(Number(emoteScaleInput.value) || 1, 3),
 			),
 
+			badgeScale: Number(badgeScaleInput.value) / 100,
+
 			wrap: wrapCheckbox.checked,
+
+			wrapAfterColon: wrapAfterColonCheckbox.checked,
 
 			unlisted: unlistedCheckbox.checked,
 
 			font: fontSelect.value,
 
+			entryAnimation: entryAnimationSelect.value,
+
 			customFont: sanitizeFontName(customFontInput.value),
+
+			usernameFont: usernameFontControl.select.value,
+
+			separateTypography: separateTypographyCheckbox.checked,
+
+			usernameFontName: sanitizeFontName(usernameFontControl.customInput.value),
+
+			messageFont: messageFontControl.select.value,
+
+			messageFontName: sanitizeFontName(messageFontControl.customInput.value),
+
+			usernameSize: Number(usernameSizeInput.value),
+
+			messageSize: Number(messageSizeInput.value),
 
 			uppercase: uppercaseCheckbox.checked,
 

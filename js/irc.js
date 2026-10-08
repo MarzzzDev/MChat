@@ -236,13 +236,7 @@ function handleTwitchIRCClearUserMessages(userId) {
 	}
 
 	for (const element of elements) {
-		const messageId = element.dataset.messageId;
-
-		element.remove();
-
-		if (messageId) {
-			messageElements.delete(messageId);
-		}
+		removePlatformElement(element);
 	}
 
 	userMessageElements.delete(String(userId));
@@ -389,10 +383,5 @@ function handleTwitchIRCClearMessage(messageId) {
 		return;
 	}
 
-	const element = messageElements.get(messageId);
-
-	if (element) {
-		element.remove();
-		messageElements.delete(messageId);
-	}
+	removePlatformMessage(messageId);
 }

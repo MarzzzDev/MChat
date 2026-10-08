@@ -20,12 +20,7 @@ async function platformFetch(url, init = {}) {
 
 function removePlatformElement(element) {
 	element.remove();
-
-	const messageId = element.dataset.messageId;
-
-	if (messageId) {
-		messageElements.delete(messageId);
-	}
+	unregisterMessageIds(element);
 
 	for (const [key, set] of userMessageElements) {
 		if (set.delete(element) && set.size === 0) {

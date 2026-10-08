@@ -47,8 +47,8 @@ function addHighlightStyles() {
 		.message.has-highlight {
 			position: relative;
 			box-sizing: border-box;
-			margin-top: calc(0.25 * var(--hl-rem));
-			margin-bottom: calc(0.25 * var(--hl-rem));
+			margin-top: 0;
+			margin-bottom: var(--message-spacing);
 			padding:
 				var(--hl-rem)
 				calc(0.75 * var(--hl-rem))
@@ -96,8 +96,8 @@ function addHighlightStyles() {
 		}
 
 		.message.hl-gift {
-			margin-top: calc(0.5 * var(--hl-rem));
-			margin-bottom: calc(0.5 * var(--hl-rem));
+			margin-top: 0;
+			margin-bottom: var(--message-spacing);
 			border-left: calc(0.4 * var(--hl-rem)) solid var(--hl-accent);
 			background-color: hsla(0, 0%, 50%, 0.1);
 		}

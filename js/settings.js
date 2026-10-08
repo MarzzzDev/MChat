@@ -68,7 +68,63 @@ function normaliseOverlaySettings(settings = {}) {
 			? settings.textColor
 			: "#ffffff";
 
+	result.messageCards = settings.messageCards === true;
+
+	result.messageCardColor =
+		typeof settings.messageCardColor === "string" &&
+			/^#[0-9a-fA-F]{6}$/.test(settings.messageCardColor)
+			? settings.messageCardColor
+			: "#141414";
+
+	result.messageCardOpacity = Number(settings.messageCardOpacity ?? 0.72);
+	if (!Number.isFinite(result.messageCardOpacity)) {
+		result.messageCardOpacity = 0.72;
+	}
+	result.messageCardOpacity = Math.max(0, Math.min(result.messageCardOpacity, 1));
+
+	result.messageCardRadius = Number(settings.messageCardRadius ?? 10);
+	if (!Number.isFinite(result.messageCardRadius)) {
+		result.messageCardRadius = 10;
+	}
+	result.messageCardRadius = Math.max(0, Math.min(result.messageCardRadius, 32));
+
+	result.messageCardBorderWidth = Number(settings.messageCardBorderWidth ?? 0);
+	if (!Number.isFinite(result.messageCardBorderWidth)) {
+		result.messageCardBorderWidth = 0;
+	}
+	result.messageCardBorderWidth = Math.max(0, Math.min(result.messageCardBorderWidth, 8));
+
+	result.messageCardBorderColor =
+		typeof settings.messageCardBorderColor === "string" &&
+			/^#[0-9a-fA-F]{6}$/.test(settings.messageCardBorderColor)
+			? settings.messageCardBorderColor
+			: "#3a3a3a";
+
+	result.messageCardBorderStyle = ["solid", "dashed", "dotted"].includes(
+		settings.messageCardBorderStyle,
+	)
+		? settings.messageCardBorderStyle
+		: "solid";
+
+	result.messageCardPadding = Number(settings.messageCardPadding ?? 0);
+	if (!Number.isFinite(result.messageCardPadding)) {
+		result.messageCardPadding = 0;
+	}
+	result.messageCardPadding = Math.max(0, Math.min(result.messageCardPadding, 24));
+
+	result.messageSpacing = Number(settings.messageSpacing ?? 3);
+	if (!Number.isFinite(result.messageSpacing)) {
+		result.messageSpacing = 3;
+	}
+	result.messageSpacing = Math.max(0, Math.min(result.messageSpacing, 32));
+
 	result.fade = settings.fade === false ? false : Number(settings.fade ?? 15);
+
+	result.entryAnimation = ["classic", "from-left", "from-right"].includes(
+		settings.entryAnimation,
+	)
+		? settings.entryAnimation
+		: "classic";
 
 	if (
 		result.fade !== false &&
@@ -125,7 +181,13 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.emoteScale = Math.max(0.25, Math.min(result.emoteScale, 3));
 
+	result.badgeScale = Number(settings.badgeScale ?? 1);
+	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1;
+	result.badgeScale = Math.max(0.25, Math.min(result.badgeScale, 2));
+
 	result.wrap = settings.wrap === true;
+
+	result.wrapAfterColon = settings.wrapAfterColon === true;
 
 	result.unlisted = settings.unlisted !== false;
 
@@ -133,6 +195,26 @@ function normaliseOverlaySettings(settings = {}) {
 		typeof settings.font === "string" && settings.font.trim()
 			? settings.font
 			: "'Open Sans', sans-serif";
+
+	result.usernameFont = cleanFontMode(settings.usernameFont);
+	result.messageFont = cleanFontMode(settings.messageFont);
+	result.usernameFontName = sanitizeFontName(settings.usernameFontName);
+	result.messageFontName = sanitizeFontName(settings.messageFontName);
+
+	result.usernameSize = Number(settings.usernameSize ?? 50);
+	if (!Number.isFinite(result.usernameSize)) result.usernameSize = 50;
+	result.usernameSize = Math.max(8, Math.min(result.usernameSize, 100));
+
+	result.messageSize = Number(settings.messageSize ?? 50);
+	if (!Number.isFinite(result.messageSize)) result.messageSize = 50;
+	result.messageSize = Math.max(8, Math.min(result.messageSize, 100));
+	result.separateTypography =
+		settings.separateTypography === true ||
+		(settings.separateTypography == null &&
+			(result.usernameFont !== "chat" ||
+				result.messageFont !== "chat" ||
+				result.usernameSize !== 50 ||
+				result.messageSize !== 50));
 
 	result.shadow = settings.shadow !== false;
 
@@ -235,6 +317,22 @@ function fontValueToQueryKey(value) {
 	return map[value] || "opensans";
 }
 
+function cleanFontMode(value) {
+	const mode = String(value || "chat").trim().toLowerCase();
+	return [
+		"chat",
+		"opensans",
+		"arial",
+		"comicsans",
+		"roboto",
+		"montserrat",
+		"minecraft",
+		"custom",
+	].includes(mode)
+		? mode
+		: "chat";
+}
+
 function fontQueryKeyToValue(value) {
 	const map = {
 		opensans: "'Open Sans', sans-serif",
@@ -323,6 +421,10 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["emoteScale", String(normalised.emoteScale)]);
 	}
 
+	if (normalised.badgeScale !== 1) {
+		query.push(["badgeScale", String(normalised.badgeScale)]);
+	}
+
 	const fontKey = fontValueToQueryKey(normalised.font);
 
 	if (fontKey !== "opensans") {
@@ -331,6 +433,30 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 
 	if (fontKey === "custom" && normalised.customFont) {
 		query.push(["customFont", encodeURIComponent(normalised.customFont)]);
+	}
+
+	if (normalised.separateTypography) {
+		query.push(["separateTypography", "1"]);
+
+		for (const [role, mode, customName] of [
+			["username", normalised.usernameFont, normalised.usernameFontName],
+			["message", normalised.messageFont, normalised.messageFontName],
+		]) {
+			if (mode !== "chat") {
+				query.push([`${role}Font`, mode]);
+			}
+			if (mode === "custom" && customName) {
+				query.push([`${role}FontName`, encodeURIComponent(customName)]);
+			}
+		}
+
+		if (normalised.usernameSize !== 50) {
+			query.push(["usernameSize", String(normalised.usernameSize)]);
+		}
+
+		if (normalised.messageSize !== 50) {
+			query.push(["messageSize", String(normalised.messageSize)]);
+		}
 	}
 
 	if (normalised.bold !== true) {
@@ -373,11 +499,57 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["textColor", cleanedTextColor]);
 	}
 
+	if (normalised.messageCards) {
+		query.push(["messageCards", "1"]);
+	}
+
+	const cleanMessageCardColor = normalised.messageCardColor
+		.replace(/^#/, "")
+		.toLowerCase();
+	if (cleanMessageCardColor !== "141414") {
+		query.push(["messageCardColor", cleanMessageCardColor]);
+	}
+
+	if (normalised.messageCardOpacity !== 0.72) {
+		query.push(["messageCardOpacity", String(normalised.messageCardOpacity)]);
+	}
+
+	if (normalised.messageCardRadius !== 10) {
+		query.push(["messageCardRadius", String(normalised.messageCardRadius)]);
+	}
+
+	if (normalised.messageCardBorderWidth !== 0) {
+		query.push(["messageCardBorderWidth", String(normalised.messageCardBorderWidth)]);
+	}
+
+	const cleanMessageCardBorderColor = normalised.messageCardBorderColor
+		.replace(/^#/, "")
+		.toLowerCase();
+	if (cleanMessageCardBorderColor !== "3a3a3a") {
+		query.push(["messageCardBorderColor", cleanMessageCardBorderColor]);
+	}
+
+	if (normalised.messageCardBorderStyle !== "solid") {
+		query.push(["messageCardBorderStyle", normalised.messageCardBorderStyle]);
+	}
+
+	if (normalised.messageCardPadding !== 0) {
+		query.push(["messageCardPadding", String(normalised.messageCardPadding)]);
+	}
+
+	if (normalised.messageSpacing !== 3) {
+		query.push(["messageSpacing", String(normalised.messageSpacing)]);
+	}
+
 	if (normalised.fade !== 15) {
 		query.push([
 			"fade",
 			normalised.fade === false ? "off" : String(normalised.fade),
 		]);
+	}
+
+	if (normalised.entryAnimation !== "classic") {
+		query.push(["entryAnimation", normalised.entryAnimation]);
 	}
 
 	if (normalised.badges !== true) {
@@ -424,6 +596,10 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 	}
 	if (normalised.wrap !== false) {
 		query.push(["wrap", normalised.wrap ? "1" : "0"]);
+	}
+
+	if (normalised.wrapAfterColon) {
+		query.push(["wrapAfterColon", "1"]);
 	}
 
 	if (normalised.unlisted !== true) {
@@ -533,10 +709,16 @@ function migrateLegacySerializedLink() {
 
 const legacySerializedRedirecting = migrateLegacySerializedLink();
 
-const selectedChannel = (params.get("channel") || "")
-	.trim()
-	.toLowerCase()
-	.replace(/^#/, "");
+function normalizeTwitchChannel(value) {
+	const channel = String(value || "")
+		.trim()
+		.toLowerCase()
+		.replace(/^#/, "");
+
+	return /^[a-z0-9_]{1,25}$/.test(channel) ? channel : "";
+}
+
+const selectedChannel = normalizeTwitchChannel(params.get("channel"));
 
 const selectedKick = cleanKickInput(params.get("kick"));
 
@@ -562,6 +744,63 @@ let textColor = (() => {
 	return /^[0-9a-fA-F]{6}$/.test(value) ? `#${value}` : "#ffffff";
 })();
 
+let messageCardsEnabled = parseQueryBoolean("messageCards", false);
+
+let messageCardColor = (() => {
+	const value = String(params.get("messageCardColor") || "")
+		.trim()
+		.replace(/^#/, "");
+
+	return /^[0-9a-fA-F]{6}$/.test(value) ? `#${value}` : "#141414";
+})();
+
+let messageCardOpacity = Number(params.get("messageCardOpacity") ?? 0.72);
+if (!Number.isFinite(messageCardOpacity)) messageCardOpacity = 0.72;
+messageCardOpacity = Math.max(0, Math.min(messageCardOpacity, 1));
+
+let messageCardRadius = Number(params.get("messageCardRadius") ?? 10);
+if (!Number.isFinite(messageCardRadius)) messageCardRadius = 10;
+messageCardRadius = Math.max(0, Math.min(messageCardRadius, 32));
+
+let messageCardBorderWidth = Number(params.get("messageCardBorderWidth") ?? 0);
+if (!Number.isFinite(messageCardBorderWidth)) messageCardBorderWidth = 0;
+messageCardBorderWidth = Math.max(0, Math.min(messageCardBorderWidth, 8));
+
+let messageCardBorderColor = (() => {
+	const value = String(params.get("messageCardBorderColor") || "")
+		.trim()
+		.replace(/^#/, "");
+
+	return /^[0-9a-fA-F]{6}$/.test(value) ? `#${value}` : "#3a3a3a";
+})();
+
+let messageCardBorderStyle = params.get("messageCardBorderStyle");
+if (!["solid", "dashed", "dotted"].includes(messageCardBorderStyle)) {
+	messageCardBorderStyle = "solid";
+}
+
+let messageCardPadding = Number(params.get("messageCardPadding") ?? 0);
+if (!Number.isFinite(messageCardPadding)) messageCardPadding = 0;
+messageCardPadding = Math.max(0, Math.min(messageCardPadding, 24));
+
+let messageSpacing = Number(params.get("messageSpacing") ?? 3);
+if (!Number.isFinite(messageSpacing)) messageSpacing = 3;
+messageSpacing = Math.max(0, Math.min(messageSpacing, 32));
+
+function applyMessageCardSettings() {
+	const root = document.documentElement.style;
+	root.setProperty("--message-card-bg", hexToRgbaString(messageCardColor, messageCardOpacity));
+	root.setProperty("--message-card-radius", `${messageCardRadius}px`);
+	root.setProperty("--message-card-border-width", `${messageCardBorderWidth}px`);
+	root.setProperty("--message-card-border-color", messageCardBorderColor);
+	root.setProperty("--message-card-border-style", messageCardBorderStyle);
+	root.setProperty("--message-card-padding", `${messageCardPadding}px`);
+	root.setProperty("--message-spacing", `${messageSpacing}px`);
+	document.body.classList.toggle("message-cards", messageCardsEnabled);
+}
+
+applyMessageCardSettings();
+
 let fade;
 const fadeParam = params.get("fade");
 
@@ -576,6 +815,17 @@ if (fadeParam === null || fadeParam === "") {
 		fade = 15;
 	}
 }
+
+let entryAnimation = params.get("entryAnimation");
+if (!["classic", "from-left", "from-right"].includes(entryAnimation)) {
+	entryAnimation = "classic";
+}
+
+function applyEntryAnimation() {
+	document.body.dataset.entryAnimation = entryAnimation;
+}
+
+applyEntryAnimation();
 
 let badgesEnabled = parseQueryBoolean("badges", true);
 
@@ -622,6 +872,11 @@ if (!Number.isFinite(emoteScale)) {
 }
 
 emoteScale = Math.max(0.25, Math.min(emoteScale, 3));
+
+let badgeScale = Number(params.get("badgeScale") ?? 1);
+if (!Number.isFinite(badgeScale)) badgeScale = 1;
+badgeScale = Math.max(0.25, Math.min(badgeScale, 2));
+document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
 
 let shadowEnabled = parseQueryBoolean("shadow", true);
 
@@ -844,6 +1099,92 @@ function applyChatFont() {
 
 applyChatFont();
 
+let usernameFontMode = cleanFontMode(params.get("usernameFont"));
+let messageFontMode = cleanFontMode(params.get("messageFont"));
+let usernameFontName = sanitizeFontName(params.get("usernameFontName"));
+let messageFontName = sanitizeFontName(params.get("messageFontName"));
+
+let usernameFontSize = Number(params.get("usernameSize") ?? 50);
+if (!Number.isFinite(usernameFontSize)) usernameFontSize = 50;
+usernameFontSize = Math.max(8, Math.min(usernameFontSize, 100));
+
+let messageFontSize = Number(params.get("messageSize") ?? 50);
+if (!Number.isFinite(messageFontSize)) messageFontSize = 50;
+messageFontSize = Math.max(8, Math.min(messageFontSize, 100));
+
+let roleTypographyEnabled = parseQueryBoolean(
+	"separateTypography",
+	usernameFontMode !== "chat" ||
+		messageFontMode !== "chat" ||
+		usernameFontSize !== 50 ||
+		messageFontSize !== 50,
+);
+
+function resolveRoleFont(mode, customName) {
+	if (mode === "chat") return "var(--chat-font)";
+	if (mode === "custom") {
+		return customName ? `'${customName}', sans-serif` : "var(--chat-font)";
+	}
+	return fontQueryKeyToValue(mode);
+}
+
+function loadRoleFont(mode, customName) {
+	if (mode === "chat") return;
+	if (mode === "custom") {
+		loadCustomGoogleFont(customName);
+		return;
+	}
+	const value = fontQueryKeyToValue(mode);
+	loadGoogleFontIfNeeded(value);
+	loadCustomFontIfNeeded(value);
+}
+
+function applyRoleTypography() {
+	const root = document.documentElement.style;
+	const usernameFont = roleTypographyEnabled
+		? resolveRoleFont(usernameFontMode, usernameFontName)
+		: "var(--chat-font)";
+	const messageFont = roleTypographyEnabled
+		? resolveRoleFont(messageFontMode, messageFontName)
+		: "var(--chat-font)";
+	root.setProperty("--username-font", usernameFont);
+	root.setProperty("--message-font", messageFont);
+	root.setProperty(
+		"--username-font-size",
+		`${roleTypographyEnabled ? usernameFontSize : 50}px`,
+	);
+	root.setProperty(
+		"--message-font-size",
+		`${roleTypographyEnabled ? messageFontSize : 50}px`,
+	);
+	const activeMessageFont =
+		!roleTypographyEnabled ||
+		messageFontMode === "chat" ||
+		(messageFontMode === "custom" && !messageFontName)
+			? resolveChatFont()
+			: messageFont;
+	const activeUsernameFont =
+		!roleTypographyEnabled ||
+		usernameFontMode === "chat" ||
+		(usernameFontMode === "custom" && !usernameFontName)
+			? resolveChatFont()
+			: usernameFont;
+	document.body.classList.toggle(
+		"pixel-font",
+		activeMessageFont === "'Minecraft', sans-serif",
+	);
+	document.body.classList.toggle(
+		"pixel-username-font",
+		activeUsernameFont === "'Minecraft', sans-serif",
+	);
+	if (roleTypographyEnabled) {
+		loadRoleFont(usernameFontMode, usernameFontName);
+		loadRoleFont(messageFontMode, messageFontName);
+	}
+}
+
+applyRoleTypography();
+
 let boldEnabled = parseQueryBoolean("bold", true);
 
 let uppercaseEnabled = parseQueryBoolean("uppercase", false);
@@ -920,12 +1261,13 @@ applyTextStyleSettings();
 loadGoogleFontIfNeeded(chatFont);
 loadCustomFontIfNeeded(chatFont);
 
-document.body.classList.toggle(
-	"pixel-font",
-	chatFont === "'Minecraft', sans-serif",
-);
-
 let wrapEnabled = parseQueryBoolean("wrap", false);
+
+let wrapAfterColonEnabled = parseQueryBoolean("wrapAfterColon", false);
+
+if (wrapAfterColonEnabled) {
+	wrapEnabled = false;
+}
 
 let showUnlisted7TV = parseQueryBoolean("unlisted", true);
 
@@ -1094,6 +1436,7 @@ function applyLayoutSettings() {
 	document.body.classList.toggle("newest-top", newestTopEnabled);
 	document.body.classList.toggle("align-center", alignMode === "center");
 	document.body.classList.toggle("align-right", alignMode === "right");
+	document.body.classList.toggle("wrap-after-colon", wrapAfterColonEnabled);
 }
 
 applyLayoutSettings();

@@ -27,19 +27,12 @@ function ensureEmoteScaleStyle() {
                 max-height: 480px !important;
                 object-fit: contain !important;
                 object-position: left center !important;
-                margin: 10px 0 12px 0 !important;
+                margin: 0 0 12px 0 !important;
                 vertical-align: top !important;
                 flex: 0 0 auto !important;
                 filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.9)) !important;
             }
 
-            .twitch-gif-break {
-                display: block !important;
-                height: 0 !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                line-height: 0 !important;
-            }
         `;
 
         (document.head || document.documentElement).appendChild(style);

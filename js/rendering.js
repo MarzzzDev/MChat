@@ -1149,6 +1149,7 @@ function renderMessageTextInner(text, tags, username = null) {
 		}
 
 		if (range.type === "gif") {
+			container.classList.add("has-twitch-gif");
 			const altText =
 				text.substring(range.start, range.end + 1) || "Twitch GIF";
 
@@ -1158,12 +1159,6 @@ function renderMessageTextInner(text, tags, username = null) {
 				if (range.id) {
 					gif.dataset.twitchGifId = String(range.id);
 				}
-
-				const lineBreak = document.createElement("br");
-
-				lineBreak.className = "twitch-gif-break";
-
-				container.appendChild(lineBreak);
 
 				container.appendChild(gif);
 			} else {
@@ -1456,12 +1451,25 @@ function bumpRepeat(state, previewEntry) {
 
 	scheduleMessageFade(
 		state.element,
-		state.element.dataset.messageId || null,
 		state.element.dataset.userKey || null,
 	);
 }
 
 function placeInChat(chat, element) {
+	while (chat.querySelectorAll(":scope > .message").length >= 100) {
+		const oldest = newestTopEnabled
+			? chat.lastElementChild
+			: chat.firstElementChild;
+
+		if (!oldest) {
+			break;
+		}
+
+		clearTimeout(oldest._fadeTimer);
+		clearTimeout(oldest._removeTimer);
+		removePlatformElement(oldest);
+	}
+
 	if (newestTopEnabled && chat.firstChild) {
 		chat.insertBefore(element, chat.firstChild);
 	} else {
@@ -1469,11 +1477,32 @@ function placeInChat(chat, element) {
 	}
 }
 
+function registerMessageId(message, messageId) {
+	if (!messageId) {
+		return;
+	}
+
+	const id = String(messageId);
+	message._messageIds ??= new Set();
+	message._messageIds.add(id);
+	messageElements.set(id, message);
+}
+
+function unregisterMessageIds(message) {
+	for (const id of message._messageIds || []) {
+		if (messageElements.get(id) === message) {
+			messageElements.delete(id);
+		}
+	}
+
+	message._messageIds?.clear();
+}
+
 function scrollPreviewToLatest(previewChat) {
 	previewChat.scrollTop = newestTopEnabled ? 0 : previewChat.scrollHeight;
 }
 
-function scheduleMessageFade(message, messageId, userKey) {
+	function scheduleMessageFade(message, userKey) {
 	clearTimeout(message._fadeTimer);
 	clearTimeout(message._removeTimer);
 
@@ -1489,10 +1518,7 @@ function scheduleMessageFade(message, messageId, userKey) {
 
 			message._removeTimer = setTimeout(() => {
 				message.remove();
-
-				if (messageId) {
-					messageElements.delete(messageId);
-				}
+				unregisterMessageIds(message);
 
 				if (userKey && userMessageElements.has(userKey)) {
 					userMessageElements.get(userKey).delete(message);
@@ -1719,6 +1745,7 @@ async function onMsg(
 		lastRepeat.element.isConnected &&
 		lastRepeat.element.parentNode === chat
 	) {
+		registerMessageId(lastRepeat.element, messageId);
 		bumpRepeat(lastRepeat, previewEntry);
 
 		return;
@@ -1811,7 +1838,7 @@ async function onMsg(
 
 	if (messageId) {
 		message.dataset.messageId = messageId;
-		messageElements.set(messageId, message);
+		registerMessageId(message, messageId);
 	}
 
 	if (userId) {
@@ -1867,6 +1894,6 @@ async function onMsg(
 		previewEntry.element = message;
 		schedulePreviewFade(previewEntry);
 	} else {
-		scheduleMessageFade(message, messageId, userKey);
+		scheduleMessageFade(message, userKey);
 	}
 }

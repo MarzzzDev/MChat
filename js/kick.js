@@ -177,9 +177,18 @@ async function resolveKickChannel(slug) {
 	}
 
 	if (!data) {
-		throw new Error(
+		const error = new Error(
 			`Kick channel lookup failed: ${lastStatus || "network error"}`,
 		);
+		error.retryable =
+			!lastStatus || lastStatus === 408 || lastStatus === 429 || lastStatus >= 500;
+		throw error;
+	}
+
+	if (data?.chatroom?.id == null) {
+		const error = new Error("Kick channel lookup returned no chatroom ID");
+		error.retryable = true;
+		throw error;
 	}
 
 	KICK_CHATROOM_ID = data?.chatroom?.id != null ? String(data.chatroom.id) : null;
@@ -536,7 +545,28 @@ function connectKickSocket() {
 async function startKickChat(slug) {
 	KICK_CHANNEL = slug;
 
-	await resolveKickChannel(slug);
+	let attempt = 0;
+	while (KICK_CHANNEL === slug && !KICK_CHATROOM_ID) {
+		try {
+			await resolveKickChannel(slug);
+		} catch (error) {
+			if (error.retryable === false) {
+				throw error;
+			}
+
+			attempt += 1;
+			const delay = Math.min(5000 * 2 ** Math.min(attempt - 1, 4), 60000);
+			console.warn(
+				`Kick channel lookup failed; retrying in ${Math.round(delay / 1000)}s:`,
+				error,
+			);
+			await new Promise((resolve) => setTimeout(resolve, delay));
+		}
+	}
+
+	if (KICK_CHANNEL !== slug) {
+		return;
+	}
 
 	console.log(
 		"Kick chatroom:",
