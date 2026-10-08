@@ -123,19 +123,20 @@ async function loadDankChatBadges() {
 	try {
 		let data = null;
 
-		for (const url of DANKCHAT_BADGE_URLS) {
-			try {
-				const response = await fetch(url);
+		try {
+			data = await Promise.any(
+				DANKCHAT_BADGE_URLS.map(async (url) => {
+					const response = await fetch(url);
 
-				if (!response.ok) {
-					throw new Error(`${response.status}`);
-				}
+					if (!response.ok) {
+						throw new Error(`${url}: ${response.status}`);
+					}
 
-				data = await response.json();
-				break;
-			} catch (error) {
-				console.warn("DankChat badge source failed:", url, error);
-			}
+					return response.json();
+				}),
+			);
+		} catch (error) {
+			console.warn("DankChat badge sources failed:", error);
 		}
 
 		if (!data) {
@@ -294,9 +295,12 @@ async function loadFFZBadges() {
 			return;
 		}
 
-		const response = await fetch(
-			`https://api.frankerfacez.com/v1/user/id/${TWITCH_USER_ID}`,
-		);
+		const [response, roomResponse] = await Promise.all([
+			fetch(`https://api.frankerfacez.com/v1/user/id/${TWITCH_USER_ID}`),
+			fetch(
+				`https://api.frankerfacez.com/v1/room/${encodeURIComponent(CHANNEL)}`,
+			).catch(() => null),
+		]);
 
 		if (response.ok) {
 			const data = await response.json();
@@ -328,12 +332,8 @@ async function loadFFZBadges() {
 			}
 		}
 
-		const roomResponse = await fetch(
-			`https://api.frankerfacez.com/v1/room/${encodeURIComponent(CHANNEL)}`,
-		);
-
-		if (!roomResponse.ok) {
-			console.warn(`FFZ room badge request failed: ${roomResponse.status}`);
+		if (!roomResponse?.ok) {
+			console.warn(`FFZ room badge request failed: ${roomResponse?.status}`);
 
 			return;
 		}

@@ -78,8 +78,12 @@ async function loadTwitchBadges() {
     const load = (async () => {
         let loaded = 0;
 
-        try {
-            const globalData = await twitchGraphQL(
+        const channelId = TWITCH_USER_ID
+            ? String(TWITCH_USER_ID).replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+            : null;
+
+        const [globalResult, channelResult] = await Promise.allSettled([
+            twitchGraphQL(
                 `query {
                     badges {
                         imageURL(size: DOUBLE)
@@ -89,18 +93,11 @@ async function loadTwitchBadges() {
                         version
                     }
                 }`,
-            );
-
-            loaded += cacheTwitchGraphQLBadges(globalData?.badges);
-        } catch (error) {
-            console.warn("Twitch global badge catalog unavailable:", error);
-        }
-
-        if (TWITCH_USER_ID) {
-            try {
-                const channelData = await twitchGraphQL(
+            ),
+            channelId
+                ? twitchGraphQL(
                     `query {
-                        user(id: "${String(TWITCH_USER_ID).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}") {
+                        user(id: "${channelId}") {
                             broadcastBadges {
                                 imageURL(size: DOUBLE)
                                 description
@@ -110,12 +107,22 @@ async function loadTwitchBadges() {
                             }
                         }
                     }`,
-                );
+                )
+                : Promise.resolve(null),
+        ]);
 
-                loaded += cacheTwitchGraphQLBadges(channelData?.user?.broadcastBadges);
-            } catch (error) {
-                console.warn("Twitch channel badge catalog unavailable:", error);
-            }
+        if (globalResult.status === "fulfilled") {
+            loaded += cacheTwitchGraphQLBadges(globalResult.value?.badges);
+        } else {
+            console.warn("Twitch global badge catalog unavailable:", globalResult.reason);
+        }
+
+        if (channelResult.status === "fulfilled") {
+            loaded += cacheTwitchGraphQLBadges(
+                channelResult.value?.user?.broadcastBadges,
+            );
+        } else {
+            console.warn("Twitch channel badge catalog unavailable:", channelResult.reason);
         }
 
         if (!twitchBadges.has("subscriber/1")) {

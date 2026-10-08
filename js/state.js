@@ -203,46 +203,73 @@ function isKnownBot(login) {
 	return ffzBotBadgeUsers.has(login);
 }
 
-async function runLoadingTasks(tasks) {
+let loadingIndicator = null;
+let loadingIndicatorTimer = null;
+let loadingScreenWanted = false;
+
+function startLoadingScreen() {
+	loadingScreenWanted = true;
+
+	if (loadingIndicator) {
+		return;
+	}
+
+	if (!document.body) {
+		document.addEventListener(
+			"DOMContentLoaded",
+			() => {
+				if (loadingScreenWanted) {
+					startLoadingScreen();
+				}
+			},
+			{ once: true },
+		);
+
+		return;
+	}
+
 	const indicator = showLoadingIndicator();
-
-	const loadingText = indicator?.querySelector("#overlay-loading-text");
-
+	const loadingText = indicator.querySelector("#overlay-loading-text");
 	let dots = 1;
+
+	loadingIndicator = indicator;
 
 	if (loadingText) {
 		loadingText.textContent = "Loading.";
 	}
 
-	const animation = setInterval(() => {
+	loadingIndicatorTimer = setInterval(() => {
 		if (!loadingText) {
 			return;
 		}
 
-		dots++;
-
-		if (dots > 3) {
-			dots = 1;
-		}
-
+		dots = (dots % 3) + 1;
 		loadingText.textContent = "Loading" + ".".repeat(dots);
 	}, 500);
+}
 
-	try {
-		await Promise.allSettled(
-			tasks.map((task) =>
-				task.run().catch((error) => {
+function stopLoadingScreen() {
+	loadingScreenWanted = false;
+
+	clearInterval(loadingIndicatorTimer);
+	loadingIndicatorTimer = null;
+
+	if (loadingIndicator) {
+		loadingIndicator.remove();
+		loadingIndicator = null;
+	}
+}
+
+async function runLoadingTasks(tasks) {
+	await Promise.allSettled(
+		tasks.map((task) =>
+			Promise.resolve()
+				.then(() => task.run())
+				.catch((error) => {
 					console.error(`${task.label} failed to load:`, error);
 				}),
-			),
-		);
-	} finally {
-		clearInterval(animation);
-
-		if (indicator) {
-			indicator.remove();
-		}
-	}
+		),
+	);
 }
 
 let twemojiReady = null;

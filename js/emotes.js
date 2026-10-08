@@ -246,15 +246,19 @@ async function load7TVEmotes() {
 			return;
 		}
 
-		const setResponse = await fetch(
-			`https://7tv.io/v3/emote-sets/${emoteSetId}`,
-		);
+		let setData = userData.emote_set;
 
-		if (!setResponse.ok) {
-			throw new Error(`7TV emote set error: ${setResponse.status}`);
+		if (!Array.isArray(setData?.emotes) || !setData.emotes.length) {
+			const setResponse = await fetch(
+				`https://7tv.io/v3/emote-sets/${emoteSetId}`,
+			);
+
+			if (!setResponse.ok) {
+				throw new Error(`7TV emote set error: ${setResponse.status}`);
+			}
+
+			setData = await setResponse.json();
 		}
-
-		const setData = await setResponse.json();
 
 		for (const emote of setData.emotes || []) {
 			add7TVEmote(emote);
@@ -315,7 +319,14 @@ function getFFZImage(emote) {
 
 async function loadFFZEmotes() {
 	try {
-		const response = await fetch("https://api.frankerfacez.com/v1/set/global");
+		const [response, roomResponse] = await Promise.all([
+			fetch("https://api.frankerfacez.com/v1/set/global"),
+			CHANNEL
+				? fetch(
+					`https://api.frankerfacez.com/v1/room/${encodeURIComponent(CHANNEL)}`,
+				).catch(() => null)
+				: null,
+		]);
 
 		if (!response.ok) {
 			throw new Error(`FFZ global emotes: ${response.status}`);
@@ -352,12 +363,6 @@ async function loadFFZEmotes() {
 		for (const [name, emote] of ffzEmotes) {
 			ffzGlobalEmotes.set(name, emote);
 		}
-
-		const roomResponse = CHANNEL
-			? await fetch(
-				`https://api.frankerfacez.com/v1/room/${encodeURIComponent(CHANNEL)}`,
-			)
-			: null;
 
 		if (roomResponse?.ok) {
 			const roomData = await roomResponse.json();
@@ -397,9 +402,14 @@ async function loadFFZEmotes() {
 
 async function loadBTTVEmotes() {
 	try {
-		const globalResponse = await fetch(
-			"https://api.betterttv.net/3/cached/emotes/global",
-		);
+		const [globalResponse, userResponse] = await Promise.all([
+			fetch("https://api.betterttv.net/3/cached/emotes/global"),
+			TWITCH_USER_ID
+				? fetch(
+					`https://api.betterttv.net/3/cached/users/twitch/${TWITCH_USER_ID}`,
+				).catch(() => null)
+				: null,
+		]);
 
 		if (!globalResponse.ok) {
 			throw new Error(`BTTV global emotes: ${globalResponse.status}`);
@@ -424,12 +434,6 @@ async function loadBTTVEmotes() {
 		for (const [name, emote] of bttvEmotes) {
 			bttvGlobalEmotes.set(name, emote);
 		}
-
-		const userResponse = TWITCH_USER_ID
-			? await fetch(
-				`https://api.betterttv.net/3/cached/users/twitch/${TWITCH_USER_ID}`,
-			)
-			: null;
 
 		if (userResponse?.ok) {
 			const userData = await userResponse.json();

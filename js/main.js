@@ -1,47 +1,78 @@
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./js/sw.js");
 
-const LOADING_TASKS = [
-	{ label: "", run: load7TVGlobalEmotes },
-	{ label: "", run: load7TVEmotes },
-	{ label: "", run: loadFFZEmotes },
-	{ label: "", run: loadBTTVEmotes },
-	{ label: "", run: loadTwitchBadges },
-	{ label: "", run: loadFFZBadges },
-	{ label: "", run: loadChatterinoBadges },
-	{ label: "", run: loadHomiesBadges },
-	{ label: "", run: loadBTTVBadges },
-	{ label: "", run: loadDankChatBadges },
-	{ label: "", run: loadMoltorinoBadges },
-	{ label: "", run: loadChannelHighlightData },
-];
+(function preconnectHosts() {
+	const apiHosts = [
+		"https://7tv.io",
+		"https://api.frankerfacez.com",
+		"https://api.betterttv.net",
+		"https://gql.twitch.tv",
+	];
+	const imageHosts = [
+		"https://cdn.7tv.app",
+		"https://static-cdn.jtvnw.net",
+		"https://cdn.betterttv.net",
+		"https://cdn.frankerfacez.com",
+	];
 
-let loadingAnimationInterval = null;
+	const add = (href, cors) => {
+		const link = document.createElement("link");
 
-function startLoadingAnimation() {
-	const loadingElement = document.getElementById("loading-text");
+		link.rel = "preconnect";
+		link.href = href;
 
-	if (!loadingElement) return;
-
-	let dots = 1;
-
-	loadingElement.textContent = "Loading.";
-
-	loadingAnimationInterval = setInterval(() => {
-		dots++;
-
-		if (dots > 3) {
-			dots = 1;
+		if (cors) {
+			link.crossOrigin = "anonymous";
 		}
 
-		loadingElement.textContent = "Loading" + ".".repeat(dots);
-	}, 500);
+		(document.head || document.documentElement).appendChild(link);
+	};
+
+	apiHosts.forEach((host) => add(host, true));
+	imageHosts.forEach((host) => add(host, false));
+})();
+
+const TWITCH_READY_TIMEOUT_MS = 8000;
+
+function hideStaticLoadingText() {
+	const el = document.getElementById("loading-text");
+
+	if (!el) return;
+
+	const box =
+		el.closest("#loading, #loading-screen, .loading, .loading-screen") || el;
+	box.style.display = "none";
 }
 
-function stopLoadingAnimation() {
-	if (loadingAnimationInterval) {
-		clearInterval(loadingAnimationInterval);
-		loadingAnimationInterval = null;
+function logTaskError(label, error) {
+	console.error(`${label} failed to load:`, error);
+}
+
+const startedTasks = [];
+
+function trackTask(label, run) {
+	const promise = Promise.resolve()
+		.then(run)
+		.catch((error) => logTaskError(label, error));
+
+	startedTasks.push(promise);
+
+	return promise;
+}
+
+let channelDataPromise = null;
+
+function onTwitchRoomReady() {
+	if (channelDataPromise || !CHANNEL || !TWITCH_USER_ID) {
+		return;
 	}
+
+	trackTask("Twitch badges", loadTwitchBadges);
+
+	channelDataPromise = trackTask("7TV channel emotes", load7TVEmotes);
+
+	trackTask("BTTV emotes", loadBTTVEmotes);
+	trackTask("FFZ badges", loadFFZBadges);
+	trackTask("Channel highlights", loadChannelHighlightData);
 }
 
 loadFFZBotBadgeList();
@@ -60,25 +91,30 @@ async function startOverlay() {
 		return;
 	}
 
+	startLoadingScreen();
+	hideStaticLoadingText();
+
 	CHANNEL = selectedChannel || null;
 	hideOverlaySetupScreen();
 
-	if (CHANNEL) {
-		try {
-			await createTwitchIRCSocket();
-		} catch (error) {
-			console.error("Anonymous Twitch IRC startup error:", error);
+	const ircReady = CHANNEL
+		? createTwitchIRCSocket().catch((error) => {
+			  console.error("Anonymous Twitch IRC startup error:", error);
+			  return null;
+		  })
+		: Promise.resolve(null);
 
-			if (!selectedKick && !selectedYouTube) {
-				return;
-			}
-		}
-	}
+	const required = [trackTask("7TV global emotes", load7TVGlobalEmotes)];
 
-	const tasks = [...LOADING_TASKS];
+	trackTask("FFZ emotes", loadFFZEmotes);
+	trackTask("Chatterino badges", loadChatterinoBadges);
+	trackTask("Homies badges", loadHomiesBadges);
+	trackTask("BTTV badges", loadBTTVBadges);
+	trackTask("DankChat badges", loadDankChatBadges);
+	trackTask("Moltorino badges", loadMoltorinoBadges);
 
 	if (selectedKick) {
-		tasks.push({ label: "Kick chat", run: () => startKickChat(selectedKick) });
+		trackTask("Kick chat", () => startKickChat(selectedKick));
 	}
 
 	if (selectedYouTube) {
@@ -87,9 +123,21 @@ async function startOverlay() {
 		);
 	}
 
-	await runLoadingTasks(tasks);
+	if (CHANNEL) {
+		required.push(ircReady.then(() => channelDataPromise));
+	}
 
-	console.log("Chat emotes and badge data loaded.");
+	await Promise.race([
+		Promise.allSettled(required),
+		new Promise((resolve) => setTimeout(resolve, TWITCH_READY_TIMEOUT_MS)),
+	]);
+
+	stopLoadingScreen();
+
+	Promise.allSettled(startedTasks).then(() =>
+		console.log("Chat emotes and badge data loaded."),
+	);
+
 	console.log("Overlay channel:", CHANNEL);
 	console.log("Overlay channel ID:", TWITCH_USER_ID);
 	console.log("Twitch reader: anonymous IRC");
@@ -99,7 +147,7 @@ async function startOverlay() {
 }
 
 startOverlay().catch((error) => {
-	stopLoadingAnimation();
+	stopLoadingScreen();
 
 	console.error("Overlay startup error:", error);
 });

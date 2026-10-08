@@ -181,6 +181,10 @@ function handleTwitchIRCMessage(raw) {
 			console.log("Overlay channel ID from IRC:", TWITCH_USER_ID);
 		}
 
+		if (typeof onTwitchRoomReady === "function") {
+			onTwitchRoomReady();
+		}
+
 		if (twitchIRCReadyResolve) {
 			const resolve = twitchIRCReadyResolve;
 

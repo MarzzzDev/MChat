@@ -489,15 +489,19 @@ async function load7TVKickEmotes() {
 			const emoteSetId = userData.emote_set?.id;
 
 			if (emoteSetId) {
-				const setResponse = await fetch(
-					`https://7tv.io/v3/emote-sets/${emoteSetId}`,
-				);
+				let setData = userData.emote_set;
 
-				if (!setResponse.ok) {
-					throw new Error(`7TV Kick emote set error: ${setResponse.status}`);
+				if (!Array.isArray(setData?.emotes) || !setData.emotes.length) {
+					const setResponse = await fetch(
+						`https://7tv.io/v3/emote-sets/${emoteSetId}`,
+					);
+
+					if (!setResponse.ok) {
+						throw new Error(`7TV Kick emote set error: ${setResponse.status}`);
+					}
+
+					setData = await setResponse.json();
 				}
-
-				const setData = await setResponse.json();
 
 				for (const emote of setData.emotes || []) {
 					add7TVEmote(emote, sevenTVKickEmotes);

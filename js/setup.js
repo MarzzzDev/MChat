@@ -210,6 +210,7 @@ document.addEventListener("DOMContentLoaded", applyChatBackground);
 
 let previewTimer = null;
 let previewActive = false;
+let previewIntervalSec = 3.5;
 
 function runPreviewMessage() {
 	if (!previewActive) {
@@ -230,7 +231,8 @@ function runPreviewMessage() {
 
 	currentPreviewMessage = (currentPreviewMessage + 1) % previewMessages.length;
 
-	const delay = Math.random() * 1000 + 3000;
+	const jitter = 0.8 + Math.random() * 0.4;
+	const delay = Math.max(20, previewIntervalSec * 1000 * jitter);
 
 	previewTimer = setTimeout(runPreviewMessage, delay);
 }
@@ -1619,8 +1621,38 @@ function showOverlaySetupScreen() {
 			color: var(--mc-accent-ink);
 		}
 
-		#overlay-setup-screen .mc-sim-hint {
+		#overlay-setup-screen .mc-stage-head {
+			height: auto;
+			min-height: 48px;
+			flex: 0 0 auto;
+			padding: 8px 20px;
+			gap: 12px;
+		}
+
+		#overlay-setup-screen .mc-stage-title {
+			flex: 0 0 auto;
 			white-space: nowrap;
+		}
+
+		#overlay-setup-screen .mc-stage-meta {
+			flex: 1 1 auto;
+			min-width: 0;
+			flex-wrap: wrap;
+			justify-content: flex-end;
+			gap: 8px;
+		}
+
+		#overlay-setup-screen .mc-stage-meta > * {
+			flex: 0 0 auto;
+			white-space: nowrap;
+		}
+
+		#overlay-setup-screen .mc-sim-hint {
+			flex: 1 1 100% !important;
+			order: 10;
+			text-align: right;
+			white-space: normal !important;
+			font-size: 10px;
 		}
 
 		#overlay-setup-screen .mc-preview-frame.is-sim {
@@ -2092,11 +2124,71 @@ function showOverlaySetupScreen() {
 	const simHint = document.createElement("span");
 	simHint.className = "mc-sim-hint";
 
-	for (const el of [simHint, simNextButton, simResetButton, simExportButton]) {
+	const freqWrap = document.createElement("label");
+	freqWrap.style.cssText = "display:inline-flex;align-items:center;gap:6px;";
+	freqWrap.title = "Average time between preview messages (randomized +-20%)";
+	freqWrap.appendChild(document.createTextNode("Msg every"));
+
+	const freqInput = document.createElement("input");
+	freqInput.type = "number";
+	freqInput.className = "mc-input";
+	freqInput.min = "0.02";
+	freqInput.max = "60";
+	freqInput.step = "any";
+	freqInput.value = String(previewIntervalSec);
+	freqInput.style.cssText = "width:64px;height:28px;padding:0 8px;";
+	freqWrap.appendChild(freqInput);
+	freqWrap.appendChild(document.createTextNode("s"));
+
+	freqInput.addEventListener("input", () => {
+		const v = Number(freqInput.value);
+		if (!Number.isFinite(v) || v <= 0) {
+			return;
+		}
+		previewIntervalSec = Math.max(0.02, Math.min(v, 60));
+		if (previewActive && previewTimer !== null) {
+			clearTimeout(previewTimer);
+			previewTimer = setTimeout(runPreviewMessage, 100);
+		}
+	});
+
+	const simZoomOut = document.createElement("button");
+	simZoomOut.type = "button";
+	simZoomOut.className = "mc-sim-btn";
+	simZoomOut.textContent = "\u2212";
+	simZoomOut.title = "Zoom out view";
+
+	const simZoomReset = document.createElement("button");
+	simZoomReset.type = "button";
+	simZoomReset.className = "mc-sim-btn";
+	simZoomReset.textContent = "100%";
+	simZoomReset.title = "Reset view zoom";
+
+	const simZoomIn = document.createElement("button");
+	simZoomIn.type = "button";
+	simZoomIn.className = "mc-sim-btn";
+	simZoomIn.textContent = "+";
+	simZoomIn.title = "Zoom in view";
+
+	const simOnlyEls = [
+		simHint,
+		simNextButton,
+		simResetButton,
+		simExportButton,
+		simZoomOut,
+		simZoomReset,
+		simZoomIn,
+	];
+
+	for (const el of simOnlyEls) {
 		el.style.display = "none";
 	}
 
+	stageMeta.appendChild(freqWrap);
 	stageMeta.appendChild(simHint);
+	stageMeta.appendChild(simZoomOut);
+	stageMeta.appendChild(simZoomReset);
+	stageMeta.appendChild(simZoomIn);
 	stageMeta.appendChild(simNextButton);
 	stageMeta.appendChild(simResetButton);
 	stageMeta.appendChild(simExportButton);
@@ -2132,6 +2224,112 @@ function showOverlaySetupScreen() {
 	const clampSimHeight = (value) => Math.max(80, Math.min(2160, value));
 	const SIM_DEFAULT_WIDTH = 380;
 	const SIM_DEFAULT_HEIGHT = 520;
+
+	const view = { z: 1, x: 0, y: 0 };
+
+	function applyView() {
+		const W = previewFrame.clientWidth;
+		const H = previewFrame.clientHeight;
+
+		view.z = Math.max(1, Math.min(8, view.z));
+		view.x = Math.min(0, Math.max(W - W * view.z, view.x));
+		view.y = Math.min(0, Math.max(H - H * view.z, view.y));
+
+		previewFrame.style.transformOrigin = "0 0";
+		previewFrame.style.transform =
+			view.z === 1
+				? ""
+				: `translate(${view.x}px, ${view.y}px) scale(${view.z})`;
+		simZoomReset.textContent = `${Math.round(view.z * 100)}%`;
+	}
+
+	function zoomViewAt(factor, p) {
+		const nz = Math.max(1, Math.min(8, view.z * factor));
+
+		view.x += p.x * (view.z - nz);
+		view.y += p.y * (view.z - nz);
+		view.z = nz;
+		applyView();
+	}
+
+	function resetView() {
+		view.z = 1;
+		view.x = 0;
+		view.y = 0;
+		applyView();
+	}
+
+	function frameCenter() {
+		return { x: previewFrame.clientWidth / 2, y: previewFrame.clientHeight / 2 };
+	}
+
+	simZoomIn.addEventListener("click", () => zoomViewAt(1.3, frameCenter()));
+	simZoomOut.addEventListener("click", () => zoomViewAt(1 / 1.3, frameCenter()));
+	simZoomReset.addEventListener("click", resetView);
+
+	let pan = null;
+
+	previewFrame.addEventListener("pointerdown", (event) => {
+		if (!sim.active || event.button !== 0) {
+			return;
+		}
+
+		if (simBox && simBox.contains(event.target)) {
+			return;
+		}
+
+		const rect = previewFrame.getBoundingClientRect();
+
+		pan = {
+			sx: event.clientX,
+			sy: event.clientY,
+			vx: view.x,
+			vy: view.y,
+			moved: false,
+			k: rect.width / previewFrame.offsetWidth / view.z || 1,
+		};
+
+		previewFrame.setPointerCapture(event.pointerId);
+	});
+
+	previewFrame.addEventListener("pointermove", (event) => {
+		if (!pan) {
+			return;
+		}
+
+		const dx = event.clientX - pan.sx;
+		const dy = event.clientY - pan.sy;
+
+		if (!pan.moved && Math.hypot(dx, dy) < 4) {
+			return;
+		}
+
+		pan.moved = true;
+		view.x = pan.vx + dx / pan.k;
+		view.y = pan.vy + dy / pan.k;
+		applyView();
+	});
+
+	previewFrame.addEventListener("pointerup", (event) => {
+		if (pan && !pan.moved) {
+			zoomViewAt(1.5, framePoint(event));
+		}
+
+		pan = null;
+	});
+
+	previewFrame.addEventListener("pointercancel", () => {
+		pan = null;
+	});
+
+	previewFrame.addEventListener("contextmenu", (event) => {
+		if (!sim.active || (simBox && simBox.contains(event.target))) {
+			return;
+		}
+
+		event.preventDefault();
+		zoomViewAt(1 / 1.5, framePoint(event));
+	});
 
 	function framePoint(event) {
 		const rect = previewFrame.getBoundingClientRect();
@@ -2190,7 +2388,7 @@ function showOverlaySetupScreen() {
 		simInner.style.height = `${sim.h}px`;
 		simInner.style.transform = `scale(${sim.scale})`;
 
-		simHint.textContent = `Drag to move | sides = width | top/bottom = height | corner / scroll = scale | ${Math.round(sim.w)}x${Math.round(sim.h)}px | ${Math.round(sim.scale * 100)}%`;
+		simHint.textContent = `Drag to move | sides = width | top/bottom = height | corner / scroll on chat = scale | click = zoom in, right click = zoom out, drag = pan | ${Math.round(sim.w)}x${Math.round(sim.h)}px | ${Math.round(sim.scale * 100)}%`;
 	}
 
 	function resetSimBox() {
@@ -2369,7 +2567,7 @@ function showOverlaySetupScreen() {
 		simulateButton.textContent = "Return to Preview";
 		simulateButton.classList.add("is-active");
 
-		for (const el of [simHint, simNextButton, simResetButton, simExportButton]) {
+		for (const el of simOnlyEls) {
 			el.style.display = "";
 		}
 
@@ -2568,6 +2766,7 @@ function showOverlaySetupScreen() {
 		simObserver = new ResizeObserver(() => {
 			fitSimFrame();
 			applySimBox();
+			applyView();
 		});
 		simObserver.observe(stageCanvas);
 
@@ -2620,12 +2819,13 @@ function showOverlaySetupScreen() {
 		previewFrame.classList.remove("is-sim");
 		previewFrame.style.width = "";
 		previewFrame.style.height = "";
+		resetView();
 
 		stageTitle.textContent = "Preview Chat";
 		simulateButton.textContent = "Simulate";
 		simulateButton.classList.remove("is-active");
 
-		for (const el of [simHint, simNextButton, simResetButton, simExportButton]) {
+		for (const el of simOnlyEls) {
 			el.style.display = "none";
 		}
 	}
@@ -3601,6 +3801,45 @@ function showOverlaySetupScreen() {
 	connectionPanel.appendChild(actions);
 	connectionPanel.appendChild(error);
 
+	copyButton.addEventListener("click", async () => {
+		const url = getOverlayUrl();
+
+		if (!url) {
+			return;
+		}
+
+		let ok = false;
+
+		try {
+			await navigator.clipboard.writeText(url);
+			ok = true;
+		} catch {
+			const ta = document.createElement("textarea");
+			ta.value = url;
+			ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
+			document.body.appendChild(ta);
+			ta.select();
+
+			try {
+				ok = document.execCommand("copy");
+			} catch {}
+
+			ta.remove();
+		}
+
+		if (!ok) {
+			error.textContent = "Couldn't copy automatically. Copy it from here: " + url;
+			error.style.display = "block";
+			return;
+		}
+
+		copyButton.textContent = "Copied!";
+		clearTimeout(copyButton._t);
+		copyButton._t = setTimeout(() => {
+			copyButton.textContent = "Copy overlay link";
+		}, 1500);
+	});
+
 	function activatePanel(id) {
 		const button = nav.querySelector(`.mc-nav-button[data-panel="${id}"]`);
 		if (button) {
@@ -4040,31 +4279,7 @@ function showOverlaySetupScreen() {
 		return url.toString();
 	}
 
-	copyButton.addEventListener("click", async () => {
-		const url = getOverlayUrl();
-		if (!url) {
-			return;
-		}
-
-		try {
-			await navigator.clipboard.writeText(url);
-		} catch {
-			const textarea = document.createElement("textarea");
-			textarea.value = url;
-			textarea.style.position = "fixed";
-			textarea.style.opacity = "0";
-			document.body.appendChild(textarea);
-			textarea.select();
-			document.execCommand("copy");
-			textarea.remove();
-		}
-
-		copyButton.textContent = "Link copied";
-		window.setTimeout(() => {
-			copyButton.textContent = "Copy overlay link";
-		}, 1500);
-	});
-
+	
 	syncFadeState();
 	prewarmFirstClip();
 	startPreviewMessages();
@@ -4155,23 +4370,29 @@ function hideOverlaySetupScreen() {
 			return;
 		}
 
-		const chat = document.getElementById("chat");
+		const body = document.body;
 
-		if (!chat) {
+		if (!body || !window.innerWidth || !window.innerHeight) {
 			return;
 		}
 
-		const set = (key, value) => chat.style.setProperty(key, value, "important");
+		const k = window.innerWidth / w;
+		const fitH = window.innerHeight / k;
 
-		set("position", "fixed");
+		const set = (key, value) => body.style.setProperty(key, value, "important");
+
+		document.documentElement.style.setProperty("overflow", "hidden", "important");
+		document.documentElement.style.setProperty("background", "transparent", "important");
+
+		set("position", "absolute");
 		set("left", "0px");
 		set("top", "0px");
-		set("right", "auto");
-		set("bottom", "auto");
+		set("margin", "0px");
 		set("width", `${w}px`);
-		set("height", `${h}px`);
+		set("height", `${fitH}px`);
+		set("overflow", "hidden");
 		set("transform-origin", "0 0");
-		set("transform", `scale(${window.innerWidth / w})`);
+		set("transform", `scale(${k})`);
 	}
 
 	document.addEventListener("DOMContentLoaded", apply);
