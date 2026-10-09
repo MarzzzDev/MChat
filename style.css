@@ -18,6 +18,7 @@ body {
     --username-font-size: 50px;
     --message-font-size: 50px;
     --badge-scale: 1;
+    --badge-spacing: 3px;
     --shadow-offset-x: 2px;
     --shadow-offset-y: 2px;
     --shadow-blur: 8px;
@@ -206,6 +207,10 @@ body[data-entry-animation="from-right"] {
     --message-entry-animation: messageFromRight;
 }
 
+body[data-entry-animation="none"] {
+    --message-entry-animation: none;
+}
+
 @keyframes messageFadeOut {
     from {
         opacity: 1;
@@ -224,7 +229,7 @@ body[data-entry-animation="from-right"] {
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
-    gap: 3px;
+    gap: var(--badge-spacing, 3px);
     margin-right: 6px;
     position: relative;
 }

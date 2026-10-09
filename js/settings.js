@@ -120,7 +120,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.fade = settings.fade === false ? false : Number(settings.fade ?? 15);
 
-	result.entryAnimation = ["classic", "from-left", "from-right"].includes(
+	result.entryAnimation = ["classic", "from-left", "from-right", "none"].includes(
 		settings.entryAnimation,
 	)
 		? settings.entryAnimation
@@ -184,6 +184,10 @@ function normaliseOverlaySettings(settings = {}) {
 	result.badgeScale = Number(settings.badgeScale ?? 1);
 	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1;
 	result.badgeScale = Math.max(0.25, Math.min(result.badgeScale, 2));
+
+	result.badgeSpacing = Number(settings.badgeSpacing ?? 3);
+	if (!Number.isFinite(result.badgeSpacing)) result.badgeSpacing = 3;
+	result.badgeSpacing = Math.max(0, Math.min(result.badgeSpacing, 30));
 
 	result.wrap = settings.wrap === true;
 
@@ -423,6 +427,10 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 
 	if (normalised.badgeScale !== 1) {
 		query.push(["badgeScale", String(normalised.badgeScale)]);
+	}
+
+	if (normalised.badgeSpacing !== 3) {
+		query.push(["badgeSpacing", String(normalised.badgeSpacing)]);
 	}
 
 	const fontKey = fontValueToQueryKey(normalised.font);
@@ -817,7 +825,7 @@ if (fadeParam === null || fadeParam === "") {
 }
 
 let entryAnimation = params.get("entryAnimation");
-if (!["classic", "from-left", "from-right"].includes(entryAnimation)) {
+if (!["classic", "from-left", "from-right", "none"].includes(entryAnimation)) {
 	entryAnimation = "classic";
 }
 
@@ -877,6 +885,11 @@ let badgeScale = Number(params.get("badgeScale") ?? 1);
 if (!Number.isFinite(badgeScale)) badgeScale = 1;
 badgeScale = Math.max(0.25, Math.min(badgeScale, 2));
 document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
+
+let badgeSpacing = Number(params.get("badgeSpacing") ?? 3);
+if (!Number.isFinite(badgeSpacing)) badgeSpacing = 3;
+badgeSpacing = Math.max(0, Math.min(badgeSpacing, 30));
+document.documentElement.style.setProperty("--badge-spacing", `${badgeSpacing}px`);
 
 let shadowEnabled = parseQueryBoolean("shadow", true);
 

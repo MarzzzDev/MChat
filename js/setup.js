@@ -3213,6 +3213,26 @@ function showOverlaySetupScreen() {
 		return field;
 	}
 
+	// previewWarning: true uses the default text, a string uses that text.
+	function createPreviewWarning(text) {
+		const warning = document.createElement("span");
+		warning.className = "mc-preview-warning";
+		warning.textContent = "*";
+
+		const message =
+			typeof text === "string" ? text : "Doesn't affect the Live Chat preview";
+
+		warning.addEventListener("mouseenter", () => {
+			warning.textContent = message;
+		});
+
+		warning.addEventListener("mouseleave", () => {
+			warning.textContent = "*";
+		});
+
+		return warning;
+	}
+
 	function addToggle(parent, labelText, noteText, key, checked, previewWarning = false) {
 		const row = document.createElement("label");
 		row.className = "mc-toggle-row";
@@ -3228,19 +3248,7 @@ function showOverlaySetupScreen() {
 		name.appendChild(label);
 
 		if (previewWarning) {
-			const warning = document.createElement("span");
-			warning.className = "mc-preview-warning";
-			warning.textContent = "*";
-
-			warning.addEventListener("mouseenter", () => {
-				warning.textContent = "Doesn't affect the Live Chat preview";
-			});
-
-			warning.addEventListener("mouseleave", () => {
-				warning.textContent = "*";
-			});
-
-			name.appendChild(warning);
+			name.appendChild(createPreviewWarning(previewWarning));
 		}
 
 		const note = document.createElement("div");
@@ -3632,6 +3640,7 @@ function showOverlaySetupScreen() {
 		"Show which platform each message came from when multichat is active.",
 		"platformIndicator",
 		platformIndicatorEnabled,
+		"Preview isn't a multichat, so no indicator shows",
 	);
 	const highlightsCheckbox = addToggle(
 		appearancePanel,
@@ -3646,7 +3655,7 @@ function showOverlaySetupScreen() {
 		"Unlisted 7TV emotes",
 		"Render unlisted 7TV emotes.",
 		"unlisted",
-		showUnlisted7TV,
+		showUnlisted7TV
 	);
 
 	const cheersCheckbox = addToggle(
@@ -3662,6 +3671,7 @@ function showOverlaySetupScreen() {
 		"Merge back-to-back identical messages into one with a counter (x4).",
 		"collapse",
 		collapseEnabled,
+		"Preview has no repeated messages to merge",
 	);
 	const newestTopCheckbox = addToggle(
 		appearancePanel,
@@ -3909,8 +3919,8 @@ function showOverlaySetupScreen() {
 	hlGroup.appendChild(hlHead);
 	appearancePanel.appendChild(hlGroup);
 
-	function addHighlightToggle(label, note, key, checked, color) {
-		const checkbox = addToggle(hlGroup, label, note, key, checked);
+	function addHighlightToggle(label, note, key, checked, color, previewWarning = false) {
+		const checkbox = addToggle(hlGroup, label, note, key, checked, previewWarning);
 		const row = checkbox.parentElement;
 		row.style.setProperty("--hc", color);
 
@@ -3937,6 +3947,7 @@ function showOverlaySetupScreen() {
 		"hlGifts",
 		hlGiftsEnabled,
 		"#f472b6",
+		"Preview has no gift sub messages",
 	);
 
 	const shadowDivider = document.createElement("div");
@@ -4064,6 +4075,7 @@ function showOverlaySetupScreen() {
 		["classic", "Classic"],
 		["from-right", "From right"],
 		["from-left", "From left"],
+		["none", "None"],
 	]) {
 		const option = document.createElement("option");
 		option.value = value;
