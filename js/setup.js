@@ -3213,7 +3213,6 @@ function showOverlaySetupScreen() {
 		return field;
 	}
 
-	// previewWarning: true uses the default text, a string uses that text.
 	function createPreviewWarning(text) {
 		const warning = document.createElement("span");
 		warning.className = "mc-preview-warning";
