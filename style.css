@@ -87,6 +87,24 @@ body {
     word-break: break-word;
 }
 
+.message-author {
+    display: inline;
+    white-space: normal;
+}
+
+.message-badges {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.message > .text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 body.wrap-after-colon #chat > .message:not(.hl-card) {
     display: block;
     min-width: 0;

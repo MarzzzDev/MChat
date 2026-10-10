@@ -1707,6 +1707,7 @@ window.addPreviewMessage = addPreviewMessage;
 window.rerenderPreviewChat = rerenderPreviewChat;
 window.reschedulePreviewFades = reschedulePreviewFades;
 
+
 async function onMsg(
 	user,
 	msg,
@@ -1722,6 +1723,7 @@ async function onMsg(
 	if (!chat) {
 		return;
 	}
+
 	applyStrokeMode();
 
 	const platform = tags.platform || "twitch";
@@ -1735,7 +1737,6 @@ async function onMsg(
 	registerChatter(user, usernameColor, userId, platform);
 
 	const replyInfo = getReplyInfo(tags, msg);
-
 	const repeatKey = collapseEnabled ? getRepeatKey(replyInfo, tags) : null;
 
 	if (
@@ -1747,14 +1748,11 @@ async function onMsg(
 	) {
 		registerMessageId(lastRepeat.element, messageId);
 		bumpRepeat(lastRepeat, previewEntry);
-
 		return;
 	}
 
 	const message = document.createElement("div");
-
 	message.className = "message";
-
 	message.dataset.platform = platform;
 
 	if (wrapEnabled) {
@@ -1783,14 +1781,15 @@ async function onMsg(
 		}
 	}
 
+	badges.classList.add("message-badges");
+
+	const authorGroup = document.createElement("span");
+	authorGroup.className = "message-author";
+
 	const usernameElement = document.createElement("span");
-
 	usernameElement.className = "username";
-
 	usernameElement.textContent = user + (tags["is-action"] ? "\u00A0" : ":\u00A0");
-
 	usernameElement.style.color = usernameColor;
-
 	usernameElement.style.webkitTextFillColor = usernameColor;
 
 	const text = renderMessageText(replyInfo.message, tags, user);
@@ -1802,13 +1801,11 @@ async function onMsg(
 					applyPaint(text, paint);
 				} else {
 					text.style.color = usernameColor;
-
 					text.style.webkitTextFillColor = usernameColor;
 				}
 			});
 		} else {
 			text.style.color = usernameColor;
-
 			text.style.webkitTextFillColor = usernameColor;
 		}
 	}
@@ -1822,14 +1819,14 @@ async function onMsg(
 			message.appendChild(indicator);
 		}
 	}
-	message.appendChild(badges);
 
-	message.appendChild(usernameElement);
+	authorGroup.appendChild(badges);
+	authorGroup.appendChild(usernameElement);
 
+	message.appendChild(authorGroup);
 	message.appendChild(text);
 
 	applyMessageHighlights(message, tags, user);
-
 	placeInChat(chat, message);
 
 	if (typeof applyMessageAlignment === "function") {
@@ -1845,7 +1842,9 @@ async function onMsg(
 		if (!userMessageElements.has(userKey)) {
 			userMessageElements.set(userKey, new Set());
 		}
+
 		userMessageElements.get(userKey).add(message);
+
 		get7TVPaint(userId, platform).then((paint) => {
 			if (paint) {
 				applyPaint(usernameElement, paint);
@@ -1855,7 +1854,8 @@ async function onMsg(
 		if (badgesEnabled && platform === "twitch") {
 			createExternalBadges(userId, tags).then((externalBadges) => {
 				if (externalBadges.children.length > 0) {
-					message.insertBefore(externalBadges, usernameElement);
+					externalBadges.classList.add("message-badges");
+					authorGroup.insertBefore(externalBadges, usernameElement);
 				}
 			});
 		}
@@ -1863,7 +1863,8 @@ async function onMsg(
 		if (badgesEnabled && platform === "kick") {
 			create7TVBadges(userId, "kick").then((sevenTVBadgeContainer) => {
 				if (sevenTVBadgeContainer.children.length > 0) {
-					message.insertBefore(sevenTVBadgeContainer, usernameElement);
+					sevenTVBadgeContainer.classList.add("message-badges");
+					authorGroup.insertBefore(sevenTVBadgeContainer, usernameElement);
 				}
 			});
 		}
