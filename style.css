@@ -85,30 +85,24 @@ body {
     word-break: break-word;
 }
 
+/* wrap-after-colon: keep the message as a normal block so that badge +
+   username flow inline together (inline layout can never orphan the badge
+   onto its own line), then force .text to start on a new block line.
+   Previously this used display:flex which made badge and username separate
+   flex items — a long username could push the badge onto its own row above. */
 body.wrap-after-colon #chat > .message:not(.hl-card) {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-}
-
-body.wrap-after-colon #chat > .message:not(.hl-card) > .badges,
-body.wrap-after-colon #chat > .message:not(.hl-card) > .platform-indicator {
-    flex: 0 0 auto;
-}
-body.wrap-after-colon #chat > .message:not(.hl-card) > .username {
-    flex: 0 1 auto;
-    min-width: 0;
+    display: block;
 }
 
 body.wrap-after-colon #chat > .message:not(.hl-card) > .text {
-    flex: 1 1 0%;
+    display: block;
     min-width: 0;
     max-width: 100%;
 }
 
 body.pixel-font #chat > .message > .text.has-twitch-gif,
 body.wrap-after-colon #chat > .message > .text.has-twitch-gif {
-    flex: 0 0 100%;
+    display: block;
     width: 100%;
     min-width: 0;
     max-width: 100%;
@@ -132,6 +126,8 @@ body.pixel-font .message {
     word-break: break-word;
 }
 
+/* Same fix for pixel-font flex layout: username can shrink to stay on the
+   same row as the badge instead of wrapping to its own row above it. */
 body.pixel-font .message > .username {
     flex: 0 1 auto;
     min-width: 0;

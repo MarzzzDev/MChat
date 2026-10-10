@@ -58,7 +58,7 @@ const MIN_NAME_BRIGHTNESS = 100;
 
 const TWITCH_DEFAULT_COLORS = [
 	"#FF0000",
-	"#0000FF",
+	"#1E90FF",
 	"#008000",
 	"#B22222",
 	"#FF7F50",
