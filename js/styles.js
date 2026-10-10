@@ -22,9 +22,9 @@ function ensureEmoteScaleStyle() {
             .twitch-gif {
                 display: block !important;
                 width: auto !important;
-                height: 480px !important;
-                max-width: min(80vw, 1240px) !important;
-                max-height: 480px !important;
+                height: auto !important;
+                max-width: 100% !important;
+                max-height: none !important;
                 object-fit: contain !important;
                 object-position: left center !important;
                 margin: 0 0 12px 0 !important;

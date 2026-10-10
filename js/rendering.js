@@ -965,6 +965,34 @@ function createTwitchGif(url, alt = "Twitch GIF") {
 		gif.replaceWith(fallback);
 	});
 
+	/* Size from the GIF's real aspect ratio: base height 480px * gifScale.
+	   Width is derived from it and clamped by max-width:100%; height follows
+	   via aspect-ratio, so a clamped GIF shrinks uniformly with no dead space. */
+	const applySize = () => {
+		const w = gif.naturalWidth;
+		const h = gif.naturalHeight;
+
+		if (!w || !h) {
+			return;
+		}
+
+		const ratio = w / h;
+
+		gif.style.setProperty("aspect-ratio", `${w} / ${h}`);
+		gif.style.setProperty(
+			"width",
+			`calc(480px * var(--gif-scale, 1) * ${ratio})`,
+			"important",
+		);
+		gif.style.setProperty("height", "auto", "important");
+	};
+
+	gif.addEventListener("load", applySize);
+
+	if (gif.complete) {
+		applySize();
+	}
+
 	return gif;
 }
 
