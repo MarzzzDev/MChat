@@ -2514,7 +2514,7 @@ function showOverlaySetupScreen() {
 
 	previewFrame.addEventListener("pointerup", (event) => {
 		if (pan && !pan.moved) {
-			zoomViewAt(1.5, framePoint(event));
+			/*zoomViewAt(1.5, framePoint(event));*/
 		}
 
 		pan = null;
@@ -2530,7 +2530,7 @@ function showOverlaySetupScreen() {
 		}
 
 		event.preventDefault();
-		zoomViewAt(1 / 1.5, framePoint(event));
+		/*zoomViewAt(1 / 1.5, framePoint(event));*/
 	});
 
 	function framePoint(event) {
@@ -3029,7 +3029,7 @@ function showOverlaySetupScreen() {
 		simBox.addEventListener("pointercancel", endDrag);
 		simBox.addEventListener("click", (event) => {
 			if (event.target === simBox) {
-				zoomViewAt(1.5, framePoint(event));
+				/*zoomViewAt(1.5, framePoint(event));*/
 			}
 		});
 
