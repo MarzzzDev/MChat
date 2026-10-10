@@ -2422,8 +2422,8 @@ function showOverlaySetupScreen() {
 		return { x: previewFrame.clientWidth / 2, y: previewFrame.clientHeight / 2 };
 	}
 
-	simZoomIn.addEventListener("click", () => zoomViewAt(1.3, frameCenter()));
-	simZoomOut.addEventListener("click", () => zoomViewAt(1 / 1.3, frameCenter()));
+	/*simZoomIn.addEventListener("click", () => zoomViewAt(1.3, frameCenter()));
+	simZoomOut.addEventListener("click", () => zoomViewAt(1 / 1.3, frameCenter()));*/
 	simZoomReset.addEventListener("click", resetView);
 	simBackgroundSelect.addEventListener("change", () =>
 		setSimulationBackground(simBackgroundSelect.value),
