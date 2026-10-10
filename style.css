@@ -88,25 +88,23 @@ body {
 }
 
 .message-author {
-    display: inline-flex;
-    align-items: center;
+    display: inline;
     white-space: nowrap;
-    vertical-align: baseline;
-    max-width: 100%;
 }
+
 .message-badges {
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 .message > .text {
+    display: inline;
+    white-space: normal;
     overflow-wrap: anywhere;
-    word-break: break-word;
+    word-break: normal;
 }
-
 body.wrap-after-colon #chat > .message:not(.hl-card) {
     display: block;
     min-width: 0;
