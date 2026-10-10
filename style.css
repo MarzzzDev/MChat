@@ -88,10 +88,12 @@ body {
 }
 
 .message-author {
-    display: inline;
-    white-space: normal;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    max-width: 100%;
 }
-
 .message-badges {
     display: inline-flex;
     align-items: center;
