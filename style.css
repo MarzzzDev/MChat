@@ -92,9 +92,12 @@ body.wrap-after-colon #chat > .message:not(.hl-card) {
 }
 
 body.wrap-after-colon #chat > .message:not(.hl-card) > .badges,
-body.wrap-after-colon #chat > .message:not(.hl-card) > .platform-indicator,
-body.wrap-after-colon #chat > .message:not(.hl-card) > .username {
+body.wrap-after-colon #chat > .message:not(.hl-card) > .platform-indicator {
     flex: 0 0 auto;
+}
+body.wrap-after-colon #chat > .message:not(.hl-card) > .username {
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 body.wrap-after-colon #chat > .message:not(.hl-card) > .text {
@@ -127,6 +130,11 @@ body.pixel-font .message {
     flex-wrap: wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+body.pixel-font .message > .username {
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 body.pixel-font .text {
