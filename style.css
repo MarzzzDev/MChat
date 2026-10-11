@@ -438,3 +438,8 @@ body.uppercase .text,
 body.uppercase .reply-to {
     text-transform: uppercase;
 }
+
+body.pixel-font #chat > .message:not(.hl-card),
+body.pixel-username-font #chat > .message:not(.hl-card) {
+    display: block !important;
+}
