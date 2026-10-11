@@ -1112,7 +1112,12 @@ function createCheermote(info, word) {
 	return wrapper;
 }
 
-const EMOJI_STRIP_RE = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u200d\ufe0f]/gu;
+// Also strips invisible characters: format chars (\p{Cf}), the U+E0000 tag
+// block (U+E0000 itself is unassigned, so \p{Cf} misses it; 7TV/Chatterino
+// append it to repeated messages to dodge Twitch's duplicate-message filter),
+// and blank-looking fillers.
+const EMOJI_STRIP_RE =
+	/[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Cf}\u{E0000}-\u{E007F}\u200d\ufe0f\u034f\u2800\u3164]/gu;
 const EMOJI_TEST_RE = /\p{Extended_Pictographic}/u;
 
 function isEmoteOnlyMessage(container) {
