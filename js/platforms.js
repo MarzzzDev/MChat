@@ -21,6 +21,7 @@ async function platformFetch(url, init = {}) {
 const MOD_COMMANDS = new Map([["-refresh", () => hardRefreshOverlay()]]);
 
 function runModCommand(text, isMod) {
+	console.log("[modcmd]", JSON.stringify(text), "isMod:", isMod);
 	if (!isMod) {
 		return false;
 	}

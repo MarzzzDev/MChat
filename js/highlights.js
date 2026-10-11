@@ -70,7 +70,7 @@ function addHighlightStyles() {
 			--hl-accent-2: #bf94ff;
 			--hl-muted: #999;
 			--hl-link: #bf94ff;
-			--hl-bleed: -12px;
+			--hl-bleed: 18px;
 		}
 
 		.message.has-highlight,

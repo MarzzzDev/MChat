@@ -77,15 +77,24 @@ async function hardRefreshOverlay() {
     refreshing = true;
 
     const base = location.href.split(/[?#]/)[0].replace(/[^/]*$/, "");
-    const files = await listRepoFiles();
 
-    await Promise.allSettled(
-        ["", ...files].map((file) =>
-            fetch(base + encodeURI(file), { cache: "reload" }),
-        ),
-    );
+    try {
+        const files = await Promise.race([
+            listRepoFiles(),
+            new Promise((resolve) => setTimeout(() => resolve([]), 3000)),
+        ]);
 
-    location.reload();
+        await Promise.race([
+            Promise.allSettled(
+                ["", ...files].map((file) =>
+                    fetch(base + encodeURI(file), { cache: "reload" }),
+                ),
+            ),
+            new Promise((resolve) => setTimeout(resolve, 5000)),
+        ]);
+    } finally {
+        location.reload();
+    }
 }
 
 function startGithubUpdater() {
