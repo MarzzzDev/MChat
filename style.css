@@ -1,4 +1,3 @@
-
 body {
     margin: 0;
     overflow: hidden;
@@ -90,6 +89,9 @@ body {
 .message-author {
     display: inline;
     white-space: nowrap;
+    font-family: var(--username-font, var(--chat-font));
+    font-size: var(--username-font-size, 50px);
+    line-height: 1.36;
 }
 
 .message-badges {
@@ -248,7 +250,7 @@ body[data-entry-animation="none"] {
 .badges {
     display: inline-flex;
     align-items: center;
-    vertical-align: middle;
+    vertical-align: baseline;
     gap: var(--badge-spacing, 3px);
     margin-right: 6px;
     position: relative;
@@ -311,7 +313,7 @@ body[data-entry-animation="none"] {
     letter-spacing: 0.2px;
     display: inline;
     line-height: 1.36;
-    vertical-align: middle;
+    vertical-align: baseline;
     width: auto;
     max-width: 100%;
     min-width: 0;
