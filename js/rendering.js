@@ -1818,9 +1818,27 @@ async function onMsg(
 
 	const usernameElement = document.createElement("span");
 	usernameElement.className = "username";
-	usernameElement.textContent = user + (tags["is-action"] ? "\u00A0" : ":\u00A0");
+	usernameElement.textContent = user;
 	usernameElement.style.color = usernameColor;
 	usernameElement.style.webkitTextFillColor = usernameColor;
+
+	let colonElement = null;
+
+	if (!tags["is-action"]) {
+		colonElement = document.createElement("span");
+		colonElement.className = "username username-colon";
+		colonElement.textContent = ":\u00A0";
+
+		if (colonMatchUsernameEnabled) {
+			colonElement.style.color = usernameColor;
+			colonElement.style.webkitTextFillColor = usernameColor;
+		} else {
+			colonElement.style.color = "var(--text-color)";
+			colonElement.style.webkitTextFillColor = "var(--text-color)";
+		}
+	} else {
+		usernameElement.textContent = user + "\u00A0";
+	}
 
 	const text = renderMessageText(replyInfo.message, tags, user);
 
@@ -1853,6 +1871,10 @@ async function onMsg(
 	authorGroup.appendChild(badges);
 	authorGroup.appendChild(usernameElement);
 
+	if (colonElement) {
+		authorGroup.appendChild(colonElement);
+	}
+
 	message.appendChild(authorGroup);
 	message.appendChild(text);
 
@@ -1878,6 +1900,10 @@ async function onMsg(
 		get7TVPaint(userId, platform).then((paint) => {
 			if (paint) {
 				applyPaint(usernameElement, paint);
+
+				if (colonElement && colonMatchUsernameEnabled) {
+					applyPaint(colonElement, paint);
+				}
 			}
 		});
 
