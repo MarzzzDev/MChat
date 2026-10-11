@@ -123,7 +123,6 @@ body.wrap-after-colon #chat > .message:not(.hl-card) > .text {
     word-break: break-word;
 }
 
-body.pixel-font #chat > .message > .text.has-twitch-gif,
 body.wrap-after-colon #chat > .message > .text.has-twitch-gif {
     display: block;
     width: 100%;
@@ -131,28 +130,8 @@ body.wrap-after-colon #chat > .message > .text.has-twitch-gif {
     max-width: 100%;
 }
 
-body.pixel-font #chat .text.has-twitch-gif .twitch-gif,
 body.wrap-after-colon #chat .text.has-twitch-gif .twitch-gif {
     max-width: 100% !important;
-}
-
-body.pixel-font .message.wrap-message > .text {
-    flex: 0 0 100%;
-    width: 100%;
-}
-
-body.pixel-font .message {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    min-width: 0;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-body.pixel-font .message > .username {
-    flex: 0 1 auto;
-    min-width: 0;
 }
 
 body.pixel-font .text {
