@@ -3948,6 +3948,30 @@ function showOverlaySetupScreen() {
 		"#f472b6",
 		"Preview has no gift sub messages",
 	);
+	const hlSubsCheckbox = addHighlightToggle(
+		"Subs & resubs",
+		"New subs and resubs with month count and streak.",
+		"hlSubs",
+		hlSubsEnabled,
+		"#9146ff",
+		"Preview has no sub messages",
+	);
+	const hlRaidsCheckbox = addHighlightToggle(
+		"Raids",
+		"Incoming raids with the raider's viewer count.",
+		"hlRaids",
+		hlRaidsEnabled,
+		"#ff7a3d",
+		"Preview has no raid messages",
+	);
+	const hlStreaksCheckbox = addHighlightToggle(
+		"Watch streaks",
+		"Watch streak milestones shared in chat.",
+		"hlStreaks",
+		hlStreaksEnabled,
+		"#2fd1c5",
+		"Preview has no watch streak messages",
+	);
 	const pinsCheckbox = addHighlightToggle(
 		"Pinned messages",
 		"Show the channel's pinned message at the top of the overlay.",
@@ -4746,6 +4770,21 @@ function showOverlaySetupScreen() {
 		rerenderPreviewChat();
 	});
 
+	hlSubsCheckbox.addEventListener("change", () => {
+		hlSubsEnabled = hlSubsCheckbox.checked;
+		rerenderPreviewChat();
+	});
+
+	hlRaidsCheckbox.addEventListener("change", () => {
+		hlRaidsEnabled = hlRaidsCheckbox.checked;
+		rerenderPreviewChat();
+	});
+
+	hlStreaksCheckbox.addEventListener("change", () => {
+		hlStreaksEnabled = hlStreaksCheckbox.checked;
+		rerenderPreviewChat();
+	});
+
 	pinsCheckbox.addEventListener("change", () => {
 		pinsEnabled = pinsCheckbox.checked;
 	});
@@ -5054,6 +5093,12 @@ function showOverlaySetupScreen() {
 			hlRedeems: hlRedeemsCheckbox.checked,
 
 			hlGifts: hlGiftsCheckbox.checked,
+
+			hlSubs: hlSubsCheckbox.checked,
+
+			hlRaids: hlRaidsCheckbox.checked,
+
+			hlStreaks: hlStreaksCheckbox.checked,
 
 			pins: pinsCheckbox.checked,
 

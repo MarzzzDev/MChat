@@ -163,6 +163,12 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.hlGifts = settings.hlGifts !== false;
 
+	result.hlSubs = settings.hlSubs !== false;
+
+	result.hlRaids = settings.hlRaids !== false;
+
+	result.hlStreaks = settings.hlStreaks !== false;
+
 	result.pins = settings.pins === true;
 
 	result.platformIndicator = settings.platformIndicator !== false;
@@ -644,6 +650,18 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["hlGifts", normalised.hlGifts ? "1" : "0"]);
 	}
 
+	if (normalised.hlSubs !== true) {
+		query.push(["hlSubs", normalised.hlSubs ? "1" : "0"]);
+	}
+
+	if (normalised.hlRaids !== true) {
+		query.push(["hlRaids", normalised.hlRaids ? "1" : "0"]);
+	}
+
+	if (normalised.hlStreaks !== true) {
+		query.push(["hlStreaks", normalised.hlStreaks ? "1" : "0"]);
+	}
+
 	if (normalised.pins === true) {
 		query.push(["pins", "1"]);
 	}
@@ -880,6 +898,12 @@ let hlFirstEnabled = parseQueryBoolean("hlFirst", true);
 let hlRedeemsEnabled = parseQueryBoolean("hlRedeems", true);
 
 let hlGiftsEnabled = parseQueryBoolean("hlGifts", true);
+
+let hlSubsEnabled = parseQueryBoolean("hlSubs", true);
+
+let hlRaidsEnabled = parseQueryBoolean("hlRaids", true);
+
+let hlStreaksEnabled = parseQueryBoolean("hlStreaks", true);
 
 let pinsEnabled = parseQueryBoolean("pins", false);
 

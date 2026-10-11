@@ -23,6 +23,21 @@ const HL_PIN_ICON =
 	'd="M13.5 1.5l5 5-1.6.8-2.9 2.9c.4 1.3.2 2.7-.5 3.9l-.4.6-3.3-3.3L5.4 15l-.4.4-1.4-1.4.4-.4 4.6-4.4-3.3-3.3.6-.4c1.2-.7 2.6-.9 3.9-.5l2.9-2.9.8-1.6z"></path>' +
 	"</svg>";
 
+const HL_SUB_ICON =
+	'<svg viewBox="0 0 20 20" fill="currentColor">' +
+	'<path d="M10 1.5l2.6 5.8 6.3.6-4.7 4.2 1.3 6.2L10 15.1l-5.5 3.2 1.3-6.2-4.7-4.2 6.3-.6z"></path>' +
+	"</svg>";
+
+const HL_RAID_ICON =
+	'<svg viewBox="0 0 20 20" fill="currentColor">' +
+	'<path d="M7 2a3 3 0 100 6 3 3 0 000-6zM1 17c0-3.3 2.7-6 6-6s6 2.7 6 6zM14 4a2.5 2.5 0 110 5 2.5 2.5 0 010-5zM14.500 11c2.500.2 4.500 2.300 4.500 5h-4c0-1.900-.5-3.500-1.500-4.700.3-.2.700-.3 1-.3z"></path>' +
+	"</svg>";
+
+const HL_STREAK_ICON =
+	'<svg viewBox="0 0 20 20" fill="currentColor">' +
+	'<path d="M10 1.500C10.500 5 6 6.500 6 11.500a4 4 0 008 0c0-2-1-3.200-2-4.500-.2 1.200-.8 2-1.500 2.300.4-2.500-.2-5.500-.5-7.800z"></path>' +
+	"</svg>";
+
 const HL_ANNOUNCE_TITLE = "Announcement";
 
 const HL_ANNOUNCE_COLORS = {
@@ -55,7 +70,7 @@ function addHighlightStyles() {
 			--hl-accent-2: #bf94ff;
 			--hl-muted: #999;
 			--hl-link: #bf94ff;
-			--hl-bleed: 18px;
+			--hl-bleed: -12px;
 		}
 
 		.message.has-highlight,
@@ -291,6 +306,16 @@ function addHighlightStyles() {
 			font-weight: 800;
 			letter-spacing: 0.08em;
 			text-transform: uppercase;
+		}
+
+		.hl-event-message {
+			display: block;
+			margin-top: calc(0.25 * var(--hl-rem));
+			overflow-wrap: anywhere;
+		}
+
+		.hl-event-message .text {
+			font-weight: 600;
 		}
 
 		#pin-slot {
@@ -1231,16 +1256,155 @@ function hlGifterName(tags) {
 	return tags["display-name"] || tags.login || "Someone";
 }
 
+function hlEventInfo(tags, login) {
+	return {
+		platform: "twitch",
+		color: tags.color || "",
+		userId: tags["user-id"] || null,
+		login: login || tags.login || "",
+		badges: tags.badges || "",
+	};
+}
+
+function createEventCard({ icon, name, info = {}, parts = [], message = "", tags = {} }) {
+	const card = hlEl("div", "message hl-card hl-gift");
+	const part = hlEl("div", "hl-gift-part");
+
+	const iconElement = hlEl("div", "hl-gift-icon");
+	iconElement.insertAdjacentHTML("beforeend", icon);
+
+	const body = hlEl("div", "hl-gift-text");
+
+	body.append(hlNameLine(name, "hl-bold hl-gift-name", info), ...parts);
+
+	const text = String(message || "").trim();
+
+	if (text) {
+		const messageElement = hlEl("div", "hl-event-message");
+
+		messageElement.appendChild(renderMessageText(text, tags, name));
+		body.appendChild(messageElement);
+	}
+
+	part.append(iconElement, body);
+	card.appendChild(part);
+
+	return card;
+}
+
+function createSubCard(tags, message = "") {
+	const name = tags["display-name"] || tags.login || "Someone";
+	const isResub = tags["msg-id"] === "resub";
+	const plan = String(tags["msg-param-sub-plan"] || "1000");
+	const isPrime = plan.toLowerCase() === "prime";
+
+	const months =
+		Number(tags["msg-param-cumulative-months"] || tags["msg-param-months"]) || 1;
+
+	const streak = Number(tags["msg-param-streak-months"]) || 0;
+	const shareStreak = String(tags["msg-param-should-share-streak"]) === "1";
+	const multiMonth = Number(tags["msg-param-multimonth-duration"]) || 0;
+
+	const parts = [
+		hlText(`${isResub ? "Resubscribed" : "Subscribed"} ${isPrime ? "with" : "at"} `),
+		hlText(hlTierLabel(plan), "hl-bold"),
+		hlText("."),
+	];
+
+	if (multiMonth > 1) {
+		parts.push(
+			hlText(" Subscribed for "),
+			hlText(`${multiMonth} months`, "hl-bold"),
+			hlText(" in advance."),
+		);
+	}
+
+	if (months > 1) {
+		parts.push(
+			hlText(" They've subscribed for "),
+			hlText(`${months} months`, "hl-bold"),
+		);
+
+		if (shareStreak && streak > 1) {
+			parts.push(
+				hlText(", currently on a "),
+				hlText(`${streak} month`, "hl-bold"),
+				hlText(" streak"),
+			);
+		}
+
+		parts.push(hlText("!"));
+	}
+
+	return createEventCard({
+		icon: HL_SUB_ICON,
+		name,
+		info: hlEventInfo(tags),
+		parts,
+		message,
+		tags,
+	});
+}
+
+function createRaidCard(tags) {
+	const name =
+		tags["msg-param-displayName"] ||
+		tags["display-name"] ||
+		tags["msg-param-login"] ||
+		tags.login ||
+		"Someone";
+
+	const count = Number(tags["msg-param-viewerCount"]) || 0;
+
+	return createEventCard({
+		icon: HL_RAID_ICON,
+		name,
+		info: hlEventInfo(tags, tags["msg-param-login"]),
+		parts: [
+			hlText("Raided with "),
+			hlText(`${count.toLocaleString()} ${count === 1 ? "viewer" : "viewers"}`, "hl-bold"),
+			hlText("!"),
+		],
+		tags,
+	});
+}
+
+function createWatchStreakCard(tags, message = "") {
+	const name = tags["display-name"] || tags.login || "Someone";
+	const streams = Number(tags["msg-param-value"]) || 0;
+	const reward = Number(tags["msg-param-copoReward"]) || 0;
+
+	const parts = [
+		hlText("Watched "),
+		hlText(`${streams} consecutive ${streams === 1 ? "stream" : "streams"}`, "hl-bold"),
+		hlText(" and sparked a watch streak!"),
+	];
+
+	if (reward > 0) {
+		parts.push(
+			hlText(" "),
+			hlText(`+${reward.toLocaleString()}`, "hl-bold"),
+			hlText(" channel points"),
+		);
+	}
+
+	return createEventCard({
+		icon: HL_STREAK_ICON,
+		name,
+		info: hlEventInfo(tags),
+		parts,
+		message,
+		tags,
+	});
+}
+
 function handleTwitchIRCUsernotice(message) {
 	const tags = message.tags || {};
 	const msgId = tags["msg-id"];
-
-	if (!hlGiftsEnabled) {
-		return;
-	}
+	const trailing = message.trailing || "";
 
 	if (msgId === "subgift" || msgId === "anonsubgift") {
-		if (tags["msg-param-community-gift-id"]) {
+		if (!hlGiftsEnabled || tags["msg-param-community-gift-id"]) {
 			return;
 		}
 
@@ -1265,6 +1429,10 @@ function handleTwitchIRCUsernotice(message) {
 	}
 
 	if (msgId === "submysterygift" || msgId === "anonsubmysterygift") {
+		if (!hlGiftsEnabled) {
+			return;
+		}
+
 		const count = Number(tags["msg-param-mass-gift-count"]) || 1;
 
 		hlAppendToChat(
@@ -1276,6 +1444,33 @@ function handleTwitchIRCUsernotice(message) {
 				senderCount: Number(tags["msg-param-sender-count"]) || 0,
 			}),
 		);
+
+		return;
+	}
+
+	if (msgId === "sub" || msgId === "resub") {
+		if (hlSubsEnabled) {
+			hlAppendToChat(createSubCard(tags, trailing));
+		}
+
+		return;
+	}
+
+	if (msgId === "raid") {
+		if (hlRaidsEnabled) {
+			hlAppendToChat(createRaidCard(tags));
+		}
+
+		return;
+	}
+
+	if (
+		msgId === "viewermilestone" &&
+		String(tags["msg-param-category"]).toLowerCase() === "watch-streak"
+	) {
+		if (hlStreaksEnabled) {
+			hlAppendToChat(createWatchStreakCard(tags, trailing));
+		}
 	}
 }
 
