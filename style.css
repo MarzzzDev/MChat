@@ -41,11 +41,11 @@ body {
 .message {
     display: block;
     width: auto;
-    max-width: 98%;
+    max-width: 100%;
     min-width: 0;
     box-sizing: border-box;
     margin: 0 0 var(--message-spacing) 0;
-    padding: 2px 12px 7px 12px;
+    padding: 2px 0 7px 0;
     line-height: normal;
     flex-shrink: 0;
     border-radius: 14px;
@@ -70,7 +70,7 @@ body {
 
 .message.wrap-message {
     width: auto;
-    max-width: 98%;
+    max-width: 100%;
     min-width: 0;
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -110,7 +110,7 @@ body {
 body.wrap-after-colon #chat > .message:not(.hl-card) {
     display: block;
     min-width: 0;
-    max-width: 98%;
+    max-width: 100%;
 }
 
 body.wrap-after-colon #chat > .message:not(.hl-card) > .text {
@@ -148,7 +148,7 @@ body.pixel-username-font .username {
 #chat {
     width: 100%;
     box-sizing: border-box;
-    padding: 18px;
+    padding: 0;
     position: absolute;
     top: 0;
     bottom: 0;
