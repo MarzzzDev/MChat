@@ -20,6 +20,75 @@ async function platformFetch(url, init = {}) {
 
 const MOD_COMMANDS = new Map([["-refresh", () => hardRefreshOverlay()]]);
 
+const SHOW_IMAGE_MS = 5000;
+const SHOW_IMAGE_FADE_MS = 250;
+
+let showImageToken = 0;
+let showImageTimer = null;
+
+function hideShownImage(wrap) {
+	wrap.style.opacity = "0";
+
+	setTimeout(() => wrap.remove(), SHOW_IMAGE_FADE_MS);
+}
+
+// "-show <image url>" (mods only): shows the image at the bottom of the
+// overlay for 5 seconds. Nothing is shown if the URL isn't a loadable image.
+function showOverlayImage(rawUrl) {
+	let url;
+
+	try {
+		url = new URL(String(rawUrl || ""));
+	} catch {
+		return;
+	}
+
+	if (url.protocol !== "http:" && url.protocol !== "https:") {
+		return;
+	}
+
+	const token = ++showImageToken;
+
+	const image = new Image();
+
+	image.referrerPolicy = "no-referrer";
+	image.draggable = false;
+	image.style.cssText =
+		"display:block;max-width:100%;max-height:50vh;object-fit:contain;" +
+		"filter:drop-shadow(3px 3px 6px rgba(0,0,0,0.9));";
+
+	image.onload = () => {
+		if (token !== showImageToken) {
+			return;
+		}
+
+		clearTimeout(showImageTimer);
+		document.getElementById("show-image")?.remove();
+
+		const wrap = document.createElement("div");
+
+		wrap.id = "show-image";
+		wrap.style.cssText =
+			"position:fixed;left:0;right:0;bottom:0;box-sizing:border-box;" +
+			"padding:18px;display:flex;justify-content:center;" +
+			"align-items:flex-end;pointer-events:none;z-index:9000;opacity:0;" +
+			`transition:opacity ${SHOW_IMAGE_FADE_MS}ms ease-out;`;
+
+		wrap.appendChild(image);
+		document.body.appendChild(wrap);
+
+		requestAnimationFrame(() => {
+			wrap.style.opacity = "1";
+		});
+
+		showImageTimer = setTimeout(() => hideShownImage(wrap), SHOW_IMAGE_MS);
+	};
+
+	image.src = url.href;
+}
+
+MOD_COMMANDS.set("-show", (args, rawArgs) => showOverlayImage(rawArgs?.[0]));
+
 const OPTION_OVERRIDES_KEY = "mchat-option-overrides";
 const optionOverrides = {};
 
@@ -511,13 +580,14 @@ function runModCommand(text, isMod) {
 		return false;
 	}
 
-	const bare = String(text || "")
+	const original = String(text || "")
 		.replace(/^\x01?ACTION /, "")
 		.replace(/\x01$/, "")
-		.trim()
-		.toLowerCase();
+		.trim();
 
-	const [name, ...args] = bare.split(/\s+/);
+	const [name, ...args] = original.toLowerCase().split(/\s+/);
+
+	const rawArgs = original.split(/\s+/).slice(1);
 
 	const handler = MOD_COMMANDS.get(name);
 
@@ -525,7 +595,7 @@ function runModCommand(text, isMod) {
 		return false;
 	}
 
-	handler(args);
+	handler(args, rawArgs);
 
 	return true;
 }
