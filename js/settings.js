@@ -191,6 +191,16 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.emoteScale = Math.max(0.25, Math.min(result.emoteScale, 3));
 
+	result.bigEmotes = settings.bigEmotes === true;
+
+	result.bigEmoteScale = Number(settings.bigEmoteScale ?? 1.2);
+
+	if (!Number.isFinite(result.bigEmoteScale)) {
+		result.bigEmoteScale = 1.2;
+	}
+
+	result.bigEmoteScale = Math.max(1, Math.min(result.bigEmoteScale, 3));
+
 	result.badgeScale = Number(settings.badgeScale ?? 1);
 	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1;
 	result.badgeScale = Math.max(0.25, Math.min(result.badgeScale, 2));
@@ -437,6 +447,14 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 
 	if (normalised.emoteScale !== 1) {
 		query.push(["emoteScale", String(normalised.emoteScale)]);
+	}
+
+	if (normalised.bigEmotes === true) {
+		query.push(["bigEmotes", "1"]);
+	}
+
+	if (normalised.bigEmoteScale !== 1.2) {
+		query.push(["bigEmoteScale", String(normalised.bigEmoteScale)]);
 	}
 
 	if (normalised.badgeScale !== 1) {
@@ -932,6 +950,25 @@ if (!Number.isFinite(emoteScale)) {
 }
 
 emoteScale = Math.max(0.25, Math.min(emoteScale, 3));
+
+let bigEmotesEnabled = parseQueryBoolean("bigEmotes", false);
+
+let bigEmoteScale = Number(params.get("bigEmoteScale") ?? 1.2);
+
+if (!Number.isFinite(bigEmoteScale)) {
+	bigEmoteScale = 1.2;
+}
+
+bigEmoteScale = Math.max(1, Math.min(bigEmoteScale, 3));
+
+function applyBigEmoteSettings() {
+	document.documentElement.style.setProperty(
+		"--big-emote-scale",
+		String(bigEmoteScale),
+	);
+}
+
+applyBigEmoteSettings();
 
 let badgeScale = Number(params.get("badgeScale") ?? 1);
 if (!Number.isFinite(badgeScale)) badgeScale = 1;

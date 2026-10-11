@@ -91,6 +91,8 @@ async function startOverlay() {
 		return;
 	}
 
+	applyStoredOptionOverrides();
+
 	startLoadingScreen();
 	hideStaticLoadingText();
 

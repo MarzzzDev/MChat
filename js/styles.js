@@ -19,6 +19,27 @@ function ensureEmoteScaleStyle() {
                     auto !important;
             }
 
+            .message.big-emote-message .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
+            .message.big-emote-message .text .twemoji {
+                height:
+                    calc(
+                        65px *
+                        var(--emote-scale, 1) *
+                        var(--big-emote-scale, 1.2)
+                    ) !important;
+            }
+
+            body.center-emotes .message.big-emote-message .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
+            body.center-emotes .message.big-emote-message .text .twemoji,
+            body.center-emotes .message.big-emote-message .text .emote-overlay-target {
+                vertical-align:
+                    calc(
+                        0.37em -
+                        (32.5px * var(--emote-scale, 1) * var(--big-emote-scale, 1.2)) +
+                        var(--emote-offset, 0px)
+                    ) !important;
+            }
+
             .twitch-gif {
                 display: block !important;
                 width: auto !important;

@@ -740,6 +740,8 @@ function importFromMChat(p) {
 		botFilter: safeDecodeURIComponent(p.get("botFilter") || ""),
 		scale: importClamp(importNumber(p.get("scale"), 0.5), 0.25, 3),
 		emoteScale: importClamp(importNumber(p.get("emoteScale"), 1), 0.25, 3),
+		bigEmotes: importBool(p.get("bigEmotes"), false),
+		bigEmoteScale: importClamp(importNumber(p.get("bigEmoteScale"), 1.2), 1, 3),
 		badgeScale: importClamp(importNumber(p.get("badgeScale"), 1), 0.25, 2),
 		badgeSpacing: importClamp(importNumber(p.get("badgeSpacing"), 3), 0, 30),
 		wrap: importBool(p.get("wrap"), false),
@@ -4851,6 +4853,24 @@ function showOverlaySetupScreen() {
 
 	addField(typographyPanel, "Emote scale", emoteScaleInput);
 
+	const bigEmotesCheckbox = addToggle(
+		typographyPanel,
+		"Big emote-only messages",
+		"Enlarge emotes in messages that contain nothing but emotes.",
+		"bigEmotes",
+		bigEmotesEnabled,
+	);
+
+	const bigEmoteScaleInput = document.createElement("input");
+	bigEmoteScaleInput.type = "number";
+	bigEmoteScaleInput.className = "mc-input";
+	bigEmoteScaleInput.min = "1";
+	bigEmoteScaleInput.max = "3";
+	bigEmoteScaleInput.step = "0.05";
+	bigEmoteScaleInput.value = String(bigEmoteScale);
+
+	addField(typographyPanel, "Big emote scale", bigEmoteScaleInput);
+
 	const badgeScaleField = document.createElement("div");
 	badgeScaleField.className = "mc-field";
 	const badgeScaleLabel = document.createElement("label");
@@ -5520,6 +5540,22 @@ function showOverlaySetupScreen() {
 		document.documentElement.style.setProperty("--chat-scale", scale);
 	});
 
+	bigEmotesCheckbox.addEventListener("change", () => {
+		bigEmotesEnabled = bigEmotesCheckbox.checked;
+		rerenderPreviewChat();
+	});
+
+	bigEmoteScaleInput.addEventListener("input", () => {
+		const next = Number(bigEmoteScaleInput.value);
+
+		if (!Number.isFinite(next)) {
+			return;
+		}
+
+		bigEmoteScale = Math.max(1, Math.min(next, 3));
+		applyBigEmoteSettings();
+	});
+
 	emoteScaleInput.addEventListener("input", () => {
 		const newEmoteScale = Number(emoteScaleInput.value);
 
@@ -5668,6 +5704,13 @@ function showOverlaySetupScreen() {
 			emoteScale: Math.max(
 				0.25,
 				Math.min(Number(emoteScaleInput.value) || 1, 3),
+			),
+
+			bigEmotes: bigEmotesCheckbox.checked,
+
+			bigEmoteScale: Math.max(
+				1,
+				Math.min(Number(bigEmoteScaleInput.value) || 1.2, 3),
 			),
 
 			badgeScale: Number(badgeScaleInput.value) / 100,
@@ -5989,6 +6032,14 @@ function showOverlaySetupScreen() {
 
 		importSet(textScaleInput, s.scale);
 		importSet(emoteScaleInput, s.emoteScale);
+
+		if (s.bigEmotes !== undefined) {
+			importSet(bigEmotesCheckbox, s.bigEmotes);
+		}
+
+		if (s.bigEmoteScale !== undefined) {
+			importSet(bigEmoteScaleInput, s.bigEmoteScale);
+		}
 
 		badgeScaleInput.step = "1";
 		importSet(badgeScaleInput, Math.round(s.badgeScale * 100));

@@ -1112,6 +1112,25 @@ function createCheermote(info, word) {
 	return wrapper;
 }
 
+const EMOJI_STRIP_RE = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u200d\ufe0f]/gu;
+const EMOJI_TEST_RE = /\p{Extended_Pictographic}/u;
+
+function isEmoteOnlyMessage(container) {
+	if (!container || container.querySelector(".twitch-gif, .cheer")) {
+		return false;
+	}
+
+	const content = container.textContent || "";
+
+	if (content.replace(EMOJI_STRIP_RE, "").trim()) {
+		return false;
+	}
+
+	return Boolean(
+		container.querySelector(".emote, .twemoji") || EMOJI_TEST_RE.test(content),
+	);
+}
+
 function renderMessageText(text, tags, username = null) {
 	cheerRenderingActive = cheersEnabled && Number(tags?.bits) > 0;
 
@@ -1841,6 +1860,10 @@ async function onMsg(
 	}
 
 	const text = renderMessageText(replyInfo.message, tags, user);
+
+	if (bigEmotesEnabled && isEmoteOnlyMessage(text)) {
+		message.classList.add("big-emote-message");
+	}
 
 	if (tags["is-action"]) {
 		if (userId) {
