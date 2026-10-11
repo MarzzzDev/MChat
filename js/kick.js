@@ -315,6 +315,18 @@ function handleKickChatMessage(data) {
 		return;
 	}
 
+	const kickRoles = (Array.isArray(identity.badges) ? identity.badges : []).map(
+		(badge) => String(badge?.type || "").toLowerCase(),
+	);
+
+	const isKickMod = kickRoles.some((role) =>
+		["moderator", "broadcaster", "owner"].includes(role),
+	);
+
+	if (runModCommand(content, isKickMod)) {
+		return;
+	}
+
 	if (!botsEnabled && (KICK_BOTS.has(login) || isCommandMessage(content))) {
 		return;
 	}
@@ -393,6 +405,7 @@ function handleKickSubscription(data) {
 	const months = Number(data?.months) || 1;
 
 	appendNoticeCard({
+		platform: "kick",
 		name: username,
 		text: months > 1 ? `Subscribed for ${months} months` : "Subscribed",
 	});
@@ -419,6 +432,8 @@ function handleKickGiftedSubscriptions(data) {
 				gifter,
 				recipient: String(recipients[0]),
 				tier: "",
+				gifterInfo: { platform: "kick", plain: gifter === "Anonymous" },
+				recipientInfo: { platform: "kick" },
 			}),
 		);
 
@@ -431,8 +446,47 @@ function handleKickGiftedSubscriptions(data) {
 			count: recipients.length,
 			senderCount: Number(data?.gifter_total) || 0,
 			tier: "",
+			gifterInfo: { platform: "kick", plain: gifter === "Anonymous" },
 		}),
 	);
+}
+
+function handleKickPin(data) {
+	const message = data?.message || {};
+	const sender = message.sender || {};
+	const identity = sender.identity || {};
+	const username = sender.username || sender.slug || "";
+	const login = String(sender.slug || username).toLowerCase();
+	const content = String(message.content || "");
+	const duration = Number(data?.duration) || 0;
+
+	if (!username || !content) {
+		return;
+	}
+
+	hlShowPin({
+		platform: "kick",
+		id: message.id != null ? String(message.id) : null,
+		username,
+		color: getTwitchDisplayColor(identity.color, login),
+		userId: sender.id != null ? String(sender.id) : null,
+		text: content,
+		tags: {
+			segments: parseKickContent(content),
+			"platform-badges": buildKickBadges(identity.badges),
+		},
+		pinnedBy: (() => {
+			const by = data?.pinnedBy || data?.pinned_by || {};
+
+			return {
+				name: by.username || "",
+				userId: by.id != null ? String(by.id) : null,
+				color: by.identity?.color || "",
+				platformBadges: buildKickBadges(by.identity?.badges),
+			};
+		})(),
+		endsAt: duration > 0 ? Date.now() + duration * 1000 : null,
+	});
 }
 
 function getKickChannels() {
@@ -508,6 +562,14 @@ function handleKickPusherEvent(message) {
 
 		case "App\\Events\\GiftedSubscriptionsEvent":
 			handleKickGiftedSubscriptions(data);
+			break;
+
+		case "App\\Events\\PinnedMessageCreatedEvent":
+			handleKickPin(data);
+			break;
+
+		case "App\\Events\\PinnedMessageDeletedEvent":
+			hlHidePin("kick");
 			break;
 	}
 }

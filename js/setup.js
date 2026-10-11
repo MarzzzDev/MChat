@@ -3948,6 +3948,14 @@ function showOverlaySetupScreen() {
 		"#f472b6",
 		"Preview has no gift sub messages",
 	);
+	const pinsCheckbox = addHighlightToggle(
+		"Pinned messages",
+		"Show the channel's pinned message at the top of the overlay.",
+		"pins",
+		pinsEnabled,
+		"#a970ff",
+		"Preview has no pinned messages",
+	);
 
 	const shadowDivider = document.createElement("div");
 	shadowDivider.className = "mc-divider";
@@ -4738,6 +4746,10 @@ function showOverlaySetupScreen() {
 		rerenderPreviewChat();
 	});
 
+	pinsCheckbox.addEventListener("change", () => {
+		pinsEnabled = pinsCheckbox.checked;
+	});
+
 	cheersCheckbox.addEventListener("change", () => {
 		cheersEnabled = cheersCheckbox.checked;
 		rerenderPreviewChat();
@@ -5042,6 +5054,8 @@ function showOverlaySetupScreen() {
 			hlRedeems: hlRedeemsCheckbox.checked,
 
 			hlGifts: hlGiftsCheckbox.checked,
+
+			pins: pinsCheckbox.checked,
 
 			cheers: cheersCheckbox.checked,
 

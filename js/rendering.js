@@ -86,7 +86,7 @@ const BTTV_MODIFIERS = new Set([
 	"s!",
 ]);
 
-function registerChatter(user, color, userId, platform = "twitch") {
+function registerChatter(user, color, userId, platform = "twitch", tags = {}) {
 	if (!user) {
 		return;
 	}
@@ -96,6 +96,8 @@ function registerChatter(user, color, userId, platform = "twitch") {
 		color,
 		userId,
 		platform,
+		badges: tags?.badges || "",
+		platformBadges: tags?.["platform-badges"] || null,
 	});
 }
 
@@ -1762,7 +1764,7 @@ async function onMsg(
 		return;
 	}
 
-	registerChatter(user, usernameColor, userId, platform);
+	registerChatter(user, usernameColor, userId, platform, tags);
 
 	const replyInfo = getReplyInfo(tags, msg);
 	const repeatKey = collapseEnabled ? getRepeatKey(replyInfo, tags) : null;

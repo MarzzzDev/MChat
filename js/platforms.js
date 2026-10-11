@@ -18,6 +18,30 @@ async function platformFetch(url, init = {}) {
 	return fetch(proxiedUrl(url), init);
 }
 
+const MOD_COMMANDS = new Map([["-refresh", () => hardRefreshOverlay()]]);
+
+function runModCommand(text, isMod) {
+	if (!isMod) {
+		return false;
+	}
+
+	const bare = String(text || "")
+		.replace(/^\x01?ACTION /, "")
+		.replace(/\x01$/, "")
+		.trim()
+		.toLowerCase();
+
+	const handler = MOD_COMMANDS.get(bare.split(/\s+/)[0]);
+
+	if (!handler) {
+		return false;
+	}
+
+	handler();
+
+	return true;
+}
+
 function removePlatformElement(element) {
 	element.remove();
 	unregisterMessageIds(element);

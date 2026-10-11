@@ -163,6 +163,8 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.hlGifts = settings.hlGifts !== false;
 
+	result.pins = settings.pins === true;
+
 	result.platformIndicator = settings.platformIndicator !== false;
 
 	result.scale = Number(settings.scale ?? 0.5);
@@ -642,6 +644,10 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["hlGifts", normalised.hlGifts ? "1" : "0"]);
 	}
 
+	if (normalised.pins === true) {
+		query.push(["pins", "1"]);
+	}
+
 	if (normalised.platformIndicator !== true) {
 		query.push(["platformIndicator", normalised.platformIndicator ? "1" : "0"]);
 	}
@@ -874,6 +880,8 @@ let hlFirstEnabled = parseQueryBoolean("hlFirst", true);
 let hlRedeemsEnabled = parseQueryBoolean("hlRedeems", true);
 
 let hlGiftsEnabled = parseQueryBoolean("hlGifts", true);
+
+let pinsEnabled = parseQueryBoolean("pins", false);
 
 let platformIndicatorEnabled = parseQueryBoolean("platformIndicator", true);
 

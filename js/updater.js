@@ -3,32 +3,9 @@ const GITHUB_BRANCH = "main";
 const UPDATE_POLL_MS = 300 * 1000;
 const UPDATE_REFRESH_DELAY_MS = 10 * 1000;
 
-const OVERLAY_FILES = [
-    "",
-    "index.html",
-    "js/updater.js",
-    "js/state.js",
-    "js/styles.js",
-    "js/irc.js",
-    "js/platforms.js",
-    "js/kick.js",
-    "js/youtube.js",
-    "js/seventv.js",
-    "js/twitch-data.js",
-    "js/badges.js",
-    "js/emotes.js",
-    "js/rendering.js",
-    "js/settings.js",
-    "js/setup.js",
-    "js/main.js",
-    "js/highlights.js",
-    "js/sw.js",
-    "privacy.html",
-    "style.css"
-];
-
 let lastKnownCommitSha = null;
 let updateRefreshScheduled = false;
+let refreshing = false;
 
 async function checkForGithubCommit() {
     if (updateRefreshScheduled) return;
@@ -60,6 +37,7 @@ async function checkForGithubCommit() {
                 `[updater] New commit ${sha.slice(0, 7)} detected, refreshing in ${UPDATE_REFRESH_DELAY_MS / 1000}s`,
             );
             updateRefreshScheduled = true;
+            lastKnownCommitSha = sha;
             setTimeout(hardRefreshOverlay, UPDATE_REFRESH_DELAY_MS);
         }
     } catch (error) {
@@ -67,11 +45,44 @@ async function checkForGithubCommit() {
     }
 }
 
+async function listRepoFiles() {
+    const ref = lastKnownCommitSha || GITHUB_BRANCH;
+
+    try {
+        const response = await fetch(
+            `https://api.github.com/repos/${GITHUB_REPO}/git/trees/${ref}?recursive=1`,
+            {
+                headers: { Accept: "application/vnd.github+json" },
+                cache: "no-cache",
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(`GitHub API returned ${response.status}`);
+        }
+
+        const tree = (await response.json())?.tree;
+
+        return (Array.isArray(tree) ? tree : [])
+            .filter((entry) => entry.type === "blob")
+            .map((entry) => entry.path);
+    } catch (error) {
+        console.warn("[updater] File list unavailable:", error);
+        return [];
+    }
+}
+
 async function hardRefreshOverlay() {
+    if (refreshing) return;
+    refreshing = true;
+
     const base = location.href.split(/[?#]/)[0].replace(/[^/]*$/, "");
+    const files = await listRepoFiles();
 
     await Promise.allSettled(
-        OVERLAY_FILES.map((file) => fetch(base + file, { cache: "reload" })),
+        ["", ...files].map((file) =>
+            fetch(base + encodeURI(file), { cache: "reload" }),
+        ),
     );
 
     location.reload();

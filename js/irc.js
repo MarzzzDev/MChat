@@ -29,6 +29,12 @@ function parseIRCtags(raw) {
 	return tags;
 }
 
+function isTwitchMod(tags) {
+	return (
+		tags.mod === "1" || /(^|,)(broadcaster|moderator)\//.test(tags.badges || "")
+	);
+}
+
 function getAnonymousIRCNick() {
 	return `justinfan${Math.floor(10000 + Math.random() * 90000)}`;
 }
@@ -283,6 +289,10 @@ function handleTwitchIRCPrivmsg(message) {
 	const messageId = tags.id || null;
 
 	const rawText = message.trailing || "";
+
+	if (!isAnnouncement && runModCommand(rawText, isTwitchMod(tags))) {
+		return;
+	}
 
 	const login = (tags.login || prefixUser || "").toLowerCase();
 

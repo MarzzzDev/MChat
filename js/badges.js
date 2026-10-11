@@ -74,11 +74,10 @@ const DANKCHAT_BADGE_API = "https://flxrs.com/api/badges";
 
 const DANKCHAT_BADGE_PROXY = "https://dank-chat-badges.marseceva.workers.dev";
 
-const DANKCHAT_BADGE_URLS = [
-	DANKCHAT_BADGE_PROXY,
-	DANKCHAT_BADGE_API,
-	`https://api.allorigins.win/raw?url=${encodeURIComponent(DANKCHAT_BADGE_API)}`,
-].filter(Boolean);
+const DANKCHAT_BADGE_SOURCES = [
+	{ label: DANKCHAT_BADGE_PROXY, load: () => fetch(DANKCHAT_BADGE_PROXY) },
+	{ label: DANKCHAT_BADGE_API, load: () => platformFetch(DANKCHAT_BADGE_API) },
+];
 
 async function loadBTTVBadges() {
 	try {
@@ -123,19 +122,19 @@ async function loadDankChatBadges() {
 	try {
 		let data = null;
 
-		for (const url of DANKCHAT_BADGE_URLS) {
+		for (const source of DANKCHAT_BADGE_SOURCES) {
 			try {
-				const response = await fetch(url);
+				const response = await source.load();
 
 				if (!response.ok) {
-					throw new Error(`${url}: ${response.status}`);
+					throw new Error(`${source.label}: ${response.status}`);
 				}
 
 				data = await response.json();
 
 				break;
 			} catch (error) {
-				console.warn("DankChat badge source failed:", url, error);
+				console.warn("DankChat badge source failed:", source.label, error);
 			}
 		}
 
