@@ -18,7 +18,7 @@ const previewMessages = [
 		"hello men",
 		"#00FF7F",
 		"405299735",
-		{ badges: "mod/1,ewcgold/1", "msg-id": "highlighted-message" },
+		{ badges: "moderator/1,ewcgold/1", "msg-id": "highlighted-message" },
 	],
 	[
 		"XDR412",
@@ -4316,6 +4316,34 @@ function showOverlaySetupScreen() {
 		document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
 	});
 
+	const badgeSpacingField = document.createElement("div");
+	badgeSpacingField.className = "mc-field";
+	const badgeSpacingLabel = document.createElement("label");
+	badgeSpacingLabel.className = "mc-label";
+	badgeSpacingLabel.textContent = "Badge spacing";
+	const badgeSpacingLine = document.createElement("div");
+	badgeSpacingLine.className = "mc-range-line";
+	const badgeSpacingInput = document.createElement("input");
+	badgeSpacingInput.type = "range";
+	badgeSpacingInput.className = "mc-range";
+	badgeSpacingInput.min = "0";
+	badgeSpacingInput.max = "30";
+	badgeSpacingInput.step = "1";
+	badgeSpacingInput.value = String(Math.round(badgeSpacing));
+	badgeSpacingInput.setAttribute("aria-label", "Badge spacing");
+	const badgeSpacingOutput = document.createElement("span");
+	badgeSpacingOutput.className = "mc-percent";
+	badgeSpacingOutput.textContent = `${Math.round(badgeSpacing)}px`;
+	badgeSpacingLine.append(badgeSpacingInput, badgeSpacingOutput);
+	badgeSpacingField.append(badgeSpacingLabel, badgeSpacingLine);
+	typographyPanel.appendChild(badgeSpacingField);
+
+	badgeSpacingInput.addEventListener("input", () => {
+		badgeSpacing = Number(badgeSpacingInput.value);
+		badgeSpacingOutput.textContent = `${badgeSpacingInput.value}px`;
+		document.documentElement.style.setProperty("--badge-spacing", `${badgeSpacing}px`);
+	});
+
 	const gifScaleInput = document.createElement("input");
 	gifScaleInput.type = "number";
 	gifScaleInput.className = "mc-input";
@@ -4332,6 +4360,22 @@ function showOverlaySetupScreen() {
 		"Convert usernames, messages and replies to uppercase.",
 		"uppercase",
 		uppercaseEnabled,
+	);
+
+	const centerBadgesCheckbox = addToggle(
+		typographyPanel,
+		"Center badges",
+		"Vertically center badges on the text instead of the default slightly lower position.",
+		"centerBadges",
+		centerBadgesEnabled,
+	);
+
+	const centerEmotesCheckbox = addToggle(
+		typographyPanel,
+		"Center emotes",
+		"Vertically center emotes on the text instead of the default slightly lower position.",
+		"centerEmotes",
+		centerEmotesEnabled,
 	);
 
 	const strokeDivider = document.createElement("div");
@@ -4811,6 +4855,16 @@ function showOverlaySetupScreen() {
 		applyTextStyleSettings();
 	});
 
+	centerBadgesCheckbox.addEventListener("change", () => {
+		centerBadgesEnabled = centerBadgesCheckbox.checked;
+		applyTextStyleSettings();
+	});
+
+	centerEmotesCheckbox.addEventListener("change", () => {
+		centerEmotesEnabled = centerEmotesCheckbox.checked;
+		applyTextStyleSettings();
+	});
+
 	gifScaleInput.addEventListener("input", () => {
 		const value = Number(gifScaleInput.value);
 		if (!Number.isFinite(value)) {
@@ -5010,6 +5064,8 @@ function showOverlaySetupScreen() {
 
 			badgeScale: Number(badgeScaleInput.value) / 100,
 
+			badgeSpacing: Number(badgeSpacingInput.value),
+
 			wrap: wrapCheckbox.checked,
 
 			wrapAfterColon: wrapAfterColonCheckbox.checked,
@@ -5037,6 +5093,10 @@ function showOverlaySetupScreen() {
 			messageSize: Number(messageSizeInput.value),
 
 			uppercase: uppercaseCheckbox.checked,
+
+			centerBadges: centerBadgesCheckbox.checked,
+
+			centerEmotes: centerEmotesCheckbox.checked,
 
 			gifScale: Math.max(0.25, Math.min(Number(gifScaleInput.value) || 1, 3)),
 

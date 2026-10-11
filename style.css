@@ -443,3 +443,31 @@ body.pixel-font #chat > .message:not(.hl-card),
 body.pixel-username-font #chat > .message:not(.hl-card) {
     display: block !important;
 }
+
+:root {
+    --badge-offset: 0px;
+    --emote-offset: 0px;
+}
+
+body.center-badges .badges,
+body.center-badges .message-badges {
+    vertical-align: calc(
+        0.37em - (22.5px * var(--badge-scale, 1)) + var(--badge-offset, 0px)
+    );
+}
+
+body.center-emotes .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
+body.center-emotes .text .twemoji,
+body.center-emotes .text .emote-overlay-target {
+    vertical-align: calc(
+        0.37em - (32.5px * var(--emote-scale, 1)) + var(--emote-offset, 0px)
+    ) !important;
+}
+
+.badges {
+    margin-right: calc(var(--badge-spacing, 3px) + 3px);
+}
+
+.twitch-badges {
+    margin-right: calc(var(--badge-spacing, 3px) + 2px);
+}

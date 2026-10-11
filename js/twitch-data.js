@@ -148,12 +148,23 @@ async function loadTwitchBadges() {
     return load;
 }
 
+const PREVIEW_LIVE_URLS = ["https://api.moltorino.com/v2/badges"];
+
 let previewManifestPromise;
 function installPreviewFetch() {
   const orig = window.fetch;
   previewManifestPromise ??= orig("preview-cache/manifest.json").then((r) => r.json());
 
   window.fetch = async (input, init = {}) => {
+    const liveUrl = typeof input === "string" ? input : input.url;
+
+    if (PREVIEW_LIVE_URLS.includes(liveUrl)) {
+      try {
+        const live = await orig(input, init);
+        if (live.ok) return live;
+      } catch {}
+    }
+
     try {
       const m = await previewManifestPromise;
       const url = typeof input === "string" ? input : input.url;

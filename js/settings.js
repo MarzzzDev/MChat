@@ -250,6 +250,10 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.uppercase = settings.uppercase === true;
 
+	result.centerBadges = settings.centerBadges === true;
+
+	result.centerEmotes = settings.centerEmotes === true;
+
 	result.customFont = sanitizeFontName(settings.customFont);
 
 	result.gifScale = Number(settings.gifScale ?? 1);
@@ -473,6 +477,14 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 
 	if (normalised.uppercase === true) {
 		query.push(["uppercase", "1"]);
+	}
+
+	if (normalised.centerBadges === true) {
+		query.push(["centerBadges", "1"]);
+	}
+
+	if (normalised.centerEmotes === true) {
+		query.push(["centerEmotes", "1"]);
 	}
 
 	if (normalised.gifScale !== 1) {
@@ -1202,6 +1214,10 @@ let boldEnabled = parseQueryBoolean("bold", true);
 
 let uppercaseEnabled = parseQueryBoolean("uppercase", false);
 
+let centerBadgesEnabled = parseQueryBoolean("centerBadges", false);
+
+let centerEmotesEnabled = parseQueryBoolean("centerEmotes", false);
+
 let gifScale = Number(params.get("gifScale") ?? 1);
 
 if (!Number.isFinite(gifScale)) {
@@ -1267,6 +1283,8 @@ function applyTextStyleSettings() {
 	);
 
 	document.body.classList.toggle("uppercase", uppercaseEnabled);
+	document.body.classList.toggle("center-badges", centerBadgesEnabled);
+	document.body.classList.toggle("center-emotes", centerEmotesEnabled);
 }
 
 applyTextStyleSettings();
@@ -1320,7 +1338,6 @@ function ensureLayoutStyle() {
 			text-align: right;
 		}
 
-		/* Wrapped lines must follow the alignment too, not just the first line. */
 		body.align-center #chat > .message,
 		body.align-center #chat > .message .text {
 			text-align: center !important;
@@ -1344,8 +1361,6 @@ function ensureLayoutStyle() {
 			flex: 0 1 auto;
 		}
 
-		/* In wrap mode the text is a fit-content block that sits at the left
-		   edge of the message box; auto margins move the box itself. */
 		body.align-center #chat > .message.wrap-message > .text {
 			margin-left: auto !important;
 			margin-right: auto !important;
@@ -1356,7 +1371,6 @@ function ensureLayoutStyle() {
 			margin-right: 0 !important;
 		}
 
-		/* The text span lays its emotes out as flex items, so text-align alone
 		   does nothing there; justify each line explicitly. */
 		body.align-center #chat > .message .text {
 			justify-content: center !important;
@@ -1366,7 +1380,6 @@ function ensureLayoutStyle() {
 			justify-content: flex-end !important;
 		}
 
-		/* Block-level GIFs need auto margins to move inside the message box. */
 		body.align-center #chat > .message .twitch-gif {
 			margin-left: auto !important;
 			margin-right: auto !important;
@@ -1379,7 +1392,6 @@ function ensureLayoutStyle() {
 			object-position: right center !important;
 		}
 
-		/* Highlights stay full-width; only their contents get aligned. */
 		body.align-center #chat > .message.has-highlight,
 		body.align-center #chat > .message.hl-card {
 			text-align: center;

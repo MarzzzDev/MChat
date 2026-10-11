@@ -123,20 +123,20 @@ async function loadDankChatBadges() {
 	try {
 		let data = null;
 
-		try {
-			data = await Promise.any(
-				DANKCHAT_BADGE_URLS.map(async (url) => {
-					const response = await fetch(url);
+		for (const url of DANKCHAT_BADGE_URLS) {
+			try {
+				const response = await fetch(url);
 
-					if (!response.ok) {
-						throw new Error(`${url}: ${response.status}`);
-					}
+				if (!response.ok) {
+					throw new Error(`${url}: ${response.status}`);
+				}
 
-					return response.json();
-				}),
-			);
-		} catch (error) {
-			console.warn("DankChat badge sources failed:", error);
+				data = await response.json();
+
+				break;
+			} catch (error) {
+				console.warn("DankChat badge source failed:", url, error);
+			}
 		}
 
 		if (!data) {
