@@ -1,4 +1,4 @@
-# Marz' Overlay
+# MChat
 
 A feature-packed chat overlay built with customization in mind, bringing effects, badges, and more to your stream.
 This README Isn't frequently updated, so check out the site at https://mchat.marz.lol !
@@ -31,7 +31,7 @@ This README Isn't frequently updated, so check out the site at https://mchat.mar
 | `bots` | Show/hide bot messages and commands (default = true) |
 | `font` | Change the chat font (default = Open Sans) |
 
-> **Marz' Overlay** aims to provide a highly customizable chat experience with features you won't find in many other chat overlays.
+> **MChat** aims to provide a highly customizable chat experience with features you won't find in any other chat overlays.
 
 > **Features coming soon:** Multi-platform chatting & more..
 
