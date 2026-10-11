@@ -219,6 +219,11 @@ function handleTwitchIRCMessage(raw) {
 		}
 	}
 	if (message.command === "USERNOTICE") {
+		if (message.tags["msg-id"] === "announcement") {
+			handleTwitchIRCPrivmsg(message);
+			return;
+		}
+
 		handleTwitchIRCUsernotice(message);
 		return;
 	}
@@ -261,6 +266,8 @@ function handleTwitchIRCClearChat() {
 function handleTwitchIRCPrivmsg(message) {
 	const tags = message.tags || {};
 
+	const isAnnouncement = message.command === "USERNOTICE";
+
 	const prefixUser = message.prefix ? message.prefix.split("!")[0] : "";
 
 	const username =
@@ -283,7 +290,7 @@ function handleTwitchIRCPrivmsg(message) {
 		return;
 	}
 
-	if (!botsEnabled) {
+	if (!botsEnabled && !isAnnouncement) {
 		const bareText = rawText
 			.replace(/^\x01?ACTION /, "")
 			.replace(/\x01$/, "")
@@ -345,6 +352,7 @@ function handleTwitchIRCPrivmsg(message) {
 
 	const ircTags = {
 		...tags,
+		...(isAnnouncement ? { "hl-kind": "announcement" } : {}),
 		emotes: emotes,
 		badges: tags.badges || "",
 		gifs: tags.gifs || "",

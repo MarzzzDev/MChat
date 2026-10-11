@@ -17,6 +17,22 @@ const HL_GIFT_ICON =
 const HL_MASS_GIFT_IMAGE =
 	"https://static-cdn.jtvnw.net/subs-image-assets/gift-illus.png";
 
+const HL_ANNOUNCE_TITLE = "Announcement";
+
+const HL_ANNOUNCE_COLORS = {
+	PRIMARY: "primary",
+	BLUE: "blue",
+	GREEN: "green",
+	ORANGE: "orange",
+	PURPLE: "purple",
+};
+
+const HL_ANNOUNCE_ICON =
+	'<svg viewBox="0 0 20 20" fill="currentColor">' +
+	'<path fill-rule="evenodd" clip-rule="evenodd" ' +
+	'd="M11 14l7 4V2l-7 4H4a2 2 0 00-2 2v4a2 2 0 002 2h2v4h2v-4h3zm1-6.268l4-2.286v9.108l-4-2.286V7.732zM10 12H4V8h6v4z"></path>' +
+	"</svg>";
+
 function addHighlightStyles() {
 	if (document.getElementById("hl-style")) {
 		return;
@@ -139,6 +155,82 @@ function addHighlightStyles() {
 			display: block !important;
 			font-size: calc(50px * 1.2) !important;
 		}
+
+		.message.has-highlight.hl-announce {
+			--hl-announce-bar: calc(0.8 * var(--hl-rem));
+			--hl-announce-x: calc(1.2 * var(--hl-rem));
+			--hl-announce-gradient: linear-gradient(var(--hl-accent), var(--hl-accent));
+			display: block;
+			isolation: isolate;
+			padding: 0 var(--hl-announce-x) calc(0.5 * var(--hl-rem));
+			border-style: solid;
+			border-color: transparent;
+			border-width: 0 var(--hl-announce-bar);
+			border-image: var(--hl-announce-gradient) 1;
+			background-color: hsla(0, 0%, 50%, 0.05);
+			overflow-wrap: anywhere;
+		}
+
+		.message.has-highlight.hl-announce-blue {
+			--hl-announce-gradient: linear-gradient(#00d6d6, #9146ff);
+		}
+
+		.message.has-highlight.hl-announce-green {
+			--hl-announce-gradient: linear-gradient(#00db84, #57bee6);
+		}
+
+		.message.has-highlight.hl-announce-orange {
+			--hl-announce-gradient: linear-gradient(#ffb31a, #e0e000);
+		}
+
+		.message.has-highlight.hl-announce-purple {
+			--hl-announce-gradient: linear-gradient(#9146ff, #ff75e6);
+		}
+
+		html.hl-no-accent .message.has-highlight.hl-announce-primary {
+			--hl-announce-gradient: linear-gradient(#9146ff, #ff75e6);
+		}
+
+		.message.hl-announce::before {
+			content: "";
+			position: absolute;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			z-index: -1;
+			background: var(--hl-announce-gradient);
+			opacity: 0.12;
+			pointer-events: none;
+		}
+
+		.hl-announce-header {
+			display: flex;
+			align-items: center;
+			margin: 0 calc(-1 * var(--hl-announce-x)) calc(0.5 * var(--hl-rem));
+			padding:
+				calc(0.5 * var(--hl-rem))
+				calc(0.5 * var(--hl-rem))
+				calc(0.5 * var(--hl-rem))
+				var(--hl-rem);
+			background-color: hsla(0, 0%, 50%, 0.15);
+		}
+
+		.hl-announce-icon {
+			display: inline-flex;
+			padding: 0 calc(0.5 * var(--hl-rem));
+			color: var(--text-color);
+		}
+
+		.hl-announce-icon svg {
+			width: calc(18px * var(--hl-k));
+			height: calc(20px * var(--hl-k));
+			fill: currentColor;
+		}
+
+		.hl-announce-header .hl-announce-title {
+			font-weight: 600;
+		}
 	`;
 
 	(document.head || document.documentElement).appendChild(style);
@@ -241,7 +333,27 @@ function applyRewardHighlight(message, tags) {
 	applyHighlight(message, HL_REDEEM_COLOR, label, HL_REDEEM_BACKGROUND);
 }
 
+function applyAnnouncementHighlight(message, tags) {
+	const key = String(tags["msg-param-color"] || "PRIMARY").toUpperCase();
+	const color = HL_ANNOUNCE_COLORS[key] || "primary";
+
+	message.classList.add("has-highlight", "hl-announce", `hl-announce-${color}`);
+
+	const header = hlEl("div", "hl-announce-header");
+	const icon = hlEl("div", "hl-announce-icon");
+
+	icon.insertAdjacentHTML("beforeend", HL_ANNOUNCE_ICON);
+	header.append(icon, hlText(HL_ANNOUNCE_TITLE, "hl-announce-title"));
+
+	message.insertBefore(header, message.firstChild);
+}
+
 function applyMessageHighlights(message, tags, displayName) {
+	if (tags["msg-id"] === "announcement") {
+		applyAnnouncementHighlight(message, tags);
+		return;
+	}
+
 	if (tags["hl-kind"] === "paid" && tags["hl-label"]) {
 		if (hlGiftsEnabled) {
 			applyHighlight(
@@ -423,6 +535,9 @@ async function loadChannelHighlightData() {
 
 		if (/^[0-9a-f]{6}$/i.test(hex || "")) {
 			document.documentElement.style.setProperty("--hl-accent", `#${hex}`);
+			document.documentElement.classList.remove("hl-no-accent");
+		} else {
+			document.documentElement.classList.add("hl-no-accent");
 		}
 	} catch (error) {
 		console.warn("Channel accent color unavailable:", error);
