@@ -229,7 +229,7 @@ body[data-entry-animation="none"] {
 .badges {
     display: inline-flex;
     align-items: center;
-    vertical-align: baseline;
+    vertical-align: middle;
     gap: var(--badge-spacing, 3px);
     margin-right: 6px;
     position: relative;
@@ -271,7 +271,7 @@ body[data-entry-animation="none"] {
     display: inline;
     position: relative;
     line-height: 1.36;
-    vertical-align: middle;
+    vertical-align: baseline;
     max-width: 100%;
     min-width: 0;
     overflow-wrap: anywhere;
