@@ -309,7 +309,7 @@ body[data-entry-animation="none"] {
     width: auto;
     object-fit: contain;
     vertical-align: middle;
-    margin: 0 3px;
+    margin: -1em 3px;
     flex: 0 0 auto;
     filter: var(--ffz-effect-filter, );
     transition: transform 0.15s ease;
@@ -321,8 +321,13 @@ body[data-entry-animation="none"] {
     display: inline-block !important;
     object-fit: contain;
     vertical-align: middle !important;
-    margin: 0 0.05em !important;
+    margin: -1em 0.05em !important;
     flex: 0 0 auto;
+}
+
+.twitch-gif {
+    margin-top: -1em;
+    margin-bottom: -1em;
 }
 
 .emote.ffz-effect-transform {
