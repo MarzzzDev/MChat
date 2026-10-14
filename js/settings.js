@@ -151,6 +151,8 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.badgeMoltorino = settings.badgeMoltorino !== false;
 
+	result.pfps = settings.pfps === true;
+
 	result.gifs = settings.gifs !== false;
 
 	result.highlights = settings.highlights === true;
@@ -507,12 +509,12 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["uppercase", "1"]);
 	}
 
-	if (normalised.centerBadges === true) {
-		query.push(["centerBadges", "1"]);
+	if (normalised.centerBadges === false) {
+		query.push(["centerBadges", "0"]);
 	}
 
-	if (normalised.centerEmotes === true) {
-		query.push(["centerEmotes", "1"]);
+	if (normalised.centerEmotes === false) {
+		query.push(["centerEmotes", "0"]);
 	}
 
 	if (normalised.gifScale !== 1) {
@@ -635,7 +637,9 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 	if (normalised.badgeMoltorino !== true) {
 		query.push(["badgeMoltorino", normalised.badgeMoltorino ? "1" : "0"]);
 	}
-
+	if (normalised.pfps === true) {
+		query.push(["pfps", normalised.pfps ? "1" : "0"]);
+	}
 	if (normalised.gifs !== true) {
 		query.push(["gifs", normalised.gifs ? "1" : "0"]);
 	}
@@ -912,6 +916,8 @@ let badgeBttv = parseQueryBoolean("badgeBttv", true);
 let badgeDankchat = parseQueryBoolean("badgeDankchat", true);
 
 let badgeMoltorino = parseQueryBoolean("badgeMoltorino", true);
+
+let pfpsEnabled = parseQueryBoolean("pfps", false);
 
 let gifsEnabled = parseQueryBoolean("gifs", true);
 
@@ -1291,9 +1297,9 @@ let boldEnabled = parseQueryBoolean("bold", true);
 
 let uppercaseEnabled = parseQueryBoolean("uppercase", false);
 
-let centerBadgesEnabled = parseQueryBoolean("centerBadges", false);
+let centerBadgesEnabled = parseQueryBoolean("centerBadges", true);
 
-let centerEmotesEnabled = parseQueryBoolean("centerEmotes", false);
+let centerEmotesEnabled = parseQueryBoolean("centerEmotes", true);
 
 let gifScale = Number(params.get("gifScale") ?? 1);
 

@@ -475,6 +475,47 @@ function createBadge(url, title) {
 	return img;
 }
 
+function addPfpBadge(container, tags) {
+	if (typeof badgePfp !== "undefined" && !badgePfp) {
+		return;
+	}
+
+	const userId = tags?.["user-id"] || tags?.userId || tags?.user_id;
+
+	if (!userId) {
+		return;
+	}
+
+	const img = document.createElement("img");
+
+	img.className = "badge pfp-badge";
+
+	img.alt = "";
+
+	img.width = 18;
+	img.height = 18;
+
+	img.style.width = "18px";
+
+	img.style.height = "18px";
+
+	img.style.objectFit = "cover";
+
+	img.style.borderRadius = "50%";
+
+	img.dataset.badgeProvider = "pfp";
+
+	container.prepend(img);
+
+	getTwitchPfp(userId, 70).then((url) => {
+		if (url) {
+			img.src = url;
+		} else {
+			img.remove();
+		}
+	});
+}
+
 const TWITCH_BADGE_ORDER = [
 	"broadcaster",
 	"staff",
@@ -510,6 +551,10 @@ function createTwitchBadges(tags) {
 	const container = document.createElement("span");
 
 	container.className = "badges twitch-badges";
+
+	if (pfpsEnabled)  {
+		addPfpBadge(container, tags);
+	}
 
 	if (!badgeTwitch) {
 		return container;

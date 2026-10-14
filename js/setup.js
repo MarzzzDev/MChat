@@ -4145,6 +4145,14 @@ function showOverlaySetupScreen() {
 
 	syncPlatformState();
 
+	const pfpsCheckbox = addToggle(
+		appearancePanel,
+		"PFPs",
+		"Show Twitch PFPs in chat messages.",
+		"pfps",
+		pfpsEnabled,
+	);
+
 	const gifsCheckbox = addToggle(
 		appearancePanel,
 		"GIFs",
@@ -4956,7 +4964,7 @@ function showOverlaySetupScreen() {
 	const centerBadgesCheckbox = addToggle(
 		typographyPanel,
 		"Center badges",
-		"Vertically center badges on the text instead of the default slightly lower position.",
+		"Slightly lower position of badges on the text instead of the default centered look.",
 		"centerBadges",
 		centerBadgesEnabled,
 	);
@@ -4964,7 +4972,7 @@ function showOverlaySetupScreen() {
 	const centerEmotesCheckbox = addToggle(
 		typographyPanel,
 		"Center emotes",
-		"Vertically center emotes on the text instead of the default slightly lower position.",
+		"Slightly lower position of emotes on the text instead of the default centered look.",
 		"centerEmotes",
 		centerEmotesEnabled,
 	);
@@ -5292,6 +5300,10 @@ function showOverlaySetupScreen() {
 		rerenderPreviewChat();
 	});
 
+	pfpsCheckbox.addEventListener("change", () => {
+		pfpsEnabled = pfpsCheckbox.checked;
+		rerenderPreviewChat();
+	});
 	gifsCheckbox.addEventListener("change", () => {
 		gifsEnabled = gifsCheckbox.checked;
 		rerenderPreviewChat();
@@ -5663,6 +5675,8 @@ function showOverlaySetupScreen() {
 			badgeDankchat: badgeSources.dankchat,
 
 			badgeMoltorino: badgeSources.moltorino,
+
+			pfps: pfpsCheckbox.checked,
 
 			gifs: gifsCheckbox.checked,
 
@@ -6043,6 +6057,10 @@ function showOverlaySetupScreen() {
 
 		badgeScaleInput.step = "1";
 		importSet(badgeScaleInput, Math.round(s.badgeScale * 100));
+
+		if (s.pfps !== undefined) {
+			importSet(pfpsCheckbox, s.pfps);
+		}
 
 		if (s.gifs !== undefined) {
 			importSet(gifsCheckbox, s.gifs);

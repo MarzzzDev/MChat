@@ -150,6 +150,27 @@ async function loadTwitchBadges() {
 
 const PREVIEW_LIVE_URLS = ["https://api.moltorino.com/v2/badges"];
 
+const pfpCache = new Map();
+
+async function getTwitchPfp(user, width = 300) {
+    const isId = /^\d+$/.test(user);
+    const key = `${isId ? "id" : "login"}:${String(user).toLowerCase()}:${width}`;
+
+    if (!pfpCache.has(key)) {
+        const safe = String(user).replace(/[^a-zA-Z0-9_]/g, "");
+        const arg = isId ? `id: "${safe}"` : `login: "${safe.toLowerCase()}"`;
+
+        pfpCache.set(
+            key,
+            twitchGraphQL(`query { user(${arg}) { profileImageURL(width: ${width}) } }`)
+                .then((data) => data?.user?.profileImageURL || null)
+                .catch(() => { pfpCache.delete(key); return null; }),
+        );
+    }
+
+    return pfpCache.get(key);
+}
+
 let previewManifestPromise;
 function installPreviewFetch() {
   const orig = window.fetch;
