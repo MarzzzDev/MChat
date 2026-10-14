@@ -418,6 +418,7 @@ const OVERLAY_OPTIONS = {
 	badgebttv: simpleBool(() => badgeBttv, (v) => (badgeBttv = v)),
 	badgedankchat: simpleBool(() => badgeDankchat, (v) => (badgeDankchat = v)),
 	badgemoltorino: simpleBool(() => badgeMoltorino, (v) => (badgeMoltorino = v)),
+	pfps: simpleBool(() => pfpsEnabled, (v) => (pfpsEnabled = v)),
 	gifs: simpleBool(() => gifsEnabled, (v) => (gifsEnabled = v)),
 	highlights: simpleBool(() => highlightsEnabled, (v) => (highlightsEnabled = v)),
 	hlfirst: simpleBool(() => hlFirstEnabled, (v) => (hlFirstEnabled = v)),
