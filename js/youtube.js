@@ -11,22 +11,41 @@ const youtubeUserColors = new Map();
 const youtubeSeenMessages = new Set();
 
 function youtubeModBadgeIcon() {
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">' +
-        '<path fill="#5E84F1" d="M8 1.25 14 3.8v3.74c0 3.39-2.1 5.88-6 7.21-3.9-1.33-6-3.82-6-7.21V3.8L8 1.25Z"/>' +
-        '<path fill="#3F66D3" d="M8 1.25v13.5c3.9-1.33 6-3.82 6-7.21V3.8L8 1.25Z"/>' +
-        '</svg>'
-    );
+	return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+		'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">' +
+		'<path fill="#5E84F1" d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>' +
+		'</svg>'
+	);
 }
 
 function youtubeVerifiedBadgeIcon() {
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">' +
-        '<circle cx="8" cy="8" r="7" fill="#888888"/>' +
-        '<path fill="#ffffff" d="M6.5 11.25 3.75 8.5l1.06-1.06L6.5 9.13l4.69-4.69 1.06 1.06z"/>' +
-        '</svg>'
-    );
+	return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+		'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">' +
+		'<circle cx="12" cy="12" r="10" fill="#FFFFFF"/>' +
+		'<path fill="#000000" d="M10 17l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>' +
+		'</svg>'
+	);
 }
+const YOUTUBE_COLOR_DEFAULT = "#FFFFFF";
+const YOUTUBE_COLOR_MEMBER = "#2BA640";
+const YOUTUBE_COLOR_MOD = "#5E84F1";
+
+function getYouTubeRoleColor(author) {
+	let isMember = false;
+
+	for (const badge of Array.isArray(author?.badges) ? author.badges : []) {
+		if (String(badge?.icon_type || "").toUpperCase() === "MODERATOR") {
+			return YOUTUBE_COLOR_MOD;
+		}
+
+		if (pickLargestImage(badge?.custom_thumbnail)) {
+			isMember = true;
+		}
+	}
+
+	return isMember ? YOUTUBE_COLOR_MEMBER : YOUTUBE_COLOR_DEFAULT;
+}
+
 function getYouTubeColor(authorId, name) {
 	const key = String(authorId || name || Math.random());
 
@@ -308,74 +327,74 @@ function pickLargestImage(images) {
 }
 
 function youtubeMessageToSegments(message) {
-    const runs = message?.runs;
+	const runs = message?.runs;
 
-    if (!Array.isArray(runs)) {
-        return [{ type: "text", text: String(message?.toString?.() ?? "") }];
-    }
+	if (!Array.isArray(runs)) {
+		return [{ type: "text", text: String(message?.toString?.() ?? "") }];
+	}
 
-    const segments = [];
+	const segments = [];
 
-    for (const run of runs) {
-        const emoji = run?.emoji;
+	for (const run of runs) {
+		const emoji = run?.emoji;
 
-        if (emoji) {
-            const url = pickLargestImage(emoji.image);
-            const name =
-                emoji.shortcuts?.[0] ||
-                emoji.emoji_id ||
-                run.text ||
-                "";
+		if (emoji) {
+			const url = pickLargestImage(emoji.image);
+			const name =
+				emoji.shortcuts?.[0] ||
+				emoji.emoji_id ||
+				run.text ||
+				"";
 
-            if (url) {
-                segments.push({
-                    type: "emote",
-                    url: url,
-                    name: name
-                });
-            } else {
-                segments.push({
-                    type: "text",
-                    text: String(run.text || name)
-                });
-            }
+			if (url) {
+				segments.push({
+					type: "emote",
+					url: url,
+					name: name
+				});
+			} else {
+				segments.push({
+					type: "text",
+					text: String(run.text || name)
+				});
+			}
 
-            continue;
-        }
+			continue;
+		}
 
-        if (run?.text) {
-            segments.push({
-                type: "text",
-                text: String(run.text)
-            });
-        }
-    }
+		if (run?.text) {
+			segments.push({
+				type: "text",
+				text: String(run.text)
+			});
+		}
+	}
 
-    return segments;
+	return segments;
 }
 function buildYouTubeBadges(author) {
-    const badges = [];
+	const badges = [];
 
-    for (const badge of Array.isArray(author?.badges) ? author.badges : []) {
-        const title = badge?.tooltip || badge?.label || "";
-        const memberUrl = pickLargestImage(badge?.custom_thumbnail);
+	for (const badge of Array.isArray(author?.badges) ? author.badges : []) {
+		const title = badge?.tooltip || badge?.label || "";
+		const memberUrl = pickLargestImage(badge?.custom_thumbnail);
 
-        if (memberUrl) {
-            badges.push({ url: memberUrl, title: title || "Member" });
-            continue;
-        }
+		if (memberUrl) {
+			badges.push({ url: memberUrl, title: title || "Member" });
+			continue;
+		}
 
-        switch (String(badge?.icon_type || "").toUpperCase()) {
-            case "MODERATOR":
-                badges.push({ url: youtubeModBadgeIcon(), title: title || "Moderator" });
-                break;
-            case "VERIFIED":
-                badges.push({ url: youtubeVerifiedBadgeIcon(), title: title || "Verified" });
-                break;
-        }
-    }
+		switch (String(badge?.icon_type || "").toUpperCase()) {
+			case "MODERATOR":
+				badges.push({ url: youtubeModBadgeIcon(), title: title || "Moderator" });
+				break;
+			case "VERIFIED":
+				badges.push({ url: youtubeVerifiedBadgeIcon(), title: title || "Verified" });
+				break;
+		}
+	}
 
-    return badges;
+	return badges;
 }
 
 const YOUTUBE_MESSAGE_KINDS = new Set([
@@ -525,7 +544,7 @@ function handleYouTubeChatItem(item, startedAt) {
 	emitPlatformMessage({
 		platform: "youtube",
 		username,
-		color: getYouTubeColor(userId, username),
+		color: getYouTubeRoleColor(author),
 		userId,
 		messageId,
 		segments,

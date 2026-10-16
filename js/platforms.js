@@ -32,8 +32,6 @@ function hideShownImage(wrap) {
 	setTimeout(() => wrap.remove(), SHOW_IMAGE_FADE_MS);
 }
 
-// "-show <image url>" (mods only): shows the image at the bottom of the
-// overlay for 5 seconds. Nothing is shown if the URL isn't a loadable image.
 function showOverlayImage(rawUrl) {
 	let url;
 
@@ -429,6 +427,7 @@ const OVERLAY_OPTIONS = {
 	hlstreaks: simpleBool(() => hlStreaksEnabled, (v) => (hlStreaksEnabled = v)),
 	pins: simpleBool(() => pinsEnabled, (v) => (pinsEnabled = v)),
 	bots: simpleBool(() => botsEnabled, (v) => (botsEnabled = v)),
+	hidelinks: simpleBool(() => hideLinksEnabled, (v) => (hideLinksEnabled = v)),
 	platformindicator: simpleBool(() => platformIndicatorEnabled, (v) => (platformIndicatorEnabled = v)),
 	colonmatchusername: simpleBool(() => colonMatchUsernameEnabled, (v) => (colonMatchUsernameEnabled = v)),
 	unlisted: simpleBool(() => showUnlisted7TV, (v) => (showUnlisted7TV = v)),
@@ -778,7 +777,7 @@ function createPlatformIndicator(platform) {
 
 	const container = document.createElement("span");
 
-	container.className = "platform-indicator";
+	container.className = "badges message-badges platform-indicator";
 
 	container.dataset.platform = platform;
 
@@ -792,19 +791,13 @@ function createPlatformIndicator(platform) {
 
 	img.title = PLATFORM_INDICATOR_TITLES[platform] || platform;
 
-	img.width = 18;
-
-	img.height = 18;
-
 	img.draggable = false;
 
-	img.style.width = "18px";
+	img.style.width = "calc(45px * var(--badge-scale, 1))";
 
-	img.style.height = "18px";
+	img.style.height = "calc(45px * var(--badge-scale, 1))";
 
 	img.style.objectFit = "contain";
-
-	img.style.marginRight = "4px";
 
 	container.appendChild(img);
 

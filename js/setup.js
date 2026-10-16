@@ -722,6 +722,7 @@ function importFromMChat(p) {
 		badgeMoltorino: importBool(p.get("badgeMoltorino"), true),
 		gifs: importBool(p.get("gifs"), true),
 		bots: importBool(p.get("bots"), true),
+		hideLinks: importBool(p.get("hideLinks"), false),
 		platformIndicator: importBool(p.get("platformIndicator"), true),
 		colonMatchUsername: importBool(p.get("colonMatchUsername"), true),
 		highlights: importBool(p.get("highlights"), false),
@@ -825,1643 +826,6 @@ function showOverlaySetupScreen() {
 
 	loadGoogleFontIfNeeded("'Open Sans', sans-serif");
 
-	const style = document.createElement("style");
-	style.dataset.marzSetup = "true";
-	style.textContent = `
-		html:has(#overlay-setup-screen),
-		body:has(#overlay-setup-screen) {
-			margin: 0;
-			width: 100%;
-			height: 100%;
-			overflow: hidden;
-			background: #09090b;
-			scrollbar-width: none;
-		}
-
-		html:has(#overlay-setup-screen)::-webkit-scrollbar,
-		body:has(#overlay-setup-screen)::-webkit-scrollbar {
-			display: none;
-		}
-
-		#overlay-setup-screen {
-			--mc-bg: #09090b;
-			--mc-surface: #0e0e10;
-			--mc-raised: #131315;
-			--mc-line: #1f1f23;
-			--mc-line-strong: #2e2e34;
-			--mc-text: #fafafa;
-			--mc-dim: #8e8e97;
-			--mc-faint: #63636c;
-			--mc-accent: #e8d58a;
-			--mc-accent-ink: #1a1708;
-
-			position: fixed;
-			left: 0;
-			top: 0;
-			width: 80vw;
-			height: 80vh;
-			zoom: 1.25;
-			z-index: 999999;
-			display: grid;
-			grid-template-columns: 190px minmax(340px, 430px) minmax(0, 1fr);
-			grid-template-rows: 56px minmax(0, 1fr);
-			background: var(--mc-bg);
-			color: var(--mc-text);
-			font-family: 'Open Sans', Arial, sans-serif;
-			font-size: 11px;
-			line-height: 1.45;
-
-			overflow: hidden;
-			overflow: clip;
-			-webkit-font-smoothing: antialiased;
-		}
-
-		#overlay-setup-screen *,
-		#overlay-setup-screen *::before,
-		#overlay-setup-screen *::after {
-			box-sizing: border-box;
-		}
-
-		#overlay-setup-screen button,
-		#overlay-setup-screen input,
-		#overlay-setup-screen select {
-			font: inherit;
-		}
-
-		#overlay-setup-screen :focus-visible {
-			outline: 2px solid var(--mc-accent);
-			outline-offset: 2px;
-		}
-
-		#overlay-setup-screen .mc-topbar {
-			grid-column: 1 / -1;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: 0 20px;
-			border-bottom: 1px solid var(--mc-line);
-			background: var(--mc-surface);
-		}
-
-		#overlay-setup-screen .mc-preview-warning {
-			position: relative;
-			display: inline-block;
-			margin-left: 4px;
-			color: var(--mc-faint);
-			font-size: 10px;
-			font-weight: 600;
-			line-height: 1;
-			cursor: default;
-			user-select: none;
-		}
-
-		#overlay-setup-screen .mc-brand {
-			display: flex;
-			align-items: center;
-			gap: 12px;
-			min-width: 0;
-		}
-
-		#overlay-setup-screen .mc-brand-mark {
-			height: 30px;
-			width: auto;
-			max-width: 96px;
-			display: block;
-			flex: 0 0 auto;
-			object-fit: contain;
-		}
-
-		#overlay-setup-screen .mc-brand-text {
-			min-width: 0;
-		}
-
-		#overlay-setup-screen .mc-brand-name {
-			color: var(--mc-text);
-			font-size: 13px;
-			font-weight: 700;
-			line-height: 1.2;
-		}
-
-		#overlay-setup-screen .mc-brand-m {
-			color: var(--mc-accent);
-		}
-
-		#overlay-setup-screen .mc-brand-page {
-			color: var(--mc-faint);
-			font-size: 10.5px;
-			line-height: 1.3;
-		}
-
-		#overlay-setup-screen .mc-top-link {
-			display: inline-flex;
-			align-items: center;
-			height: 32px;
-			padding: 0 14px;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 6px;
-			color: var(--mc-dim);
-			font-size: 10.5px;
-			font-weight: 600;
-			text-decoration: none;
-			transition: color .15s ease, border-color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-top-link:hover {
-			border-color: var(--mc-dim);
-			color: var(--mc-text);
-		}
-
-
-		#overlay-setup-screen .mc-sidebar {
-			min-width: 0;
-			min-height: 0;
-			display: flex;
-			flex-direction: column;
-			padding: 16px 12px;
-			border-right: 1px solid var(--mc-line);
-			background: var(--mc-bg);
-		}
-
-		#overlay-setup-screen .mc-nav-label {
-			padding: 0 10px 8px;
-			color: var(--mc-faint);
-			font-size: 10.5px;
-			font-weight: 600;
-		}
-
-		#overlay-setup-screen .mc-nav {
-			display: flex;
-			flex-direction: column;
-			gap: 2px;
-		}
-
-		#overlay-setup-screen .mc-nav-button {
-			display: block;
-			width: 100%;
-			padding: 9px 10px;
-			border: 0;
-			border-radius: 6px;
-			background: transparent;
-			color: var(--mc-dim);
-			text-align: left;
-			cursor: pointer;
-			transition: background .15s ease, color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-nav-button:hover {
-			background: var(--mc-surface);
-			color: var(--mc-text);
-		}
-
-		#overlay-setup-screen .mc-nav-button.is-active {
-			background: var(--mc-raised);
-			color: var(--mc-text);
-		}
-
-		#overlay-setup-screen .mc-nav-icon {
-			display: none;
-		}
-
-		#overlay-setup-screen .mc-nav-copy {
-			display: block;
-			min-width: 0;
-		}
-
-		#overlay-setup-screen .mc-nav-title {
-			font-size: 11px;
-			font-weight: 600;
-		}
-
-		#overlay-setup-screen .mc-side-spacer {
-			flex: 1;
-		}
-
-		#overlay-setup-screen .mc-side-hint {
-			padding: 12px 10px 0;
-			border-top: 1px solid var(--mc-line);
-			color: var(--mc-faint);
-			font-size: 10.5px;
-			line-height: 1.5;
-		}
-
-		#overlay-setup-screen .mc-controls {
-			min-width: 0;
-			min-height: 0;
-			display: flex;
-			flex-direction: column;
-			background: var(--mc-surface);
-			border-right: 1px solid var(--mc-line);
-		}
-
-		#overlay-setup-screen .mc-controls-head {
-			padding: 20px 24px 16px;
-			border-bottom: 1px solid var(--mc-line);
-		}
-
-		#overlay-setup-screen .mc-control-title {
-			margin: 0;
-			font-size: 16px;
-			line-height: 1.25;
-			font-weight: 700;
-		}
-
-		#overlay-setup-screen .mc-control-subtitle {
-			margin: 4px 0 0;
-			color: var(--mc-faint);
-			font-size: 10.5px;
-			line-height: 1.5;
-		}
-
-		#overlay-setup-screen .mc-panel-stack {
-			flex: 1;
-			min-height: 0;
-			overflow: auto;
-			padding: 20px 24px 28px;
-			scrollbar-width: thin;
-			scrollbar-color: var(--mc-line-strong) transparent;
-		}
-
-		#overlay-setup-screen .mc-panel {
-			display: none;
-		}
-
-		#overlay-setup-screen .mc-panel.is-active {
-			display: block;
-		}
-
-		#overlay-setup-screen .mc-setup-footer {
-			flex: 0 0 auto;
-			padding: 14px 24px 16px;
-			border-top: 1px solid var(--mc-line);
-		}
-
-		#overlay-setup-screen .mc-feedback {
-			display: flex;
-			align-items: center;
-			gap: 10px;
-			margin-bottom: 12px;
-			color: var(--mc-dim);
-		}
-
-		#overlay-setup-screen .mc-discord-icon {
-			width: 20px;
-			height: 20px;
-			flex: 0 0 20px;
-			display: grid;
-			place-items: center;
-			color: var(--mc-faint);
-		}
-
-		#overlay-setup-screen .mc-discord-icon svg {
-			width: 20px;
-			height: 20px;
-			display: block;
-		}
-
-		#overlay-setup-screen .mc-feedback-copy {
-			min-width: 0;
-			display: flex;
-			flex-direction: column;
-		}
-
-		#overlay-setup-screen .mc-feedback-label {
-			color: var(--mc-faint);
-			font-size: 10px;
-		}
-
-		#overlay-setup-screen .mc-feedback-link {
-			color: var(--mc-text);
-			font-size: 10.5px;
-			font-weight: 600;
-			text-decoration: none;
-		}
-
-		#overlay-setup-screen .mc-feedback-link:hover {
-			text-decoration: underline;
-			text-underline-offset: 2px;
-		}
-
-		#overlay-setup-screen .mc-attribution {
-			display: flex;
-			align-items: center;
-			flex-wrap: wrap;
-			gap: 4px 8px;
-			color: var(--mc-faint);
-			font-size: 10px;
-			line-height: 1.5;
-		}
-
-		#overlay-setup-screen .mc-attribution-brand {
-			color: var(--mc-dim);
-			font-weight: 600;
-		}
-
-		#overlay-setup-screen .mc-attribution-separator {
-			color: var(--mc-line-strong);
-		}
-
-		#overlay-setup-screen .mc-attribution-disclaimer {
-			color: var(--mc-faint);
-		}
-
-		#overlay-setup-screen .mc-attribution-github,
-		#overlay-setup-screen .mc-attribution-commit {
-			color: var(--mc-dim);
-			text-decoration: none;
-		}
-
-		#overlay-setup-screen .mc-attribution-commit {
-			font-family: ui-monospace, Menlo, Consolas, monospace;
-			color: var(--mc-faint);
-		}
-
-		#overlay-setup-screen .mc-attribution-github:hover,
-		#overlay-setup-screen .mc-attribution-commit:hover {
-			color: var(--mc-text);
-			text-decoration: underline;
-			text-underline-offset: 2px;
-		}
-
-		#overlay-setup-screen .mc-help-list {
-			margin: 0;
-			padding: 0;
-			list-style: none;
-		}
-
-		#overlay-setup-screen .mc-help-item {
-			margin-bottom: 6px;
-			padding: 10px 12px;
-			border-radius: 8px;
-			background: var(--mc-raised);
-			color: var(--mc-dim);
-			font-size: 11px;
-			line-height: 1.55;
-		}
-
-		#overlay-setup-screen .mc-help-item:first-child {
-			color: var(--mc-text);
-		}
-
-		#overlay-setup-screen .mc-help-note {
-			margin-top: 14px;
-			color: var(--mc-faint);
-			font-size: 10.5px;
-		}
-
-		#overlay-setup-screen .mc-field {
-			margin-bottom: 18px;
-		}
-
-		#overlay-setup-screen .mc-field:last-child {
-			margin-bottom: 0;
-		}
-
-		#overlay-setup-screen .mc-label {
-			display: block;
-			margin-bottom: 6px;
-			color: var(--mc-dim);
-			font-size: 10.5px;
-			font-weight: 600;
-		}
-
-		#overlay-setup-screen .mc-input,
-		#overlay-setup-screen .mc-select {
-			width: 100%;
-			height: 34px;
-			padding: 0 11px;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 6px;
-			background: var(--mc-bg);
-			color: var(--mc-text);
-			outline: none;
-			font-size: 11px;
-			transition: border-color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-input::placeholder {
-			color: var(--mc-faint);
-		}
-
-		#overlay-setup-screen .mc-input:hover,
-		#overlay-setup-screen .mc-select:hover {
-			border-color: #3a3a41;
-		}
-
-		#overlay-setup-screen .mc-input:focus,
-		#overlay-setup-screen .mc-select:focus {
-			border-color: var(--mc-accent);
-		}
-
-		#overlay-setup-screen .mc-input:disabled {
-			cursor: not-allowed;
-		}
-
-		#overlay-setup-screen .mc-select {
-			appearance: none;
-			-webkit-appearance: none;
-			padding-right: 32px;
-			cursor: pointer;
-			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-			background-repeat: no-repeat;
-			background-position: right 12px center;
-		}
-
-		#overlay-setup-screen .mc-inline {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
-			gap: 10px;
-			align-items: center;
-		}
-
-		#overlay-setup-screen .mc-divider {
-			height: 1px;
-			margin: 22px 0;
-			background: var(--mc-line);
-		}
-
-		#overlay-setup-screen .mc-subhead {
-			margin: 0 0 10px;
-			color: var(--mc-text);
-			font-size: 11px;
-			font-weight: 700;
-		}
-
-		#overlay-setup-screen .mc-muted {
-			color: var(--mc-faint);
-			font-size: 10.5px;
-		}
-
-		#overlay-setup-screen .mc-two-col {
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			gap: 12px;
-		}
-
-		#overlay-setup-screen .mc-range-line {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
-			gap: 8px;
-			align-items: center;
-		}
-
-		#overlay-setup-screen .mc-unit {
-			color: var(--mc-faint);
-			font-size: 10.5px;
-		}
-
-		#overlay-setup-screen .mc-toggle-row {
-			position: relative;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: 16px;
-			min-height: 46px;
-			padding: 8px 12px;
-			margin-bottom: 6px;
-			border-radius: 8px;
-			background: var(--mc-raised);
-			cursor: pointer;
-			user-select: none;
-			transition: background .15s ease;
-		}
-
-		#overlay-setup-screen .mc-toggle-row:hover {
-			background: #161618;
-		}
-
-		#overlay-setup-screen .mc-toggle-row.mc-static-row {
-			cursor: default;
-		}
-
-		#overlay-setup-screen .mc-toggle-copy {
-			min-width: 0;
-		}
-
-		#overlay-setup-screen .mc-toggle-title {
-			color: var(--mc-text);
-			font-size: 11px;
-			font-weight: 600;
-		}
-
-		#overlay-setup-screen .mc-toggle-note {
-			margin-top: 1px;
-			color: var(--mc-faint);
-			font-size: 10.5px;
-			line-height: 1.4;
-		}
-
-		#overlay-setup-screen .mc-check {
-			width: 1px;
-			height: 1px;
-			position: absolute;
-			left: 0;
-			top: 0;
-			opacity: 0;
-			pointer-events: none;
-		}
-
-		#overlay-setup-screen .mc-check:focus-visible + .mc-switch {
-			outline: 2px solid var(--mc-accent);
-			outline-offset: 2px;
-		}
-
-		#overlay-setup-screen .mc-switch {
-			width: 34px;
-			height: 20px;
-			flex: 0 0 auto;
-			position: relative;
-			border-radius: 999px;
-			background: var(--mc-line-strong);
-			transition: background .15s ease;
-		}
-
-		#overlay-setup-screen .mc-switch::after {
-			content: "";
-			position: absolute;
-			width: 16px;
-			height: 16px;
-			top: 2px;
-			left: 2px;
-			border-radius: 50%;
-			background: #a1a1aa;
-			transition: transform .15s ease;
-		}
-
-		#overlay-setup-screen .mc-toggle-row.is-on .mc-switch {
-			background: var(--mc-accent);
-		}
-
-		#overlay-setup-screen .mc-toggle-row.is-on .mc-switch::after {
-			background: var(--mc-accent-ink);
-			transform: translateX(14px);
-		}
-
-		#overlay-setup-screen .mc-group {
-			margin: 22px 0 18px;
-			border: 1px solid var(--mc-line);
-			border-radius: 10px;
-			background: var(--mc-raised);
-			overflow: clip;
-		}
-
-		#overlay-setup-screen .mc-group-head {
-			padding: 12px 14px 10px;
-			border-bottom: 1px solid var(--mc-line);
-		}
-
-		#overlay-setup-screen .mc-message-layout-grid {
-			display: grid;
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			gap: 0 10px;
-			padding: 10px 12px 0;
-		}
-
-		#overlay-setup-screen .mc-message-layout-grid > .mc-toggle-row {
-			grid-column: 1 / -1;
-			min-height: 40px;
-			padding: 7px 10px;
-			margin-bottom: 8px;
-		}
-
-		#overlay-setup-screen .mc-message-layout-grid > .mc-field {
-			min-width: 0;
-			margin-bottom: 6px;
-		}
-
-		#overlay-setup-screen .mc-message-layout-grid .mc-label {
-			margin-bottom: 3px;
-		}
-
-		#overlay-setup-screen .mc-message-layout-grid > .mc-field.is-disabled {
-			opacity: .4;
-		}
-
-		@media (max-width: 520px) {
-			#overlay-setup-screen .mc-message-layout-grid {
-				grid-template-columns: minmax(0, 1fr);
-			}
-		}
-
-		#overlay-setup-screen .mc-group-title {
-			color: var(--mc-text);
-			font-size: 11px;
-			font-weight: 700;
-		}
-
-		#overlay-setup-screen .mc-group-note {
-			margin-top: 2px;
-			color: var(--mc-faint);
-			font-size: 10.5px;
-		}
-
-		#overlay-setup-screen .mc-group .mc-toggle-row {
-			margin: 0;
-			padding: 10px 14px;
-			border-radius: 0;
-			background: transparent;
-			border-bottom: 1px solid var(--mc-line);
-			justify-content: flex-start;
-			transition: background .15s ease, box-shadow .15s ease;
-		}
-
-		#overlay-setup-screen .mc-group .mc-toggle-row:last-child {
-			border-bottom: 0;
-		}
-
-		#overlay-setup-screen .mc-group .mc-toggle-row:hover {
-			background: rgba(255, 255, 255, .02);
-		}
-
-		#overlay-setup-screen .mc-group .mc-toggle-row.is-on {
-			box-shadow: inset 2px 0 0 var(--hc);
-		}
-
-		#overlay-setup-screen .mc-group .mc-toggle-copy {
-			flex: 1;
-		}
-
-		#overlay-setup-screen .mc-group .mc-switch {
-			margin-left: auto;
-		}
-
-		#overlay-setup-screen .mc-hl-icon {
-			width: 28px;
-			height: 28px;
-			flex: 0 0 28px;
-			display: grid;
-			place-items: center;
-			border-radius: 7px;
-			font-size: 13px;
-			color: var(--mc-faint);
-			background: var(--mc-bg);
-			transition: background .15s ease, color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-toggle-row.is-on .mc-hl-icon {
-			color: var(--hc);
-			background: color-mix(in srgb, var(--hc) 16%, transparent);
-		}
-
-		#overlay-setup-screen .mc-platform-grid {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 6px;
-			justify-content: center;
-			padding: 10px;
-			margin: -4px 0 6px;
-			border-radius: 0 0 8px 8px;
-			background: var(--mc-raised);
-			transition: opacity .15s ease;
-		}
-
-		#overlay-setup-screen .mc-platform-grid.is-disabled {
-			opacity: .4;
-		}
-
-		#overlay-setup-screen .mc-channel-label-row {
-			display: flex;
-			align-items: center;
-			gap: 6px;
-			margin-bottom: 6px;
-		}
-
-		#overlay-setup-screen .mc-channel-label {
-			margin: 0;
-			color: var(--mc-dim);
-			font-size: 10.5px;
-			font-weight: 600;
-		}
-
-		#overlay-setup-screen .mc-channel-toggle {
-			padding: 0;
-			border: 0;
-			background: transparent;
-			color: var(--mc-dim);
-			font-size: 10.5px;
-			font-weight: 600;
-			line-height: 1;
-			cursor: pointer;
-			transition: color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-channel-toggle:hover {
-			color: var(--mc-text);
-		}
-
-		#overlay-setup-screen .mc-channel-input-wrap {
-			overflow: hidden;
-			transition: opacity .18s ease, transform .18s ease;
-		}
-
-		#overlay-setup-screen .mc-channel-input-wrap.is-hidden {
-			opacity: 0;
-			transform: translateY(-4px);
-		}
-
-		#overlay-setup-screen .mc-channel-manager {
-			display: flex;
-			flex-direction: column;
-			gap: 8px;
-			max-height: 0;
-			margin-top: 0;
-			overflow: hidden;
-			opacity: 0;
-			transform: translateY(-5px);
-			transition:
-				max-height .22s ease,
-				margin-top .22s ease,
-				opacity .18s ease,
-				transform .22s ease;
-		}
-
-		#overlay-setup-screen .mc-channel-manager.is-open {
-			max-height: 140px;
-			margin-top: 8px;
-			opacity: 1;
-			transform: translateY(0);
-		}
-
-		#overlay-setup-screen .mc-channel-row {
-			display: grid;
-			grid-template-columns: 28px minmax(0, 1fr);
-			gap: 10px;
-			align-items: center;
-		}
-
-		#overlay-setup-screen .mc-channel-logo {
-			width: 22px;
-			height: 22px;
-			display: block;
-			object-fit: contain;
-		}
-
-		#overlay-setup-screen .mc-channel-input {
-			width: 100%;
-			height: 34px;
-			padding: 0 11px;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 6px;
-			background: var(--mc-bg);
-			color: var(--mc-text);
-			outline: none;
-			font-size: 11px;
-		}
-
-		#overlay-setup-screen .mc-channel-input::placeholder {
-			color: var(--mc-faint);
-		}
-
-		#overlay-setup-screen .mc-channel-input:focus {
-			border-color: var(--mc-accent);
-		}
-		#overlay-setup-screen .mc-platform-button {
-			display: flex;
-			flex: 0 0 auto;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-			gap: 4px;
-			min-width: 48px;
-			height: 48px;
-			padding: 4px 8px;
-			border: 1px solid transparent;
-			border-radius: 6px;
-			background: var(--mc-bg);
-			color: var(--mc-faint);
-			cursor: pointer;
-			user-select: none;
-			transition: border-color .15s ease, background .15s ease, color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-platform-button:hover {
-			border-color: var(--mc-line-strong);
-		}
-
-		#overlay-setup-screen .mc-platform-button.is-active {
-			border-color: var(--pc, var(--mc-accent));
-			background: color-mix(in srgb, var(--pc, #e8d58a) 16%, transparent);
-			color: var(--mc-text);
-		}
-
-		#overlay-setup-screen .mc-platform-button:disabled {
-			cursor: not-allowed;
-			pointer-events: none;
-		}
-
-		#overlay-setup-screen .mc-platform-logo {
-			width: 22px;
-			height: 22px;
-			display: block;
-			object-fit: contain;
-			filter: grayscale(1);
-			opacity: .5;
-			transition: filter .15s ease, opacity .15s ease;
-			pointer-events: none;
-		}
-
-		#overlay-setup-screen .mc-platform-button.is-active .mc-platform-logo {
-			filter: none;
-			opacity: 1;
-		}
-
-		#overlay-setup-screen .mc-platform-label {
-			max-width: 100%;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-			font-size: 10px;
-			font-weight: 600;
-			pointer-events: none;
-		}
-
-		#overlay-setup-screen .mc-color-row {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) 90px;
-			align-items: center;
-			gap: 12px;
-			padding: 8px 12px;
-			margin: -4px 0 6px;
-			border-radius: 0 0 8px 8px;
-			background: var(--mc-raised);
-			transition: opacity .15s ease;
-		}
-
-		#overlay-setup-screen .mc-color-row {
-			border-top: 0 !important;
-			margin-top: -4px !important;
-			margin-bottom: 6px !important;
-		}
-
-		#overlay-setup-screen .mc-color-row.is-disabled {
-			opacity: .4;
-		}
-
-		#overlay-setup-screen .mc-color {
-			width: 90px;
-			height: 28px;
-			padding: 2px;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 6px;
-			background: var(--mc-bg);
-			cursor: pointer;
-		}
-
-		#overlay-setup-screen .mc-toggle-row .mc-color {
-			width: 60px;
-			flex: 0 0 auto;
-		}
-
-		#overlay-setup-screen .mc-color::-webkit-color-swatch-wrapper { padding: 0; }
-		#overlay-setup-screen .mc-color::-webkit-color-swatch { border: 0; border-radius: 3px; }
-		#overlay-setup-screen .mc-color::-moz-color-swatch { border: 0; border-radius: 3px; }
-
-		#overlay-setup-screen .mc-range {
-			width: 100%;
-			height: 18px;
-			margin: 0;
-			accent-color: var(--mc-accent);
-			cursor: pointer;
-		}
-
-		#overlay-setup-screen .mc-range:disabled {
-			cursor: not-allowed;
-		}
-
-		#overlay-setup-screen .mc-percent {
-			color: var(--mc-dim);
-			font-size: 10.5px;
-			font-weight: 600;
-			text-align: right;
-			font-variant-numeric: tabular-nums;
-		}
-
-		#overlay-setup-screen .mc-actions {
-			display: grid;
-			grid-template-columns: 1fr;
-			gap: 8px;
-			margin-top: 20px;
-		}
-
-		#overlay-setup-screen .mc-button {
-			height: 36px;
-			border: 1px solid var(--mc-accent);
-			border-radius: 6px;
-			background: var(--mc-accent);
-			color: var(--mc-accent-ink);
-			font-size: 11px;
-			font-weight: 700;
-			cursor: pointer;
-			transition: background .15s ease, border-color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-button:hover {
-			background: #f0e1a2;
-			border-color: #f0e1a2;
-		}
-
-		#overlay-setup-screen .mc-button-full {
-			grid-column: 1 / -1;
-		}
-
-		#overlay-setup-screen .mc-footnote {
-			margin-top: 10px;
-			color: var(--mc-faint);
-			font-size: 10.5px;
-			text-align: center;
-		}
-
-		#overlay-setup-screen .mc-error {
-			display: none;
-			margin-top: 12px;
-			padding: 10px 12px;
-			border: 1px solid rgba(239, 68, 68, .35);
-			border-radius: 6px;
-			color: #f29a9a;
-			font-size: 10.5px;
-			line-height: 1.45;
-		}
-
-		#overlay-setup-screen .mc-stage {
-			min-width: 0;
-			min-height: 0;
-			display: flex;
-			flex-direction: column;
-			background: var(--mc-bg);
-		}
-
-		#overlay-setup-screen .mc-stage-head {
-			height: 48px;
-			flex: 0 0 48px;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: 0 20px;
-			border-bottom: 1px solid var(--mc-line);
-		}
-
-		#overlay-setup-screen .mc-stage-title {
-			color: var(--mc-dim);
-			font-size: 11px;
-			font-weight: 600;
-		}
-
-		#overlay-setup-screen .mc-stage-meta {
-			display: flex;
-			align-items: center;
-			gap: 10px;
-			color: var(--mc-faint);
-			font-size: 10.5px;
-		}
-
-		#overlay-setup-screen .mc-sim-config,
-		#overlay-setup-screen .mc-sim-actions,
-		#overlay-setup-screen .mc-sim-tool-group {
-			display: flex;
-			align-items: center;
-			gap: 8px;
-		}
-
-		#overlay-setup-screen .mc-sim-tool-group + .mc-sim-tool-group {
-			padding-left: 10px;
-			border-left: 1px solid var(--mc-line);
-		}
-
-		#overlay-setup-screen .mc-stage-head.is-sim {
-			height: auto;
-			flex: 0 0 auto;
-			flex-direction: column;
-			align-items: stretch;
-			gap: 10px;
-			padding: 12px 20px;
-		}
-
-		#overlay-setup-screen .mc-stage-head.is-sim .mc-stage-meta {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr);
-			gap: 8px;
-			align-items: start;
-		}
-
-		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-config,
-		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-actions {
-			flex-wrap: wrap;
-			gap: 8px;
-		}
-
-		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-actions {
-			justify-content: space-between;
-		}
-
-		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-actions > .mc-sim-btn.is-active {
-			margin-left: auto;
-		}
-
-		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-config {
-			padding-bottom: 8px;
-			border-bottom: 1px solid var(--mc-line);
-		}
-
-		#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-hint {
-			order: initial;
-			flex: none;
-			color: var(--mc-dim);
-			font-variant-numeric: tabular-nums;
-			line-height: 1.45;
-			text-align: left;
-			white-space: normal;
-		}
-
-		@media (max-width: 520px) {
-			#overlay-setup-screen .mc-stage-head.is-sim {
-				padding: 10px 12px;
-			}
-
-			#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-config,
-			#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-actions {
-				gap: 6px;
-			}
-		}
-
-		#overlay-setup-screen .mc-stage-canvas {
-			position: relative;
-			flex: 1;
-			min-width: 0;
-			min-height: 0;
-			display: grid;
-			place-items: center;
-			padding: 24px;
-			overflow: hidden;
-			overflow: clip;
-		}
-
-		#overlay-setup-screen .mc-preview-frame {
-			position: relative;
-			width: min(760px, 100%);
-			height: 100%;
-			min-width: 0;
-			min-height: 0;
-			display: flex;
-			flex-direction: column;
-			justify-content: flex-end;
-			overflow: hidden;
-			overflow: clip;
-			contain: paint;
-			border: 1px solid var(--mc-line);
-			border-radius: 8px;
-			background: var(--mc-surface);
-		}
-
-		#overlay-setup-screen #chat.mc-preview-chat {
-			position: relative;
-			z-index: 2;
-			width: 100%;
-			height: 100%;
-			flex: 1;
-			min-height: 0;
-			display: flex;
-			flex-direction: column;
-			justify-content: flex-end;
-			overflow-y: auto;
-			padding: 12px;
-			scrollbar-width: none;
-			background: var(--chat-bg, transparent);
-		}
-
-
-		#overlay-setup-screen .mc-preview-tooltip {
-			position: absolute;
-			left: 50%;
-			bottom: calc(100% + 7px);
-			transform: translateX(-50%);
-			width: max-content;
-			max-width: 220px;
-			padding: 6px 9px;
-			border: 1px solid var(--mc-border);
-			border-radius: 6px;
-			background: var(--mc-panel);
-			color: var(--mc-text);
-			font-size: 11px;
-			font-weight: 400;
-			line-height: 1.3;
-			white-space: normal;
-			text-align: center;
-			opacity: 0;
-			pointer-events: none;
-			visibility: hidden;
-			transition: opacity 0.12s ease, visibility 0.12s ease;
-			z-index: 20;
-		}
-
-		#overlay-setup-screen #chat.mc-preview-chat::-webkit-scrollbar {
-			display: none;
-		}
-
-		#overlay-setup-screen #chat.mc-preview-chat > .message {
-			flex: 0 0 auto;
-			height: auto;
-			min-height: min-content;
-		}
-
-		#overlay-setup-screen #chat.mc-preview-chat > * {
-			flex-shrink: 0;
-		}
-
-		@media (max-width: 1020px) {
-			#overlay-setup-screen {
-				grid-template-columns: 176px minmax(320px, 380px) minmax(0, 1fr);
-			}
-
-			#overlay-setup-screen .mc-stage-canvas {
-				padding: 16px;
-			}
-		}
-
-		@media (max-width: 780px) {
-			#overlay-setup-screen {
-				grid-template-columns: 1fr;
-				grid-template-rows: 56px auto minmax(320px, 1fr);
-				overflow-y: auto;
-			}
-
-			#overlay-setup-screen .mc-sidebar {
-				min-height: auto;
-				padding: 8px 12px;
-				border-right: 0;
-				border-bottom: 1px solid var(--mc-line);
-			}
-
-			#overlay-setup-screen .mc-nav-label {
-				display: none;
-			}
-
-			#overlay-setup-screen .mc-nav {
-				display: grid;
-				grid-template-columns: repeat(6, 1fr);
-			}
-
-			#overlay-setup-screen .mc-nav-button {
-				padding: 9px 4px;
-				text-align: center;
-			}
-
-			#overlay-setup-screen .mc-nav-title {
-				font-size: 10.5px;
-			}
-
-			#overlay-setup-screen .mc-side-spacer,
-			#overlay-setup-screen .mc-side-hint {
-				display: none;
-			}
-
-			#overlay-setup-screen .mc-controls {
-				border-right: 0;
-				border-bottom: 1px solid var(--mc-line);
-			}
-
-			#overlay-setup-screen .mc-panel-stack {
-				max-height: 430px;
-			}
-
-			#overlay-setup-screen .mc-stage {
-				min-height: 430px;
-			}
-		}
-
-		@media (max-width: 520px) {
-			#overlay-setup-screen .mc-two-col {
-				grid-template-columns: 1fr;
-			}
-
-			#overlay-setup-screen .mc-preview-frame {
-				width: 100%;
-			}
-		}
-
-		#overlay-setup-screen .mc-multichat-overlay {
-			position: absolute;
-			inset: 0;
-			z-index: 100;
-			display: grid;
-			place-items: center;
-			background: rgba(0, 0, 0, .58);
-			backdrop-filter: blur(3px);
-			-webkit-backdrop-filter: blur(3px);
-			opacity: 0;
-			pointer-events: none;
-			transition: opacity .18s ease;
-		}
-
-		#overlay-setup-screen .mc-multichat-overlay.is-open {
-			opacity: 1;
-			pointer-events: auto;
-		}
-
-		#overlay-setup-screen .mc-multichat-card {
-			width: min(430px, calc(100% - 40px));
-			min-height: 390px;
-			padding: 30px;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-			text-align: center;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 12px;
-			background: var(--mc-surface);
-			box-shadow: 0 24px 80px rgba(0, 0, 0, .45);
-			transform: translateY(8px) scale(.98);
-			transition: transform .2s ease;
-		}
-
-		#overlay-setup-screen .mc-multichat-overlay.is-open .mc-multichat-card {
-			transform: translateY(0) scale(1);
-		}
-
-		#overlay-setup-screen .mc-multichat-label {
-			margin-bottom: 8px;
-			color: var(--mc-accent);
-			font-size: 10px;
-			font-weight: 700;
-			letter-spacing: .14em;
-		}
-
-		#overlay-setup-screen .mc-multichat-title {
-			margin: 0;
-			color: var(--mc-text);
-			font-size: 25px;
-			font-weight: 700;
-			line-height: 1.15;
-		}
-
-		#overlay-setup-screen .mc-multichat-subtitle {
-			margin: 8px 0 0;
-			color: var(--mc-dim);
-			font-size: 12px;
-			font-weight: 600;
-		}
-
-		#overlay-setup-screen .mc-multichat-platforms {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			gap: 8px;
-			margin: 24px 0 20px;
-		}
-
-		#overlay-setup-screen .mc-multichat-platform {
-			width: 44px;
-			height: 44px;
-			display: grid;
-			place-items: center;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 8px;
-			background: var(--mc-bg);
-		}
-
-		#overlay-setup-screen .mc-multichat-platform img {
-			width: 22px;
-			height: 22px;
-			display: block;
-			object-fit: contain;
-		}
-
-		#overlay-setup-screen .mc-multichat-plus {
-			color: var(--mc-faint);
-			font-size: 14px;
-			font-weight: 700;
-		}
-
-		#overlay-setup-screen .mc-multichat-text {
-			max-width: 330px;
-			margin: 0;
-			color: var(--mc-dim);
-			font-size: 11px;
-			line-height: 1.65;
-		}
-
-		#overlay-setup-screen .mc-multichat-status {
-			display: inline-flex;
-			align-items: center;
-			gap: 7px;
-			margin-top: 22px;
-			padding: 6px 10px;
-			border: 1px solid rgba(232, 213, 138, .2);
-			border-radius: 999px;
-			background: rgba(232, 213, 138, .06);
-			color: var(--mc-accent);
-			font-size: 10px;
-			font-weight: 700;
-		}
-
-		#overlay-setup-screen .mc-multichat-status-dot {
-			width: 6px;
-			height: 6px;
-			border-radius: 50%;
-			background: var(--mc-accent);
-			box-shadow: 0 0 8px rgba(232, 213, 138, .6);
-		}
-
-		#overlay-setup-screen .mc-multichat-close {
-			height: 34px;
-			margin-top: 22px;
-			padding: 0 18px;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 6px;
-			background: var(--mc-raised);
-			color: var(--mc-text);
-			font-size: 10.5px;
-			font-weight: 600;
-			cursor: pointer;
-			transition: background .15s ease, border-color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-multichat-close:hover {
-			border-color: var(--mc-dim);
-			background: #18181b;
-		}
-
-		#overlay-setup-screen .mc-textarea {
-			width: 100%;
-			min-height: 64px;
-			padding: 9px 11px;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 6px;
-			background: var(--mc-bg);
-			color: var(--mc-text);
-			outline: none;
-			font: inherit;
-			font-size: 11px;
-			resize: vertical;
-			box-sizing: border-box;
-		}
-
-		#overlay-setup-screen .mc-textarea:focus {
-			border-color: var(--mc-accent);
-		}
-
-		#overlay-setup-screen .mc-textarea::placeholder {
-			color: var(--mc-faint);
-		}
-
-		#overlay-setup-screen .mc-chip-row {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 6px;
-			margin-top: 8px;
-			min-height: 4px;
-		}
-
-		#overlay-setup-screen .mc-chip {
-			padding: 4px 9px;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 999px;
-			background: var(--mc-raised);
-			color: var(--mc-text);
-			font-size: 10px;
-			font-weight: 600;
-			cursor: pointer;
-		}
-
-		#overlay-setup-screen .mc-chip:hover {
-			border-color: var(--mc-dim);
-		}
-
-		#overlay-setup-screen .mc-sim-btn {
-			height: 28px;
-			padding: 0 12px;
-			border: 1px solid var(--mc-line-strong);
-			border-radius: 6px;
-			background: var(--mc-raised);
-			color: var(--mc-text);
-			font-size: 10.5px;
-			font-weight: 600;
-			cursor: pointer;
-			transition: background .15s ease, border-color .15s ease, color .15s ease;
-		}
-
-		#overlay-setup-screen .mc-sim-btn:hover {
-			border-color: var(--mc-accent);
-		}
-
-		#overlay-setup-screen .mc-sim-btn.is-active {
-			background: var(--mc-accent);
-			border-color: var(--mc-accent);
-			color: var(--mc-accent-ink);
-		}
-
-		#overlay-setup-screen .mc-stage-head {
-			height: auto;
-			min-height: 48px;
-			flex: 0 0 auto;
-			padding: 8px 20px;
-			gap: 12px;
-		}
-
-		#overlay-setup-screen .mc-stage-title {
-			flex: 0 0 auto;
-			white-space: nowrap;
-		}
-
-		#overlay-setup-screen .mc-stage-meta {
-			flex: 1 1 auto;
-			min-width: 0;
-			flex-wrap: wrap;
-			justify-content: flex-end;
-			gap: 8px;
-		}
-
-		#overlay-setup-screen .mc-stage-meta > * {
-			flex: 0 0 auto;
-			white-space: nowrap;
-		}
-
-		#overlay-setup-screen .mc-sim-hint {
-			flex: 1 1 100% !important;
-			order: 10;
-			text-align: right;
-			white-space: normal !important;
-			font-size: 10px;
-		}
-
-		#overlay-setup-screen .mc-preview-frame.is-sim {
-			flex: none;
-			justify-content: flex-start;
-			background: #000;
-		}
-
-		#overlay-setup-screen .mc-sim-video {
-			position: absolute;
-			inset: 0;
-			z-index: 0;
-			width: 100%;
-			height: 100%;
-			object-fit: cover;
-			background: #000;
-			pointer-events: none;
-		}
-
-		#overlay-setup-screen .mc-sim-note {
-			position: absolute;
-			inset: 0;
-			z-index: 1;
-			display: none;
-			place-items: center;
-			padding: 24px;
-			text-align: center;
-			color: var(--mc-dim);
-			font-size: 11px;
-			background: radial-gradient(circle at 50% 40%, #1b1b20, #09090b);
-			pointer-events: none;
-		}
-
-		#overlay-setup-screen .mc-sim-box {
-			position: absolute;
-			z-index: 3;
-			cursor: move;
-			touch-action: none;
-			user-select: none;
-			-webkit-user-select: none;
-			outline: 1px dashed transparent;
-		}
-
-		#overlay-setup-screen .mc-sim-box:hover,
-		#overlay-setup-screen .mc-sim-box.is-dragging {
-			outline-color: var(--mc-accent);
-		}
-
-		#overlay-setup-screen .mc-sim-inner {
-			transform-origin: 0 0;
-			pointer-events: none;
-			overflow: hidden;
-			overflow: clip;
-		}
-
-		#overlay-setup-screen .mc-sim-handle {
-			position: absolute;
-			right: -6px;
-			bottom: -6px;
-			width: 13px;
-			height: 13px;
-			border-radius: 3px;
-			background: var(--mc-accent);
-			cursor: nwse-resize;
-			opacity: 0;
-			transition: opacity .12s ease;
-		}
-
-		#overlay-setup-screen .mc-sim-box:hover .mc-sim-handle,
-		#overlay-setup-screen .mc-sim-box.is-dragging .mc-sim-handle {
-			opacity: 1;
-		}
-
-		#overlay-setup-screen .mc-sim-edge {
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			width: 12px;
-			cursor: ew-resize;
-		}
-
-		#overlay-setup-screen .mc-sim-edge::after {
-			content: "";
-			position: absolute;
-			top: calc(50% - 18px);
-			height: 36px;
-			width: 4px;
-			border-radius: 2px;
-			background: var(--mc-accent);
-			opacity: 0;
-			transition: opacity .12s ease;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-l {
-			left: -6px;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-l::after {
-			left: 4px;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-r {
-			right: -6px;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-r::after {
-			right: 4px;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-t,
-		#overlay-setup-screen .mc-sim-edge-b {
-			left: 0;
-			right: 0;
-			width: auto;
-			height: 12px;
-			cursor: ns-resize;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-t::after,
-		#overlay-setup-screen .mc-sim-edge-b::after {
-			left: calc(50% - 18px);
-			width: 36px;
-			height: 4px;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-t {
-			top: -6px;
-			bottom: auto;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-t::after {
-			top: 4px;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-b {
-			top: auto;
-			bottom: -6px;
-		}
-
-		#overlay-setup-screen .mc-sim-edge-b::after {
-			top: auto;
-			bottom: 4px;
-		}
-
-		#overlay-setup-screen .mc-sim-box:hover .mc-sim-edge::after,
-		#overlay-setup-screen .mc-sim-box.is-dragging .mc-sim-edge::after {
-			opacity: 1;
-		}
-
-		#overlay-setup-screen .mc-sim-drag {
-			display: inline-flex;
-			align-items: center;
-			cursor: grab;
-			user-select: none;
-			-webkit-user-select: none;
-		}
-
-		#overlay-setup-screen .mc-sim-drag:active {
-			cursor: grabbing;
-		}
-
-		#overlay-setup-screen .mc-drag-button {
-			display: grid;
-			place-items: center;
-			cursor: grab;
-			user-select: none;
-			-webkit-user-select: none;
-		}
-
-		#overlay-setup-screen .mc-drag-button:active {
-			cursor: grabbing;
-		}
-
-		@media (max-width: 1020px) {
-			#overlay-setup-screen .mc-stage-head.is-sim .mc-sim-hint {
-				display: block !important;
-			}
-		}
-	`;
-
-	screen.appendChild(style);
 
 	const topbar = document.createElement("header");
 	topbar.className = "mc-topbar";
@@ -2521,6 +885,10 @@ function showOverlaySetupScreen() {
 	const spacer = document.createElement("div");
 	spacer.className = "mc-side-spacer";
 	sidebar.appendChild(spacer);
+
+	const sideActions = document.createElement("div");
+	sideActions.className = "mc-side-actions";
+	sidebar.appendChild(sideActions);
 
 	const hint = document.createElement("div");
 	hint.className = "mc-side-hint";
@@ -3681,18 +2049,34 @@ function showOverlaySetupScreen() {
 
 	screen._exitSimulation = exitSimulation;
 
-	function createPanel(id, navTitle, navDesc, icon) {
+	const panelRegistry = [];
+	let lastNavGroup = null;
+	const TAB_STORAGE_KEY = "mchat-setup-tab";
+
+	function createPanel(id, navTitle, navDesc, icon, group) {
 		const panel = document.createElement("section");
 		panel.className = "mc-panel";
 		panel.dataset.panel = id;
+		panel.setAttribute("role", "tabpanel");
+
+		if (group && group !== lastNavGroup) {
+			const groupLabel = document.createElement("div");
+			groupLabel.className = "mc-nav-group";
+			groupLabel.textContent = group;
+			nav.appendChild(groupLabel);
+			lastNavGroup = group;
+		}
 
 		const navButton = document.createElement("button");
 		navButton.type = "button";
 		navButton.className = "mc-nav-button";
 		navButton.dataset.panel = id;
+		navButton.title = navDesc;
+		navButton.setAttribute("role", "tab");
 
 		const navIcon = document.createElement("span");
 		navIcon.className = "mc-nav-icon";
+		navIcon.setAttribute("aria-hidden", "true");
 		navIcon.textContent = icon;
 
 		const navCopy = document.createElement("span");
@@ -3707,10 +2091,14 @@ function showOverlaySetupScreen() {
 		navButton.appendChild(navCopy);
 		nav.appendChild(navButton);
 		panelStack.appendChild(panel);
+		panelRegistry.push({ id, title: navTitle, panel, navButton });
 
 		navButton.addEventListener("click", () => {
 			for (const button of nav.querySelectorAll(".mc-nav-button")) {
-				button.classList.toggle("is-active", button === navButton);
+				const active = button === navButton;
+				button.classList.toggle("is-active", active);
+				button.setAttribute("aria-selected", active ? "true" : "false");
+				button.tabIndex = active ? 0 : -1;
 			}
 
 			for (const otherPanel of panelStack.querySelectorAll(".mc-panel")) {
@@ -3719,9 +2107,31 @@ function showOverlaySetupScreen() {
 
 			controlTitle.textContent = navTitle;
 			controlSubtitle.textContent = navDesc;
+			panelStack.scrollTop = 0;
+			navButton.scrollIntoView({ block: "nearest", inline: "nearest" });
+
+			try {
+				sessionStorage.setItem(TAB_STORAGE_KEY, id);
+			} catch { }
 		});
 
 		return panel;
+	}
+
+	function createRouter() {
+		let target = null;
+
+		return {
+			to(panel) {
+				target = panel;
+			},
+			appendChild(node) {
+				return target.appendChild(node);
+			},
+			append(...nodes) {
+				target.append(...nodes);
+			},
+		};
 	}
 
 	function addField(parent, labelText, control) {
@@ -3853,9 +2263,9 @@ function showOverlaySetupScreen() {
 
 	const connectionPanel = createPanel(
 		"connection",
-		"Connection",
-		"Choose the Twitch channel this overlay should read from.",
-		"01",
+		"Channels",
+		"Choose which Twitch, Kick and YouTube chats this overlay reads from.",
+		"",
 	);
 
 	const channelInput = document.createElement("input");
@@ -3995,22 +2405,76 @@ function showOverlaySetupScreen() {
 
 	const connectionSub = document.createElement("h2");
 	connectionSub.className = "mc-subhead";
-	connectionSub.textContent = "Browser source";
+	connectionSub.textContent = "Multichat";
 	connectionPanel.appendChild(connectionSub);
 
 	const connectionText = document.createElement("div");
 	connectionText.className = "mc-muted";
 	connectionText.textContent =
-		"Generate the URL with the current overlay settings. Paste it into an OBS Browser Source.";
+		"Reading from more than one platform? Choose whether each message shows where it came from.";
 	connectionText.style.lineHeight = "1.55";
 	connectionPanel.appendChild(connectionText);
 
-	const appearancePanel = createPanel(
-		"appearance",
-		"Appearance",
-		"Control any setting of the appearance to your liking.",
-		"02",
+	const layoutPanel = createPanel(
+		"layout",
+		"Messages",
+		"How messages are arranged and how long they stay: background, wrapping, alignment, cards, repeats and fading.",
+		"",
+		"Customize",
 	);
+	const textPanel = createPanel(
+		"text",
+		"Text",
+		"Font, size, color, shadow and outline for usernames and messages.",
+		"",
+		"Customize",
+	);
+	const emotesPanel = createPanel(
+		"emotes",
+		"Emotes & Badges",
+		"Which badges and emotes show, and how big they are.",
+		"",
+		"Customize",
+	);
+	const eventsPanel = createPanel(
+		"events",
+		"Highlights",
+		"Make first messages, redeems, subs, raids and pins stand out.",
+		"",
+		"Customize",
+	);
+	const filtersPanel = createPanel(
+		"filters",
+		"Filters",
+		"Hide bots, commands, links, specific words or specific users.",
+		"",
+		"Customize",
+	);
+	const helpPanel = createPanel(
+		"help",
+		"Help",
+		"Learn what MChat can do and how to use the overlay.",
+		"",
+		"More",
+	);
+
+	const colorsStage = document.createElement("div");
+	const effectsStage = document.createElement("div");
+	const behaviorPanel = layoutPanel;
+	const subhead = (parent, text) => {
+		const heading = document.createElement("h2");
+		heading.className = "mc-subhead";
+		heading.textContent = text;
+		parent.appendChild(heading);
+	};
+	subhead(colorsStage, "Colors");
+
+	const appearancePanel = createRouter();
+	const typographyPanel = createRouter();
+	const timingPanel = behaviorPanel;
+
+	appearancePanel.to(layoutPanel);
+	subhead(layoutPanel, "Background");
 
 	const backgroundCheckbox = addToggle(
 		appearancePanel,
@@ -4061,6 +2525,7 @@ function showOverlaySetupScreen() {
 	backgroundOpacityRow.appendChild(backgroundOpacityText);
 	appearancePanel.appendChild(backgroundOpacityRow);
 
+	appearancePanel.to(colorsStage);
 	const textColorRow = document.createElement("div");
 	textColorRow.className = "mc-toggle-row mc-static-row";
 
@@ -4088,6 +2553,8 @@ function showOverlaySetupScreen() {
 	textColorRow.appendChild(textColorInput);
 	appearancePanel.appendChild(textColorRow);
 
+	appearancePanel.to(layoutPanel);
+	subhead(layoutPanel, "Layout");
 	const wrapCheckbox = addToggle(
 		appearancePanel,
 		"Wrap messages",
@@ -4102,6 +2569,8 @@ function showOverlaySetupScreen() {
 		"wrapAfterColon",
 		wrapAfterColonEnabled,
 	);
+	appearancePanel.to(emotesPanel);
+	subhead(emotesPanel, "Badges & profile pictures");
 	const badgesCheckbox = addToggle(
 		appearancePanel,
 		"Badges",
@@ -4160,6 +2629,8 @@ function showOverlaySetupScreen() {
 		"gifs",
 		gifsEnabled,
 	);
+	appearancePanel.to(filtersPanel);
+	subhead(filtersPanel, "Hide automatically");
 	const botsCheckbox = addToggle(
 		appearancePanel,
 		"Bots",
@@ -4167,6 +2638,14 @@ function showOverlaySetupScreen() {
 		"bots",
 		botsEnabled,
 	);
+	const hideLinksCheckbox = addToggle(
+		appearancePanel,
+		"Hide links",
+		"Replace links in messages with a \u{1F517} emoji.",
+		"hideLinks",
+		hideLinksEnabled,
+	);
+	appearancePanel.to(connectionPanel);
 	const platformIndicatorCheckbox = addToggle(
 		appearancePanel,
 		"Show Platform Indicator",
@@ -4175,6 +2654,7 @@ function showOverlaySetupScreen() {
 		platformIndicatorEnabled,
 		"Preview isn't a multichat, so no indicator shows",
 	);
+	appearancePanel.to(colorsStage);
 	const colonMatchUsernameCheckbox = addToggle(
 		appearancePanel,
 		"Colon Matches Username Color",
@@ -4184,12 +2664,14 @@ function showOverlaySetupScreen() {
 	);
 	const highlightsCheckbox = addToggle(
 		appearancePanel,
-		"Highlights",
-		"Highlight usernames with the 7TV Paint/Color",
+		"Username paints",
+		"Color usernames with their 7TV Paint/Color.",
 		"highlights",
 		highlightsEnabled,
 		true
 	);
+	appearancePanel.to(emotesPanel);
+	subhead(emotesPanel, "Emotes");
 	const unlistedCheckbox = addToggle(
 		appearancePanel,
 		"Unlisted 7TV emotes",
@@ -4205,6 +2687,7 @@ function showOverlaySetupScreen() {
 		"cheers",
 		cheersEnabled,
 	);
+	appearancePanel.to(behaviorPanel);
 	const collapseCheckbox = addToggle(
 		appearancePanel,
 		"Collapse repeated messages",
@@ -4236,6 +2719,7 @@ function showOverlaySetupScreen() {
 		alignSelect.appendChild(option);
 	}
 
+	appearancePanel.to(layoutPanel);
 	addField(appearancePanel, "Message alignment", alignSelect);
 
 	const messageStyleGroup = document.createElement("div");
@@ -4457,6 +2941,7 @@ function showOverlaySetupScreen() {
 		<div class="mc-group-note">Pick which special messages stand out in chat.</div>
 	`;
 	hlGroup.appendChild(hlHead);
+	appearancePanel.to(eventsPanel);
 	appearancePanel.appendChild(hlGroup);
 
 	function addHighlightToggle(label, note, key, checked, color, previewWarning = false) {
@@ -4522,6 +3007,7 @@ function showOverlaySetupScreen() {
 		"Preview has no pinned messages",
 	);
 
+	appearancePanel.to(effectsStage);
 	const shadowDivider = document.createElement("div");
 	shadowDivider.className = "mc-divider";
 	appearancePanel.appendChild(shadowDivider);
@@ -4619,12 +3105,8 @@ function showOverlaySetupScreen() {
 	shadowOffsetField.appendChild(shadowOffsetLine);
 	appearancePanel.appendChild(shadowOffsetField);
 
-	const typographyPanel = createPanel(
-		"typography",
-		"Typography",
-		"Tune the shared style or set username and message typography separately.",
-		"03",
-	);
+	typographyPanel.to(textPanel);
+	subhead(textPanel, "Font & size");
 
 	const fontSelect = document.createElement("select");
 	fontSelect.className = "mc-select";
@@ -4655,6 +3137,8 @@ function showOverlaySetupScreen() {
 		option.selected = value === entryAnimation;
 		entryAnimationSelect.appendChild(option);
 	}
+	typographyPanel.to(layoutPanel);
+	subhead(layoutPanel, "Animation");
 	addField(typographyPanel, "Message entry animation", entryAnimationSelect);
 	entryAnimationSelect.addEventListener("change", () => {
 		entryAnimation = entryAnimationSelect.value;
@@ -4669,6 +3153,7 @@ function showOverlaySetupScreen() {
 	customFontInput.autocomplete = "off";
 	customFontInput.spellcheck = false;
 
+	typographyPanel.to(textPanel);
 	const customFontField = addField(
 		typographyPanel,
 		"Google Font name",
@@ -4859,6 +3344,8 @@ function showOverlaySetupScreen() {
 	emoteScaleInput.step = "0.05";
 	emoteScaleInput.value = String(emoteScale);
 
+	typographyPanel.to(emotesPanel);
+	subhead(emotesPanel, "Sizes & alignment");
 	addField(typographyPanel, "Emote scale", emoteScaleInput);
 
 	const bigEmotesCheckbox = addToggle(
@@ -4945,6 +3432,7 @@ function showOverlaySetupScreen() {
 
 	addField(typographyPanel, "GIF scale", gifScaleInput);
 
+	typographyPanel.to(textPanel);
 	const uppercaseCheckbox = addToggle(
 		typographyPanel,
 		"All uppercase",
@@ -4961,6 +3449,7 @@ function showOverlaySetupScreen() {
 		boldEnabled,
 	);
 
+	typographyPanel.to(emotesPanel);
 	const centerBadgesCheckbox = addToggle(
 		typographyPanel,
 		"Center badges",
@@ -4977,6 +3466,7 @@ function showOverlaySetupScreen() {
 		centerEmotesEnabled,
 	);
 
+	typographyPanel.to(effectsStage);
 	const strokeDivider = document.createElement("div");
 	strokeDivider.className = "mc-divider";
 	typographyPanel.appendChild(strokeDivider);
@@ -5036,20 +3526,8 @@ function showOverlaySetupScreen() {
 	strokeTwoCol.appendChild(strokeColorField);
 	typographyPanel.appendChild(strokeTwoCol);
 
-	const timingPanel = createPanel(
-		"timing",
-		"Timing",
-		"Tune message lifetime and fading behavior.",
-		"04",
-	);
 
-	const filtersPanel = createPanel(
-		"filters",
-		"Filters",
-		"Hide messages containing words, or messages from specific users and bots.",
-		"05",
-	);
-
+	subhead(filtersPanel, "Custom filters");
 	const msgFilterInput = document.createElement("input");
 	msgFilterInput.type = "text";
 	msgFilterInput.className = "mc-input";
@@ -5074,12 +3552,6 @@ function showOverlaySetupScreen() {
 		"Message filter hides any message containing one of the words (not case sensitive). Bot filter hides everything sent by those usernames. Both are empty by default.";
 	filtersPanel.appendChild(filtersNote);
 
-	const helpPanel = createPanel(
-		"help",
-		"Help",
-		"Learn what MChat can do and how to use the overlay.",
-		"06",
-	);
 
 	const helpFeatures = [
 		"MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
@@ -5119,6 +3591,7 @@ function showOverlaySetupScreen() {
 	helpNote.textContent = "More features being added daily.";
 	helpPanel.appendChild(helpNote);
 
+	subhead(timingPanel, "Timing");
 	const timingTwoCol = document.createElement("div");
 	timingTwoCol.className = "mc-two-col";
 
@@ -5175,8 +3648,8 @@ function showOverlaySetupScreen() {
 	const error = document.createElement("div");
 	error.className = "mc-error";
 
-	connectionPanel.appendChild(actions);
-	connectionPanel.appendChild(error);
+	sideActions.appendChild(actions);
+	sideActions.appendChild(error);
 
 	copyButton.addEventListener("click", async () => {
 		const url = getOverlayUrl();
@@ -5224,7 +3697,18 @@ function showOverlaySetupScreen() {
 		}
 	}
 
-	activatePanel("connection");
+	function restoreInitialPanel() {
+		let saved = null;
+
+		try {
+			saved = sessionStorage.getItem(TAB_STORAGE_KEY);
+		} catch { }
+
+		const known = panelRegistry.some((entry) => entry.id === saved);
+		activatePanel(known ? saved : "connection");
+	}
+
+	restoreInitialPanel();
 
 	function syncFadeState() {
 		fadeInput.disabled = noFade.checked;
@@ -5310,6 +3794,10 @@ function showOverlaySetupScreen() {
 	});
 	botsCheckbox.addEventListener("change", () => {
 		botsEnabled = botsCheckbox.checked;
+		rerenderPreviewChat();
+	});
+	hideLinksCheckbox.addEventListener("change", () => {
+		hideLinksEnabled = hideLinksCheckbox.checked;
 		rerenderPreviewChat();
 	});
 	platformIndicatorCheckbox.addEventListener("change", () => {
@@ -5682,6 +4170,8 @@ function showOverlaySetupScreen() {
 
 			bots: botsCheckbox.checked,
 
+			hideLinks: hideLinksCheckbox.checked,
+
 			platformIndicator: platformIndicatorCheckbox.checked,
 			colonMatchUsername: colonMatchUsernameCheckbox.checked,
 
@@ -5982,6 +4472,65 @@ function showOverlaySetupScreen() {
 	importBox.append(importLabel, importRow, importStatus);
 	connectionPanel.appendChild(importBox);
 
+	(function finalizeTabs() {
+		textPanel.append(...colorsStage.childNodes, ...effectsStage.childNodes);
+
+		panelRegistry.forEach((entry, index) => {
+			const pager = document.createElement("div");
+			pager.className = "mc-panel-pager";
+
+			const prev = panelRegistry[index - 1];
+			const next = panelRegistry[index + 1];
+
+			if (prev) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "mc-pager-button";
+				button.textContent = `\u2190 ${prev.title}`;
+				button.addEventListener("click", () => activatePanel(prev.id));
+				pager.appendChild(button);
+			}
+
+			if (next) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "mc-pager-button is-next";
+				button.textContent = `${next.title} \u2192`;
+				button.addEventListener("click", () => activatePanel(next.id));
+				pager.appendChild(button);
+			}
+
+			entry.panel.appendChild(pager);
+		});
+
+		nav.addEventListener("keydown", (event) => {
+			const keys = ["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Home", "End"];
+
+			if (!keys.includes(event.key)) {
+				return;
+			}
+
+			const current = panelRegistry.findIndex((entry) =>
+				entry.navButton.classList.contains("is-active"),
+			);
+			let target = current;
+
+			if (event.key === "Home") {
+				target = 0;
+			} else if (event.key === "End") {
+				target = panelRegistry.length - 1;
+			} else if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+				target = (current + 1) % panelRegistry.length;
+			} else {
+				target = (current - 1 + panelRegistry.length) % panelRegistry.length;
+			}
+
+			event.preventDefault();
+			panelRegistry[target].navButton.click();
+			panelRegistry[target].navButton.focus();
+		});
+	})();
+
 	function showImportStatus(text, ok) {
 		importStatus.textContent = text;
 		importStatus.classList.toggle("is-ok", ok);
@@ -6088,6 +4637,10 @@ function showOverlaySetupScreen() {
 		}
 
 		importSet(botsCheckbox, s.bots);
+
+		if (s.hideLinks !== undefined) {
+			importSet(hideLinksCheckbox, s.hideLinks);
+		}
 
 		if (s.botFilter !== undefined) {
 			importSet(botFilterInput, s.botFilter);

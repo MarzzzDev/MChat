@@ -400,63 +400,7 @@ function findGlobalThirdPartyEmote(word) {
 
 function findThirdPartyEmote(word, username = null, platform = "twitch") {
 	if (platform === "youtube") {
-		if (selectedChannel) {
-			const twitchChannelEmote = sevenTVEmotes.get(word);
-
-			if (
-				twitchChannelEmote &&
-				(showUnlisted7TV || twitchChannelEmote.listed !== false)
-			) {
-				return {
-					...twitchChannelEmote,
-
-					provider: "7TV",
-				};
-			}
-		}
-
-		if (selectedKick) {
-			const kickChannelEmote = sevenTVKickEmotes.get(word);
-
-			if (
-				kickChannelEmote &&
-				(showUnlisted7TV || kickChannelEmote.listed !== false)
-			) {
-				return {
-					...kickChannelEmote,
-
-					provider: "7TV",
-				};
-			}
-		}
-
-		if (selectedChannel) {
-			if (bttvEmotes.has(word)) {
-				return {
-					...bttvEmotes.get(word),
-
-					provider: "BTTV",
-				};
-			}
-
-			if (ffzEmotes.has(word)) {
-				const emote = ffzEmotes.get(word);
-
-				return {
-					...emote,
-
-					provider: "FFZ",
-
-					modifier: Boolean(emote.modifier),
-
-					modifierFlags: Number(emote.modifierFlags || 0),
-
-					effects: getFFZModifierEffects(emote),
-				};
-			}
-		}
-
-		return findGlobalThirdPartyEmote(word);
+		return null;
 	}
 
 	const personalEmotes = get7TVPersonalEmotesForUser(username);
@@ -727,12 +671,24 @@ function renderExternalText(container, value, username = null, platform = "twitc
 			continue;
 		}
 
+		if (hideLinksEnabled && isLinkToken(part)) {
+			if (pendingModifiers.length) {
+				flushPending();
+			}
+
+			const trailing = part.match(/[),.!?]*$/)[0];
+
+			container.appendChild(document.createTextNode("\u{1F517}" + trailing));
+
+			continue;
+		}
+
 		if (pendingModifiers.length && /^\s+$/.test(part)) {
 			pendingNodes.push(document.createTextNode(part));
 			continue;
 		}
 
-		if (BTTV_MODIFIERS.has(part)) {
+		if (platform !== "youtube" && BTTV_MODIFIERS.has(part)) {
 			pendingModifiers.push(part);
 			pendingNodes.push(document.createTextNode(part));
 			continue;
@@ -749,7 +705,7 @@ function renderExternalText(container, value, username = null, platform = "twitc
 			flushPending();
 		}
 
-		if (ffzEffects.has(part)) {
+		if (platform !== "youtube" && ffzEffects.has(part)) {
 			const applied = applyFFZEffectToPrevious(container, part);
 
 			if (!applied) {
@@ -1112,10 +1068,6 @@ function createCheermote(info, word) {
 	return wrapper;
 }
 
-// Also strips invisible characters: format chars (\p{Cf}), the U+E0000 tag
-// block (U+E0000 itself is unassigned, so \p{Cf} misses it; 7TV/Chatterino
-// append it to repeated messages to dodge Twitch's duplicate-message filter),
-// and blank-looking fillers.
 const EMOJI_STRIP_RE =
 	/[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Cf}\u{E0000}-\u{E007F}\u200d\ufe0f\u034f\u2800\u3164]/gu;
 const EMOJI_TEST_RE = /\p{Extended_Pictographic}/u;
@@ -1405,38 +1357,45 @@ function hslToHex(h, s, l) {
 
 let lastRepeat = null;
 
+const LINK_TOKEN =
+	/^(?:(?:https?:\/\/|www\.)\S+|(?:[a-z0-9-]+\.)+(?:com|net|org|tv|gg|io|co|me|ly|app|dev|xyz|gl|be|fm|to|us|uk|de|ru|ro|fr|info|link|live|site|online|shop|store|page|cc|ai)(?::\d+)?(?:[\/?#]\S*)?)[),.!?]*$/i;
+
+function isLinkToken(part) {
+	return LINK_TOKEN.test(part);
+}
+
 function isMessageHidden(user, msg, tags = {}) {
-    if (botFilterUsers.length) {
-        const names = [user, tags.login, tags["display-name"]]
-            .filter(Boolean)
-            .map((name) => String(name).toLowerCase());
+	if (botFilterUsers.length) {
+		const names = [user, tags.login, tags["display-name"]]
+			.filter(Boolean)
+			.map((name) => String(name).toLowerCase());
 
-        if (names.some((name) => botFilterUsers.includes(name))) {
-            return true;
-        }
-    }
+		if (names.some((name) => botFilterUsers.includes(name))) {
+			return true;
+		}
+	}
 
-    if (messageFilters.length) {
-        const text = String(msg || "");
+	if (messageFilters.length) {
+		const text = String(msg || "");
 
-        if (
-            messageFilters.some((word) => {
-                const filter = String(word || "").trim();
+		if (
+			messageFilters.some((word) => {
+				const filter = String(word || "").trim();
 
-                if (!filter) {
-                    return false;
-                }
+				if (!filter) {
+					return false;
+				}
 
-                const escaped = filter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+				const escaped = filter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-                return new RegExp(`(^|\\s)${escaped}(?=\\s|$)`, "i").test(text);
-            })
-        ) {
-            return true;
-        }
-    }
+				return new RegExp(`(^|\\s)${escaped}(?=\\s|$)`, "i").test(text);
+			})
+		) {
+			return true;
+		}
+	}
 
-    return false;
+	return false;
 }
 function getRepeatKey(replyInfo, tags) {
 	if (
@@ -1892,7 +1851,7 @@ async function onMsg(
 		const indicator = createPlatformIndicator(platform);
 
 		if (indicator) {
-			message.appendChild(indicator);
+			authorGroup.appendChild(indicator);
 		}
 	}
 

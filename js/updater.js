@@ -8,97 +8,97 @@ let updateRefreshScheduled = false;
 let refreshing = false;
 
 async function checkForGithubCommit() {
-    if (updateRefreshScheduled) return;
+	if (updateRefreshScheduled) return;
 
-    try {
-        const response = await fetch(
-            `https://api.github.com/repos/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`,
-            {
-                headers: { Accept: "application/vnd.github+json" },
-                cache: "no-cache",
-            },
-        );
+	try {
+		const response = await fetch(
+			`https://api.github.com/repos/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`,
+			{
+				headers: { Accept: "application/vnd.github+json" },
+				cache: "no-cache",
+			},
+		);
 
-        if (!response.ok) {
-            throw new Error(`GitHub API returned ${response.status}`);
-        }
+		if (!response.ok) {
+			throw new Error(`GitHub API returned ${response.status}`);
+		}
 
-        const sha = (await response.json())?.sha;
-        if (!sha) return;
+		const sha = (await response.json())?.sha;
+		if (!sha) return;
 
-        if (lastKnownCommitSha === null) {
-            lastKnownCommitSha = sha;
-            console.log("[updater] Watching commit", sha.slice(0, 7));
-            return;
-        }
+		if (lastKnownCommitSha === null) {
+			lastKnownCommitSha = sha;
+			console.log("[updater] Watching commit", sha.slice(0, 7));
+			return;
+		}
 
-        if (sha !== lastKnownCommitSha) {
-            console.log(
-                `[updater] New commit ${sha.slice(0, 7)} detected, refreshing in ${UPDATE_REFRESH_DELAY_MS / 1000}s`,
-            );
-            updateRefreshScheduled = true;
-            lastKnownCommitSha = sha;
-            setTimeout(hardRefreshOverlay, UPDATE_REFRESH_DELAY_MS);
-        }
-    } catch (error) {
-        console.warn("[updater] Commit check failed:", error);
-    }
+		if (sha !== lastKnownCommitSha) {
+			console.log(
+				`[updater] New commit ${sha.slice(0, 7)} detected, refreshing in ${UPDATE_REFRESH_DELAY_MS / 1000}s`,
+			);
+			updateRefreshScheduled = true;
+			lastKnownCommitSha = sha;
+			setTimeout(hardRefreshOverlay, UPDATE_REFRESH_DELAY_MS);
+		}
+	} catch (error) {
+		console.warn("[updater] Commit check failed:", error);
+	}
 }
 
 async function listRepoFiles() {
-    const ref = lastKnownCommitSha || GITHUB_BRANCH;
+	const ref = lastKnownCommitSha || GITHUB_BRANCH;
 
-    try {
-        const response = await fetch(
-            `https://api.github.com/repos/${GITHUB_REPO}/git/trees/${ref}?recursive=1`,
-            {
-                headers: { Accept: "application/vnd.github+json" },
-                cache: "no-cache",
-            },
-        );
+	try {
+		const response = await fetch(
+			`https://api.github.com/repos/${GITHUB_REPO}/git/trees/${ref}?recursive=1`,
+			{
+				headers: { Accept: "application/vnd.github+json" },
+				cache: "no-cache",
+			},
+		);
 
-        if (!response.ok) {
-            throw new Error(`GitHub API returned ${response.status}`);
-        }
+		if (!response.ok) {
+			throw new Error(`GitHub API returned ${response.status}`);
+		}
 
-        const tree = (await response.json())?.tree;
+		const tree = (await response.json())?.tree;
 
-        return (Array.isArray(tree) ? tree : [])
-            .filter((entry) => entry.type === "blob")
-            .map((entry) => entry.path);
-    } catch (error) {
-        console.warn("[updater] File list unavailable:", error);
-        return [];
-    }
+		return (Array.isArray(tree) ? tree : [])
+			.filter((entry) => entry.type === "blob")
+			.map((entry) => entry.path);
+	} catch (error) {
+		console.warn("[updater] File list unavailable:", error);
+		return [];
+	}
 }
 
 async function hardRefreshOverlay() {
-    if (refreshing) return;
-    refreshing = true;
+	if (refreshing) return;
+	refreshing = true;
 
-    const base = location.href.split(/[?#]/)[0].replace(/[^/]*$/, "");
+	const base = location.href.split(/[?#]/)[0].replace(/[^/]*$/, "");
 
-    try {
-        const files = await Promise.race([
-            listRepoFiles(),
-            new Promise((resolve) => setTimeout(() => resolve([]), 3000)),
-        ]);
+	try {
+		const files = await Promise.race([
+			listRepoFiles(),
+			new Promise((resolve) => setTimeout(() => resolve([]), 3000)),
+		]);
 
-        await Promise.race([
-            Promise.allSettled(
-                ["", ...files].map((file) =>
-                    fetch(base + encodeURI(file), { cache: "reload" }),
-                ),
-            ),
-            new Promise((resolve) => setTimeout(resolve, 5000)),
-        ]);
-    } finally {
-        location.reload();
-    }
+		await Promise.race([
+			Promise.allSettled(
+				["", ...files].map((file) =>
+					fetch(base + encodeURI(file), { cache: "reload" }),
+				),
+			),
+			new Promise((resolve) => setTimeout(resolve, 5000)),
+		]);
+	} finally {
+		location.reload();
+	}
 }
 
 function startGithubUpdater() {
-    checkForGithubCommit();
-    setInterval(checkForGithubCommit, UPDATE_POLL_MS);
-    console.log("Initiated GitHub updater.");
+	checkForGithubCommit();
+	setInterval(checkForGithubCommit, UPDATE_POLL_MS);
+	console.log("Initiated GitHub updater.");
 }
