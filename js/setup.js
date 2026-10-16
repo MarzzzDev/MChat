@@ -2664,8 +2664,8 @@ function showOverlaySetupScreen() {
 	);
 	const highlightsCheckbox = addToggle(
 		appearancePanel,
-		"Username paints",
-		"Color usernames with their 7TV Paint/Color.",
+		"Highlight Colors",
+		"Highlight usernames with their 7TV Paint/Color.",
 		"highlights",
 		highlightsEnabled,
 		true
