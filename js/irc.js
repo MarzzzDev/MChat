@@ -35,6 +35,24 @@ function isTwitchMod(tags) {
 	);
 }
 
+function isTwitchBroadcaster(tags, login) {
+	if (/(^|,)broadcaster\//.test(tags.badges || "")) {
+		return true;
+	}
+
+	const channel = String(CHANNEL || "").toLowerCase();
+
+	if (channel && String(login || "").toLowerCase() === channel) {
+		return true;
+	}
+
+	if (TWITCH_USER_ID && String(tags["user-id"] || "") === String(TWITCH_USER_ID)) {
+		return true;
+	}
+
+	return false;
+}
+
 function getAnonymousIRCNick() {
 	return `justinfan${Math.floor(10000 + Math.random() * 90000)}`;
 }
@@ -290,11 +308,18 @@ function handleTwitchIRCPrivmsg(message) {
 
 	const rawText = message.trailing || "";
 
-	if (!isAnnouncement && runModCommand(rawText, isTwitchMod(tags))) {
+	const login = (tags.login || prefixUser || "").toLowerCase();
+
+	if (
+		!isAnnouncement &&
+		runModCommand(
+			rawText,
+			isTwitchMod(tags),
+			isTwitchBroadcaster(tags, login),
+		)
+	) {
 		return;
 	}
-
-	const login = (tags.login || prefixUser || "").toLowerCase();
 
 	if (!botsEnabled && isKnownBot(login)) {
 		return;
