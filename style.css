@@ -472,3 +472,15 @@ body.center-emotes .text .emote-overlay-target {
 .twitch-badges {
     margin-right: calc(var(--badge-spacing, 3px) + 2px);
 }
+
+.badges:empty,
+.message-badges:empty,
+.badges.no-badges {
+    display: none !important;
+    margin: 0 !important;
+}
+
+.twitch-badges:empty + .external-badges,
+.twitch-badges:empty + .badges {
+    margin-left: 0;
+}
