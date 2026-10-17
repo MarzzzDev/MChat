@@ -670,6 +670,10 @@ const COMBO_WIDGET_CSS = `
 	font-size: calc(72px * var(--cb-text-scale) * var(--cb-grow));
 }
 
+.cb-card[data-word="after"] {
+	align-items: flex-end;
+}
+
 .cb-card[data-word="after"] .cb-count,
 .cb-card[data-word="after"] .cb-word {
 	font-size: inherit;
