@@ -510,15 +510,21 @@ for (const [name, option] of Object.entries(OVERLAY_OPTIONS)) {
 
 MOD_COMMANDS.set("-reset", resetOptionOverrides);
 
-MOD_COMMANDS.set("-modcommands", (args) => {
-	if (OPTION_BOOL_WORDS[String(args[0] || "").toLowerCase()] === false) {
-		modCommandsEnabled = false;
-		console.log("[mod] Mod commands disabled");
+MOD_COMMANDS.set("-modcommands", (args, rawArgs, isBroadcaster) => {
+	const value = OPTION_BOOL_WORDS[String(args[0] || "").toLowerCase()];
+
+	if (value === undefined) {
+		return;
+	}
+
+	if (value === false || isBroadcaster) {
+		modCommandsEnabled = value;
+		console.log(`[mod] Mod commands ${value ? "enabled" : "disabled"}`);
 	}
 });
 
-function runModCommand(text, isMod) {
-	if (!isMod) {
+function runModCommand(text, isMod, isBroadcaster = false) {
+	if (!isMod && !isBroadcaster) {
 		return false;
 	}
 
@@ -529,7 +535,11 @@ function runModCommand(text, isMod) {
 
 	const [name, ...args] = original.toLowerCase().split(/\s+/);
 
-	if (!modCommandsEnabled && !ALWAYS_ALLOWED_MOD_COMMANDS.has(name)) {
+	if (
+		!isBroadcaster &&
+		!modCommandsEnabled &&
+		!ALWAYS_ALLOWED_MOD_COMMANDS.has(name)
+	) {
 		return false;
 	}
 
@@ -541,7 +551,7 @@ function runModCommand(text, isMod) {
 		return false;
 	}
 
-	handler(args, rawArgs);
+	handler(args, rawArgs, isBroadcaster);
 
 	return true;
 }
