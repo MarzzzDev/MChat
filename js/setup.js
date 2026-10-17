@@ -866,7 +866,19 @@ function showOverlaySetupScreen() {
 	topLink.className = "mc-top-link";
 	topLink.href = "privacy.html";
 	topLink.textContent = "About & Credits";
-	topbar.appendChild(topLink);
+	const topActions = document.createElement("div");
+	topActions.style.cssText = "display:flex;align-items:center;gap:10px;";
+
+	const comboLink = document.createElement("button");
+	comboLink.type = "button";
+	comboLink.className = "mc-top-link";
+	comboLink.textContent = "Emote Combos";
+	comboLink.style.cssText = "background:transparent;cursor:pointer;";
+	comboLink.addEventListener("click", () => showComboMenu());
+
+	topActions.appendChild(comboLink);
+	topActions.appendChild(topLink);
+	topbar.appendChild(topActions);
 
 	const sidebar = document.createElement("aside");
 	sidebar.className = "mc-sidebar";

@@ -82,6 +82,11 @@ async function startOverlay() {
 	ensureEmoteScaleStyle();
 	addGlobalStyle();
 
+	if (params.get("combo") === "1") {
+		await startComboOverlay();
+		return;
+	}
+
 	if (legacySerializedRedirecting) {
 		return;
 	}
