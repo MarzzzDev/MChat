@@ -9,28 +9,67 @@
 
     <title>MChat - Free Multistream Chat Overlay for Twitch, Kick & YouTube</title>
 
-    <meta name="description" content="Free multistream chat overlay for Twitch, Kick and YouTube.">
+    <meta name="robots" content="index, follow">
+    <meta name="description" content="MChat is a free multistream chat overlay for Twitch, Kick and YouTube, with customizable settings and support for 7TV, BTTV and FFZ. Works with OBS, Streamlabs and XSplit.">
+    <meta name="author" content="marz_dev">
 
     <link rel="canonical" href="https://mchat.marz.lol/">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="MChat">
-    <meta property="og:title" content="MChat">
-    <meta property="og:description" content="Free multistream chat overlay for Twitch, Kick & YouTube.">
+    <meta property="og:title" content="MChat - Multiplatform Chat Overlay">
+    <meta property="og:description" content="Free customizable chat overlay for Twitch, Kick & YouTube with support for 7TV, BTTV and FFZ.">
     <meta property="og:url" content="https://mchat.marz.lol/">
     <meta property="og:image" content="https://mchat.marz.lol/preview.png">
-    <meta property="og:image:secure_url" content="https://mchat.marz.lol/preview.png">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:alt" content="MChat — Free multistream chat overlay">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="MChat chat overlay preview">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="MChat">
-    <meta name="twitter:description" content="Free multistream chat overlay for Twitch, Kick & YouTube.">
+    <meta name="twitter:title" content="MChat - Multiplatform Chat Overlay">
+    <meta name="twitter:description" content="Free customizable chat overlay for Twitch, Kick & YouTube with 7TV, BTTV and FFZ support.">
     <meta name="twitter:image" content="https://mchat.marz.lol/preview.png">
 
-    <meta name="theme-color" content="#d1bf74">
+    <script type="application/json" id="discord:component-embed">
+    {
+        "component": {
+            "type": 17,
+            "accent_color": 13745908,
+            "components": [
+                {
+                    "type": 10,
+                    "content": "# MChat\nFree customizable multiplatform chat overlay for Twitch, Kick & YouTube with support for 7TV, BTTV, and FFZ."
+                },
+                {
+                    "type": 12,
+                    "items": [
+                        {
+                            "media": {
+                                "url": "https://mchat.marz.lol/preview.png"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": 14
+                },
+                {
+                    "type": 1,
+                    "components": [
+                        {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open MChat",
+                            "url": "https://mchat.marz.lol/"
+                        }
+                    ]
+                },
+                {
+                    "type": 10,
+                    "content": "-# marz.lol · Free chat overlay"
+                }
+            ]
+        }
+    }
+    </script>
 
     <script type="application/ld+json">
     {
@@ -38,7 +77,7 @@
         "@type": "SoftwareApplication",
         "name": "MChat",
         "applicationCategory": "MultimediaApplication",
-        "operatingSystem": "Any (browser source in OBS, Streamlabs, XSplit)",
+        "operatingSystem": "Any",
         "description": "Free multistream chat overlay for Twitch, Kick and YouTube with 7TV, FFZ and BTTV support.",
         "url": "https://mchat.marz.lol/",
         "image": "https://mchat.marz.lol/preview.png",
@@ -64,8 +103,7 @@
         <p>
             MChat is a free, customizable chat overlay for OBS, Streamlabs and XSplit.
             It combines Twitch, Kick and YouTube chat with 7TV, FFZ and BTTV emotes,
-            effects and badges. Preview the overlay on real gameplay clips in the setup
-            screen, then copy the link into a browser source.
+            effects and badges.
         </p>
         <p>Enable JavaScript to use the MChat setup screen.</p>
     </noscript>
@@ -90,3 +128,4 @@
     <script src="./js/main.js"></script>
 </body>
 </html>
+```
