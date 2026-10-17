@@ -20,7 +20,7 @@ async function platformFetch(url, init = {}) {
 
 const MOD_COMMANDS = new Map([["-refresh", () => hardRefreshOverlay()]]);
 
-const ALWAYS_ALLOWED_MOD_COMMANDS = new Set(["-refresh", "-modcommands"]);
+const ALWAYS_ALLOWED_MOD_COMMANDS = new Set(["-refresh", "-modcommands", "-show"]);
 
 const OPTION_OVERRIDES_KEY = "mchat-option-overrides";
 const optionOverrides = {};
