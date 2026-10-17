@@ -20,7 +20,7 @@ async function platformFetch(url, init = {}) {
 
 const MOD_COMMANDS = new Map([["-refresh", () => hardRefreshOverlay()]]);
 
-const ALWAYS_ALLOWED_MOD_COMMANDS = new Set(["-refresh", "-modcommands", "-show"]);
+const ALWAYS_ALLOWED_MOD_COMMANDS = new Set(["-refresh", "-modcommands", "-show", "-skip"]);
 
 const OPTION_OVERRIDES_KEY = "mchat-option-overrides";
 const optionOverrides = {};
@@ -510,7 +510,7 @@ for (const [name, option] of Object.entries(OVERLAY_OPTIONS)) {
 
 MOD_COMMANDS.set("-reset", resetOptionOverrides);
 
-const SHOW_TRUSTED_HOSTS = ["kappa.lol", "femboy.beauty", "olrite.lol", "gachi.gay",];
+const SHOW_TRUSTED_HOSTS = ["kappa.lol", "femboy.beauty", "olrite.lol", "gachi.gay"];
 const SHOW_DURATION_MS = 5000;
 const SHOW_IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"]);
 const SHOW_VIDEO_EXT = new Set(["mp4", "webm", "mov", "m4v"]);
@@ -627,7 +627,6 @@ function buildShowNode(kind, href) {
 
 	if (kind === "video") {
 		node.autoplay = true;
-		node.loop = true;
 		node.playsInline = true;
 		node.preload = "auto";
 	} else {
@@ -649,8 +648,6 @@ function showMedia(href) {
 
 	activeShow = state;
 
-	state.timer = setTimeout(clearShow, SHOW_DURATION_MS);
-
 	const attempt = (index) => {
 		if (activeShow !== state) {
 			return;
@@ -663,9 +660,23 @@ function showMedia(href) {
 			return;
 		}
 
+		clearTimeout(state.timer);
+
+		if (kind !== "video") {
+			state.timer = setTimeout(clearShow, SHOW_DURATION_MS);
+		}
+
 		const node = buildShowNode(kind, href);
 
 		state.nodes.push(node);
+
+		if (kind === "video") {
+			node.addEventListener("ended", () => {
+				if (activeShow === state) {
+					clearShow();
+				}
+			});
+		}
 
 		node.addEventListener(
 			"error",
@@ -710,6 +721,10 @@ MOD_COMMANDS.set("-show", (args, rawArgs) => {
 	showMedia(href);
 });
 
+MOD_COMMANDS.set("-skip", () => {
+	clearShow();
+});
+
 MOD_COMMANDS.set("-modcommands", (args, rawArgs, isBroadcaster) => {
 	const value = OPTION_BOOL_WORDS[String(args[0] || "").toLowerCase()];
 
@@ -724,7 +739,9 @@ MOD_COMMANDS.set("-modcommands", (args, rawArgs, isBroadcaster) => {
 });
 
 function runModCommand(text, isMod, isBroadcaster = false) {
-	if (!isMod && !isBroadcaster) {
+	const broadcaster = Boolean(isBroadcaster);
+
+	if (!isMod && !broadcaster) {
 		return false;
 	}
 
@@ -736,7 +753,7 @@ function runModCommand(text, isMod, isBroadcaster = false) {
 	const [name, ...args] = original.toLowerCase().split(/\s+/);
 
 	if (
-		!isBroadcaster &&
+		!broadcaster &&
 		!modCommandsEnabled &&
 		!ALWAYS_ALLOWED_MOD_COMMANDS.has(name)
 	) {
@@ -751,7 +768,7 @@ function runModCommand(text, isMod, isBroadcaster = false) {
 		return false;
 	}
 
-	handler(args, rawArgs, isBroadcaster);
+	handler(args, rawArgs, broadcaster);
 
 	return true;
 }
