@@ -56,6 +56,33 @@ const COMBO_SOUND_MAX_BYTES = 5 * 1024 * 1024;
 const COMBO_SOUND_DEFAULT_COUNT = 3;
 const COMBO_SOUND_MAX_RULES = 1000;
 
+const COMBO_SHORT = {
+	channel: "c",
+	minCombo: "mn",
+	timeout: "to",
+	breakOnOther: "bk",
+	font: "f",
+	customFont: "cf",
+	prefix: "px",
+	showWord: "sh",
+	word: "w",
+	textColor: "tc",
+	strokeColor: "sk",
+	strokeWidth: "sl",
+	shadow: "sd",
+	emoteScale: "es",
+	textScale: "ts",
+	grow: "g",
+	position: "ps",
+	layout: "ly",
+	animation: "an",
+	cardColor: "cc",
+	cardOpacity: "co",
+};
+
+const COMBO_COLOR_KEYS = new Set(["textColor", "strokeColor", "cardColor"]);
+const COMBO_SOUND_BASE = new URL(COMBO_SOUND_UPLOAD_URL).origin + "/";
+
 const comboPercent = (value) => `${Math.round(Number(value) * 100)}%`;
 
 const COMBO_TABS = [
@@ -218,20 +245,44 @@ function encodeComboSounds(list) {
 	);
 }
 
+function encodeComboSoundsShort(list) {
+	return list
+		.filter((rule) => rule.name && rule.url)
+		.map((rule) => {
+			const file = rule.url.startsWith(COMBO_SOUND_BASE)
+				? rule.url.slice(COMBO_SOUND_BASE.length)
+				: rule.url;
+
+			return [rule.name, file, rule.count].join("~");
+		})
+		.join("!");
+}
+
 function decodeComboSounds(raw) {
 	if (!raw) {
 		return [];
 	}
 
 	try {
-		const parsed = JSON.parse(raw);
+		if (raw.startsWith("[")) {
+			return normalizeComboSounds(
+				JSON.parse(raw).map((row) => ({
+					name: row?.[0],
+					url: row?.[1],
+					count: row?.[2],
+				})),
+			);
+		}
 
 		return normalizeComboSounds(
-			(Array.isArray(parsed) ? parsed : []).map((row) => ({
-				name: row?.[0],
-				url: row?.[1],
-				count: row?.[2],
-			})),
+			raw.split("!").map((part) => {
+				const [name, file, count] = part.split("~");
+				const url = /^https?:\/\//.test(file || "")
+					? file
+					: COMBO_SOUND_BASE + (file || "");
+
+				return { name, url, count };
+			}),
 		);
 	} catch {
 		return [];
@@ -446,7 +497,13 @@ function readComboParams(searchParams) {
 	const result = { ...COMBO_DEFAULTS };
 
 	for (const key of Object.keys(COMBO_DEFAULTS)) {
-		const raw = searchParams.get(`cb_${key}`);
+		let raw = searchParams.get(COMBO_SHORT[key]);
+
+		if (raw === null) {
+			raw = searchParams.get(`cb_${key}`);
+		} else if (COMBO_COLOR_KEYS.has(key) && !raw.startsWith("#")) {
+			raw = `#${raw}`;
+		}
 
 		if (raw !== null) {
 			result[key] = comboCoerce(COMBO_DEFAULTS[key], raw);
@@ -454,7 +511,9 @@ function readComboParams(searchParams) {
 	}
 
 	result.channel = cleanComboChannel(result.channel);
-	result.sounds = decodeComboSounds(searchParams.get("cb_sounds"));
+	result.sounds = decodeComboSounds(
+		searchParams.get("s") ?? searchParams.get("cb_sounds"),
+	);
 
 	return normalizeComboFont(result);
 }
@@ -485,32 +544,34 @@ function saveStoredComboSettings(settings) {
 }
 
 function buildComboUrl(settings) {
-	const url = new URL(window.location.href);
-
-	url.search = "";
-	url.hash = "";
-	url.searchParams.set("combo", "1");
+	const base = window.location.origin + window.location.pathname;
+	const parts = ["combo=1"];
 
 	for (const key of Object.keys(COMBO_DEFAULTS)) {
-		const value = settings[key];
+		let value = settings[key];
 
 		if (key !== "channel" && value === COMBO_DEFAULTS[key]) {
 			continue;
 		}
 
-		url.searchParams.set(
-			`cb_${key}`,
-			typeof value === "boolean" ? (value ? "1" : "0") : String(value),
+		if (typeof value === "boolean") {
+			value = value ? "1" : "0";
+		} else if (COMBO_COLOR_KEYS.has(key)) {
+			value = String(value).replace(/^#/, "");
+		}
+
+		parts.push(`${COMBO_SHORT[key]}=${encodeURIComponent(value)}`);
+	}
+
+	const sounds = encodeComboSoundsShort(settings.sounds || []);
+
+	if (sounds) {
+		parts.push(
+			`s=${encodeURIComponent(sounds).replace(/%7E/g, "~").replace(/%21/g, "!")}`,
 		);
 	}
 
-	const sounds = encodeComboSounds(settings.sounds || []);
-
-	if (sounds !== "[]") {
-		url.searchParams.set("cb_sounds", sounds);
-	}
-
-	return url.toString();
+	return `${base}?${parts.join("&")}`;
 }
 
 const comboLoadedFonts = new Set();
