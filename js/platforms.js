@@ -20,6 +20,8 @@ async function platformFetch(url, init = {}) {
 
 const MOD_COMMANDS = new Map([["-refresh", () => hardRefreshOverlay()]]);
 
+const ALWAYS_ALLOWED_MOD_COMMANDS = new Set(["-refresh"]);
+
 const OPTION_OVERRIDES_KEY = "mchat-option-overrides";
 const optionOverrides = {};
 
@@ -509,7 +511,7 @@ for (const [name, option] of Object.entries(OVERLAY_OPTIONS)) {
 MOD_COMMANDS.set("-reset", resetOptionOverrides);
 
 function runModCommand(text, isMod) {
-	if (!modCommandsEnabled || !isMod) {
+	if (!isMod) {
 		return false;
 	}
 
@@ -519,6 +521,10 @@ function runModCommand(text, isMod) {
 		.trim();
 
 	const [name, ...args] = original.toLowerCase().split(/\s+/);
+
+	if (!modCommandsEnabled && !ALWAYS_ALLOWED_MOD_COMMANDS.has(name)) {
+		return false;
+	}
 
 	const rawArgs = original.split(/\s+/).slice(1);
 
