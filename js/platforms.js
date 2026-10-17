@@ -510,6 +510,206 @@ for (const [name, option] of Object.entries(OVERLAY_OPTIONS)) {
 
 MOD_COMMANDS.set("-reset", resetOptionOverrides);
 
+const SHOW_TRUSTED_HOSTS = ["kappa.lol", "femboy.beauty", "olrite.lol", "gachi.gay",];
+const SHOW_DURATION_MS = 5000;
+const SHOW_IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"]);
+const SHOW_VIDEO_EXT = new Set(["mp4", "webm", "mov", "m4v"]);
+const SHOW_AUDIO_EXT = new Set(["mp3", "ogg", "wav", "m4a", "flac", "opus", "aac"]);
+
+let activeShow = null;
+
+function resolveTrustedShowUrl(input) {
+	let url;
+
+	try {
+		url = new URL(String(input || "").trim());
+	} catch {
+		return null;
+	}
+
+	if (url.protocol !== "https:" || url.username || url.password) {
+		return null;
+	}
+
+	const host = url.hostname.toLowerCase();
+
+	const trusted = SHOW_TRUSTED_HOSTS.some(
+		(allowed) => host === allowed || host.endsWith(`.${allowed}`),
+	);
+
+	return trusted ? url.href : null;
+}
+
+function detectShowKinds(href) {
+	const match = /\.([a-z0-9]+)$/i.exec(new URL(href).pathname);
+	const ext = match ? match[1].toLowerCase() : "";
+
+	if (SHOW_IMAGE_EXT.has(ext)) {
+		return ["image"];
+	}
+
+	if (SHOW_VIDEO_EXT.has(ext)) {
+		return ["video"];
+	}
+
+	if (SHOW_AUDIO_EXT.has(ext)) {
+		return ["audio"];
+	}
+
+	return ["image", "video"];
+}
+
+function getShowLayer() {
+	let layer = document.getElementById("show-layer");
+
+	if (layer) {
+		return layer;
+	}
+
+	layer = document.createElement("div");
+	layer.id = "show-layer";
+
+	Object.assign(layer.style, {
+		position: "fixed",
+		left: "0",
+		right: "0",
+		top: "50%",
+		bottom: "0",
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		pointerEvents: "none",
+		zIndex: "2147483647",
+	});
+
+	document.body.appendChild(layer);
+
+	return layer;
+}
+
+function clearShow() {
+	if (!activeShow) {
+		return;
+	}
+
+	clearTimeout(activeShow.timer);
+
+	for (const node of activeShow.nodes) {
+		if (typeof node.pause === "function") {
+			node.pause();
+		}
+
+		node.removeAttribute?.("src");
+		node.remove?.();
+	}
+
+	activeShow = null;
+}
+
+function buildShowNode(kind, href) {
+	if (kind === "audio") {
+		const audio = new Audio();
+
+		audio.preload = "auto";
+		audio.autoplay = true;
+		audio.src = href;
+
+		return audio;
+	}
+
+	const node = document.createElement(kind === "video" ? "video" : "img");
+
+	Object.assign(node.style, {
+		maxWidth: "100%",
+		maxHeight: "100%",
+		objectFit: "contain",
+	});
+
+	if (kind === "video") {
+		node.autoplay = true;
+		node.loop = true;
+		node.playsInline = true;
+		node.preload = "auto";
+	} else {
+		node.decoding = "async";
+		node.referrerPolicy = "no-referrer";
+	}
+
+	node.src = href;
+
+	return node;
+}
+
+function showMedia(href) {
+	clearShow();
+
+	const layer = getShowLayer();
+	const kinds = detectShowKinds(href);
+	const state = { nodes: [], timer: null };
+
+	activeShow = state;
+
+	state.timer = setTimeout(clearShow, SHOW_DURATION_MS);
+
+	const attempt = (index) => {
+		if (activeShow !== state) {
+			return;
+		}
+
+		const kind = kinds[index];
+
+		if (!kind) {
+			clearShow();
+			return;
+		}
+
+		const node = buildShowNode(kind, href);
+
+		state.nodes.push(node);
+
+		node.addEventListener(
+			"error",
+			() => {
+				if (activeShow !== state) {
+					return;
+				}
+
+				if (typeof node.pause === "function") {
+					node.pause();
+				}
+
+				node.removeAttribute("src");
+				node.remove();
+				state.nodes = state.nodes.filter((item) => item !== node);
+
+				attempt(index + 1);
+			},
+			{ once: true },
+		);
+
+		if (kind !== "audio") {
+			layer.appendChild(node);
+		}
+
+		if (typeof node.play === "function") {
+			node.play().catch(() => {});
+		}
+	};
+
+	attempt(0);
+}
+
+MOD_COMMANDS.set("-show", (args, rawArgs) => {
+	const href = resolveTrustedShowUrl(rawArgs[0]);
+
+	if (!href) {
+		console.warn("[mod] -show rejected: untrusted or invalid url");
+		return;
+	}
+
+	showMedia(href);
+});
+
 MOD_COMMANDS.set("-modcommands", (args, rawArgs, isBroadcaster) => {
 	const value = OPTION_BOOL_WORDS[String(args[0] || "").toLowerCase()];
 
