@@ -71,6 +71,7 @@ function addHighlightStyles() {
 			--hl-muted: #999;
 			--hl-link: #bf94ff;
 			--hl-bleed: 18px;
+			--hl-card-text-scale: 0.8;
 		}
 
 		.message.has-highlight,
@@ -119,14 +120,15 @@ function addHighlightStyles() {
 			border-radius: 0;
 			overflow-wrap: anywhere;
 			padding:
-				calc(0.5 * var(--hl-rem))
-				calc(2 * var(--hl-rem))
-				calc(0.5 * var(--hl-rem))
-				calc(1.6 * var(--hl-rem));
+				calc(0.3 * var(--hl-rem))
+				calc(1 * var(--hl-rem))
+				calc(0.3 * var(--hl-rem))
+				calc(1 * var(--hl-rem));
 		}
 
 		.message.hl-card .text {
 			font-weight: 600;
+			font-size: calc(var(--message-font-size, 50px) * var(--hl-card-text-scale, 0.8));
 		}
 
 		.message.hl-card .hl-bold {
@@ -147,20 +149,20 @@ function addHighlightStyles() {
 		.hl-gift-icon {
 			display: flex;
 			flex-shrink: 0;
-			padding-right: calc(1.6 * var(--hl-rem));
+			padding-right: calc(0.9 * var(--hl-rem));
 			margin: auto 0;
 			color: var(--text-color);
 		}
 
 		.hl-gift-icon svg {
-			width: calc(25px * var(--hl-k));
-			height: calc(20px * var(--hl-k));
+			width: calc(20px * var(--hl-k));
+			height: calc(16px * var(--hl-k));
 			fill: currentColor;
 		}
 
 		.hl-gift-icon img {
 			display: block;
-			height: calc(25px * var(--hl-k));
+			height: calc(20px * var(--hl-k));
 			width: auto;
 		}
 
@@ -169,7 +171,8 @@ function addHighlightStyles() {
 		}
 
 		.hl-gift-gifter {
-			display: block;
+			display: inline;
+			margin-right: 0.3em;
 		}
 
 		.hl-gift-gifter .hl-gift-name {
@@ -178,7 +181,7 @@ function addHighlightStyles() {
 
 		.hl-gift-gifter .hl-gift-name-big {
 			display: inline !important;
-			font-size: calc(50px * 1.2) !important;
+			font-size: calc(var(--message-font-size, 50px) * var(--hl-card-text-scale, 0.8) * 1.2) !important;
 		}
 
 		.hl-gift-gifter .badges {
@@ -403,6 +406,27 @@ function addHighlightStyles() {
 		.hl-pin-body .text {
 			font-weight: 600;
 		}
+
+		/* Bordered message cards: keep the highlight (bars, label, tint) but
+		   fit it inside the card border instead of bleeding past it. */
+		.message-cards #chat > .message.has-highlight {
+			margin-left: 0;
+			margin-right: 0;
+			border-radius: var(--message-card-radius);
+			overflow: hidden;
+		}
+
+		.message-cards #chat > .message.has-highlight::after {
+			content: "";
+			position: absolute;
+			inset: 0;
+			box-sizing: border-box;
+			border: var(--message-card-border-width) var(--message-card-border-style) var(--message-card-border-color);
+			border-radius: var(--message-card-radius);
+			pointer-events: none;
+			z-index: 3;
+		}
+
 	`;
 
 	(document.head || document.documentElement).appendChild(style);
