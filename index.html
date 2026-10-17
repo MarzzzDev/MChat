@@ -1,19 +1,35 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#d1bf74">
+
     <link rel="icon" href="favicon.png" type="image/png">
     <title>MChat - Free Multistream Chat Overlay for Twitch, Kick & YouTube</title>
-    <meta name="description" content="Free customizable chat overlay for OBS. Combine Twitch, Kick and YouTube chat with 7TV, FFZ and BTTV emotes, badges and effects, and preview it on real clips before going live.">
+
+    <meta name="description" content="Free customizable multistream chat overlay for Twitch, Kick and YouTube. Combine chats in OBS with 7TV, BTTV and FFZ emotes, badges and effects.">
+
     <link rel="canonical" href="https://mchat.marz.lol/">
+
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="MChat">
-    <meta property="og:title" content="MChat - Free Multistream Chat Overlay for Twitch, Kick & YouTube">
-    <meta property="og:description" content="Twitch, Kick and YouTube chat in one OBS overlay with 7TV paints, FFZ and BTTV effects, and a live clip preview.">
+    <meta property="og:title" content="MChat — Multistream Chat Overlay">
+    <meta property="og:description" content="Your chat, all in one place. A free customizable Twitch, Kick & YouTube chat overlay for OBS, with 7TV, BTTV and FFZ emotes, badges and effects.">
     <meta property="og:url" content="https://mchat.marz.lol/">
     <meta property="og:image" content="https://mchat.marz.lol/preview.png">
+    <meta property="og:image:secure_url" content="https://mchat.marz.lol/preview.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:alt" content="MChat — Free customizable multistream chat overlay">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MChat — Multistream Chat Overlay">
+    <meta name="twitter:description" content="Combine Twitch, Kick & YouTube chat in one customizable OBS overlay. Free, with 7TV, BTTV and FFZ support.">
+    <meta name="twitter:image" content="https://mchat.marz.lol/preview.png">
+
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -23,6 +39,7 @@
         "operatingSystem": "Any (browser source in OBS, Streamlabs, XSplit)",
         "description": "Free multistream chat overlay for Twitch, Kick and YouTube with 7TV, FFZ and BTTV support.",
         "url": "https://mchat.marz.lol/",
+        "image": "https://mchat.marz.lol/preview.png",
         "offers": {
             "@type": "Offer",
             "price": "0",
@@ -30,6 +47,7 @@
         }
     }
     </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -40,10 +58,12 @@
 <body>
     <noscript>
         <h1>MChat - Free Multistream Chat Overlay for Twitch, Kick & YouTube</h1>
-        <p>MChat is a free, customizable chat overlay for OBS, Streamlabs and XSplit. It shows Twitch, Kick and YouTube chat together with 7TV paints, FFZ and BTTV emotes, effects and badges. Preview the overlay on real gameplay clips in the setup screen, then copy the link into a browser source.</p>
+        <p>MChat is a free, customizable chat overlay for OBS, Streamlabs and XSplit. It combines Twitch, Kick and YouTube chat with 7TV, FFZ and BTTV emotes, effects and badges. Preview the overlay on real gameplay clips in the setup screen, then copy the link into a browser source.</p>
         <p>Enable JavaScript to use the MChat setup screen.</p>
     </noscript>
+
     <div id="chat"></div>
+
     <script src="./js/updater.js"></script>
     <script src="./js/state.js"></script>
     <script src="./js/platforms.js"></script>
@@ -62,3 +82,4 @@
     <script src="./js/main.js"></script>
 </body>
 </html>
+```
