@@ -159,6 +159,8 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.bots = settings.bots !== false;
 
+	result.modCommands = settings.modCommands !== false;
+
 	result.hideLinks = settings.hideLinks === true;
 
 	result.hlFirst = settings.hlFirst !== false;
@@ -664,6 +666,10 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["bots", normalised.bots ? "1" : "0"]);
 	}
 
+	if (normalised.modCommands !== true) {
+		query.push(["modCommands", normalised.modCommands ? "1" : "0"]);
+	}
+
 	if (normalised.hideLinks) {
 		query.push(["hideLinks", "1"]);
 	}
@@ -805,6 +811,8 @@ const selectedYouTube = cleanYouTubeInput(params.get("youtube"));
 let backgroundEnabled = parseQueryBoolean("background", false);
 
 let botsEnabled = parseQueryBoolean("bots", true);
+
+let modCommandsEnabled = parseQueryBoolean("modCommands", true);
 
 let hideLinksEnabled = parseQueryBoolean("hideLinks", false);
 

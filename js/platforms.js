@@ -509,7 +509,7 @@ for (const [name, option] of Object.entries(OVERLAY_OPTIONS)) {
 MOD_COMMANDS.set("-reset", resetOptionOverrides);
 
 function runModCommand(text, isMod) {
-	if (!isMod) {
+	if (!modCommandsEnabled || !isMod) {
 		return false;
 	}
 

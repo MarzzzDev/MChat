@@ -2637,6 +2637,13 @@ function showOverlaySetupScreen() {
 		"bots",
 		botsEnabled,
 	);
+	const modCommandsCheckbox = addToggle(
+		appearancePanel,
+		"Mod commands",
+		"Let moderators change overlay options from chat with commands like -bots or -reset.",
+		"modCommands",
+		modCommandsEnabled,
+	);
 	const hideLinksCheckbox = addToggle(
 		appearancePanel,
 		"Hide links",
@@ -3793,6 +3800,9 @@ function showOverlaySetupScreen() {
 		botsEnabled = botsCheckbox.checked;
 		rerenderPreviewChat();
 	});
+	modCommandsCheckbox.addEventListener("change", () => {
+		modCommandsEnabled = modCommandsCheckbox.checked;
+	});
 	hideLinksCheckbox.addEventListener("change", () => {
 		hideLinksEnabled = hideLinksCheckbox.checked;
 		rerenderPreviewChat();
@@ -4166,6 +4176,8 @@ function showOverlaySetupScreen() {
 			gifs: gifsCheckbox.checked,
 
 			bots: botsCheckbox.checked,
+
+			modCommands: modCommandsCheckbox.checked,
 
 			hideLinks: hideLinksCheckbox.checked,
 
@@ -4634,6 +4646,10 @@ function showOverlaySetupScreen() {
 		}
 
 		importSet(botsCheckbox, s.bots);
+
+		if (s.modCommands !== undefined) {
+			importSet(modCommandsCheckbox, s.modCommands);
+		}
 
 		if (s.hideLinks !== undefined) {
 			importSet(hideLinksCheckbox, s.hideLinks);
