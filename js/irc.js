@@ -63,7 +63,7 @@ function createTwitchIRCSocket() {
 		twitchIRCSocket = socket;
 
 		socket.onopen = () => {
-			console.log("Connected to Twitch IRC anonymously.");
+			console.log("Connected to Twitch IRC.");
 
 			socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands\r\n");
 

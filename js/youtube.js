@@ -7,7 +7,6 @@ let youtubeInnertube = null;
 let youtubeChat = null;
 let youtubeRunning = false;
 
-const youtubeUserColors = new Map();
 const youtubeSeenMessages = new Set();
 
 function youtubeModBadgeIcon() {
@@ -44,21 +43,6 @@ function getYouTubeRoleColor(author) {
 	}
 
 	return isMember ? YOUTUBE_COLOR_MEMBER : YOUTUBE_COLOR_DEFAULT;
-}
-
-function getYouTubeColor(authorId, name) {
-	const key = String(authorId || name || Math.random());
-
-	if (!youtubeUserColors.has(key)) {
-		youtubeUserColors.set(
-			key,
-			TWITCH_DEFAULT_COLORS[
-				Math.floor(Math.random() * TWITCH_DEFAULT_COLORS.length)
-			],
-		);
-	}
-
-	return youtubeUserColors.get(key);
 }
 
 async function youtubeProxyFetch(input, init) {
@@ -656,12 +640,3 @@ async function startYouTubeChat(input) {
 	}
 }
 
-function stopYouTubeChat() {
-	youtubeRunning = false;
-
-	try {
-		youtubeChat?.stop();
-	} catch {}
-
-	youtubeChat = null;
-}

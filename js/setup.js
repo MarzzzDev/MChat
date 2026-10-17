@@ -826,7 +826,6 @@ function showOverlaySetupScreen() {
 
 	loadGoogleFontIfNeeded("'Open Sans', sans-serif");
 
-
 	const topbar = document.createElement("header");
 	topbar.className = "mc-topbar";
 
@@ -3526,7 +3525,6 @@ function showOverlaySetupScreen() {
 	strokeTwoCol.appendChild(strokeColorField);
 	typographyPanel.appendChild(strokeTwoCol);
 
-
 	subhead(filtersPanel, "Custom filters");
 	const msgFilterInput = document.createElement("input");
 	msgFilterInput.type = "text";
@@ -3551,7 +3549,6 @@ function showOverlaySetupScreen() {
 	filtersNote.textContent =
 		"Message filter hides any message containing one of the words (not case sensitive). Bot filter hides everything sent by those usernames. Both are empty by default.";
 	filtersPanel.appendChild(filtersNote);
-
 
 	const helpFeatures = [
 		"MChat is a Twitch chat overlay that works with OBS, Streamlabs, XSplit and other streaming software, integrating with emotes and badges from multiple platforms, such as 7TV, FFZ and BTTV. Chat look can be customized to your liking by adjusting the overlay settings such as the text scale, emote scale and any other preference you could ever want, and counting.",
@@ -4886,22 +4883,6 @@ function showOverlaySetupScreen() {
 	syncFadeState();
 	prewarmFirstClip();
 	startPreviewMessages();
-}
-
-function showChannelError(message) {
-	const screen = document.getElementById("overlay-setup-screen");
-
-	if (!screen) {
-		return;
-	}
-
-	const error = screen.querySelector("[data-channel-error]");
-
-	if (error) {
-		error.textContent = message;
-
-		error.style.display = "block";
-	}
 }
 
 function hideOverlaySetupScreen() {

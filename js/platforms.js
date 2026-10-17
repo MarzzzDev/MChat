@@ -653,17 +653,6 @@ function clearPlatformMessages(platform) {
 	}
 }
 
-function letterBadgeIcon(background, label, fontSize = 20) {
-	const svg =
-		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
-		`<rect width="32" height="32" rx="6" fill="${background}"/>` +
-		`<text x="16" y="${16 + fontSize * 0.36}" font-size="${fontSize}" ` +
-		`font-weight="700" text-anchor="middle" fill="#fff" ` +
-		`font-family="Arial,sans-serif">${label}</text></svg>`;
-
-	return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
-}
-
 function checkBadgeIcon(background) {
 	const svg =
 		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +

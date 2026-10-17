@@ -9,7 +9,6 @@ let twitchIRCReadyResolve = null;
 let twitchIRCReadyReject = null;
 
 const sevenTVEmotes = new Map();
-const sevenTVUsers = new Map();
 
 const sevenTVPersonalEmotes = new Map();
 const sevenTVUserIdToUsername = new Map();
@@ -31,9 +30,6 @@ const bttvEmotes = new Map();
 const externalBadgeCache = new Map();
 const externalBadgePromises = new Map();
 const badgeImageCache = new Map();
-
-const sevenTVColors = new Map();
-const sevenTVColorPromises = new Map();
 
 const SEVENTV_EMOTE_FLAGS = Object.freeze({
 	ZERO_WIDTH: 256,
@@ -258,18 +254,6 @@ function stopLoadingScreen() {
 		loadingIndicator.remove();
 		loadingIndicator = null;
 	}
-}
-
-async function runLoadingTasks(tasks) {
-	await Promise.allSettled(
-		tasks.map((task) =>
-			Promise.resolve()
-				.then(() => task.run())
-				.catch((error) => {
-					console.error(`${task.label} failed to load:`, error);
-				}),
-		),
-	);
 }
 
 let twemojiReady = null;

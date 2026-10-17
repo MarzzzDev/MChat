@@ -62,8 +62,6 @@ async function loadHomiesBadges() {
 			}
 		}
 	});
-
-	console.log(`Loaded Homies badges for ${homiesBadges.size} users.`);
 }
 
 const bttvBadges = new Map();
@@ -111,8 +109,6 @@ async function loadBTTVBadges() {
 				title: entry?.badge?.description || "BTTV Badge",
 			});
 		}
-
-		console.log(`Loaded BTTV badges for ${bttvBadges.size} users.`);
 	} catch (error) {
 		console.error("BTTV badge error:", error);
 	}
@@ -168,7 +164,6 @@ async function loadDankChatBadges() {
 			}
 		}
 
-		console.log(`Loaded DankChat badges for ${dankchatBadges.size} users.`);
 	} catch (error) {
 		console.error("DankChat badge error:", error);
 	}
@@ -248,8 +243,6 @@ async function loadMoltorinoBadges() {
 				},
 			]);
 		}
-
-		console.log(`Loaded Moltorino badges for ${moltorinoBadges.size} users.`);
 	} catch (error) {
 		console.error("Moltorino badge error:", error);
 	}
@@ -366,26 +359,9 @@ async function loadFFZBadges() {
 		if (ffzRoomBadges.moderator?.url) {
 			preloadBadgeImage(ffzRoomBadges.moderator.url);
 		}
-
-		console.log("Loaded FFZ channel badges:", {
-			customVIP: Boolean(ffzRoomBadges.vip),
-
-			customModerator: Boolean(ffzRoomBadges.moderator),
-		});
 	} catch (error) {
 		console.error("FFZ badge error:", error);
 	}
-}
-
-async function loadExternalBadges() {
-	await Promise.allSettled([
-		loadFFZBadges(),
-		loadChatterinoBadges(),
-		loadHomiesBadges(),
-		loadBTTVBadges(),
-		loadDankChatBadges(),
-		loadMoltorinoBadges(),
-	]);
 }
 
 function preloadBadgeImage(url) {
@@ -662,7 +638,6 @@ async function loadChatterinoBadges() {
 			}
 		}
 
-		console.log(`Loaded Chatterino badges for ${chatterinoBadges.size} users.`);
 	} catch (error) {
 		console.error("Chatterino badge error:", error);
 	}

@@ -1,98 +1,3 @@
-async function get7TVColor(userId) {
-	if (!userId) {
-		return null;
-	}
-
-	userId = String(userId);
-
-	if (sevenTVColors.has(userId)) {
-		return sevenTVColors.get(userId);
-	}
-
-	if (sevenTVColorPromises.has(userId)) {
-		return sevenTVColorPromises.get(userId);
-	}
-
-	const query = `
-		query GetUserColor($platformId: String!) {
-			users {
-				userByConnection(
-					platform: TWITCH
-					platformId: $platformId
-				) {
-					style {
-						color {
-							r
-							g
-							b
-							a
-							hex
-						}
-					}
-				}
-			}
-		}
-	`;
-
-	const promise = (async () => {
-		try {
-			const response = await fetch("https://api.7tv.app/v4/gql", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					query,
-					variables: {
-						platformId: userId,
-					},
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error(`7TV color HTTP error: ${response.status}`);
-			}
-
-			const result = await response.json();
-
-			if (result.errors) {
-				console.error("7TV color GraphQL error:", result.errors);
-
-				sevenTVColors.set(userId, null);
-
-				return null;
-			}
-
-			const color = result.data?.users?.userByConnection?.style?.color;
-
-			if (!color) {
-				sevenTVColors.set(userId, null);
-
-				return null;
-			}
-
-			const cssColor = colorToCss(color);
-
-			sevenTVColors.set(userId, cssColor);
-
-			return cssColor;
-		} catch (error) {
-			console.error("7TV color error:", error);
-
-			sevenTVColors.set(userId, null);
-
-			return null;
-		}
-	})();
-
-	sevenTVColorPromises.set(userId, promise);
-
-	try {
-		return await promise;
-	} finally {
-		sevenTVColorPromises.delete(userId);
-	}
-}
 
 function loadTwemoji() {
 	if (window.twemoji) {
@@ -129,10 +34,6 @@ function loadTwemoji() {
 
 function get7TVEmoteFlags(emote) {
 	return Number(emote?.data?.flags ?? emote?.flags ?? 0);
-}
-
-function is7TVZeroWidth(emote) {
-	return Boolean(get7TVEmoteFlags(emote) & SEVENTV_EMOTE_FLAGS.ZERO_WIDTH);
 }
 
 function get7TVEmoteFile(emote) {
@@ -218,7 +119,7 @@ async function load7TVGlobalEmotes() {
 			add7TVEmote(emote, sevenTVGlobalEmotes);
 		}
 
-		console.log(`Loaded ${sevenTVEmotes.size} total 7TV emotes.`);
+		console.log(`Loaded 7TV emotes.`);
 	} catch (error) {
 		console.error("7TV global emote error:", error);
 	}
@@ -264,33 +165,9 @@ async function load7TVEmotes() {
 			add7TVEmote(emote);
 		}
 		connectSevenTVEvents(emoteSetId);
-		console.log(`Loaded ${sevenTVEmotes.size} 7TV emotes.`);
 	} catch (error) {
 		console.error("7TV emote error:", error);
 	}
-}
-
-function getTwitchEmoteUrl(emote) {
-	if (!emote?.id) {
-		return null;
-	}
-
-	const id = String(emote.id);
-
-	const formats = Array.isArray(emote.format) ? emote.format : [];
-
-	if (formats.includes("animated")) {
-		return (
-			`https://static-cdn.jtvnw.net/` + `emoticons/v2/${id}/default/dark/3.0`
-		);
-	}
-
-	return (
-		emote.images?.url_4x ||
-		emote.images?.url_2x ||
-		emote.images?.url_1x ||
-		`https://static-cdn.jtvnw.net/` + `emoticons/v2/${id}/default/dark/3.0`
-	);
 }
 
 function normalizeImageUrl(url) {
@@ -394,7 +271,7 @@ async function loadFFZEmotes() {
 			}
 		}
 
-		console.log(`Loaded ${ffzEmotes.size} FFZ emotes.`);
+		console.log(`Loaded FFZ emotes.`);
 	} catch (error) {
 		console.error("FFZ emote error:", error);
 	}
@@ -460,7 +337,7 @@ async function loadBTTVEmotes() {
 			}
 		}
 
-		console.log(`Loaded ${bttvEmotes.size} BTTV emotes.`);
+		console.log(`Loaded BTTV emotes.`);
 	} catch (error) {
 		console.error("BTTV emote error:", error);
 	}
@@ -522,42 +399,6 @@ function createPaintDropShadowFilter(paint) {
 		}
 	}
 	return null;
-}
-
-function getPaintFallbackColor(paint) {
-	const layers = paint?.data?.layers || [];
-
-	for (const layer of layers) {
-		const type = layer?.ty;
-
-		if (!type) {
-			continue;
-		}
-
-		if (type.__typename === "PaintLayerTypeSingleColor") {
-			if (type.color) {
-				return colorToCss(type.color);
-			}
-		}
-
-		if (type.__typename === "PaintLayerTypeLinearGradient") {
-			const color = type.stops?.[0]?.color;
-
-			if (color) {
-				return colorToCss(color);
-			}
-		}
-
-		if (type.__typename === "PaintLayerTypeRadialGradient") {
-			const color = type.stops?.[0]?.color;
-
-			if (color) {
-				return colorToCss(color);
-			}
-		}
-	}
-
-	return "rgba(255, 255, 255, 0.35)";
 }
 
 function get7TVPaintLayerUrls(paint, layer) {

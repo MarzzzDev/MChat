@@ -440,19 +440,6 @@ async function handleSevenTVEmoteSetUpdate(body) {
 	});
 }
 
-function disconnectSevenTVEvents() {
-	clearTimeout(sevenTVHeartbeatTimeout);
-	clearTimeout(sevenTVReconnectTimer);
-
-	sevenTVEmoteSetId = null;
-	sevenTVKickEmoteSetId = null;
-
-	if (sevenTVEventSocket) {
-		sevenTVEventSocket.close();
-		sevenTVEventSocket = null;
-	}
-}
-
 async function load7TVGlobalEmotes() {
 	try {
 		const response = await fetch("https://7tv.io/v3/emote-sets/global");
