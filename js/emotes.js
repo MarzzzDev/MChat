@@ -152,7 +152,6 @@ function add7TVEmote(emote, target = sevenTVEmotes) {
 
 	let host = get7TVHostUrl(emote);
 
-	// websocket events don't always include host data, fall back to the CDN
 	if ((!file || !host) && emote.id) {
 		host = `https://cdn.7tv.app/emote/${emote.id}`;
 		file = { name: "4x.webp" };
@@ -891,8 +890,6 @@ async function get7TVPaint(userId, platform = "twitch") {
 	return style.paint;
 }
 
-// ---- periodic resync: safety net for missed websocket events, and the only
-// "live" update path BTTV/FFZ have ----
 const EMOTE_REFRESH_MS = 60 * 1000;
 
 let emoteRefreshTimer = null;
@@ -907,6 +904,7 @@ async function refreshChannelEmotes() {
 	lastEmoteRefreshAt = Date.now();
 
 	emoteRefreshing = true;
+	window.mchatLiveRefresh = true;
 
 	try {
 		await Promise.allSettled([
@@ -917,6 +915,7 @@ async function refreshChannelEmotes() {
 		]);
 	} finally {
 		emoteRefreshing = false;
+		window.mchatLiveRefresh = false;
 	}
 }
 
@@ -926,6 +925,8 @@ function startEmoteRefreshLoop() {
 	}
 
 	emoteRefreshTimer = setInterval(refreshChannelEmotes, EMOTE_REFRESH_MS);
+
+	setTimeout(refreshChannelEmotes, 3000);
 
 	document.addEventListener("visibilitychange", () => {
 		if (!document.hidden) {

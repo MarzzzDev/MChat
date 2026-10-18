@@ -12,12 +12,10 @@
 		{ re: /^https:\/\/api\.frankerfacez\.com\/v1\/(set\/global|badge\/bot)/, fresh: 6 * HOUR },
 		{ re: /^https:\/\/api\.(chatterino|moltorino)\.com\//, fresh: 6 * HOUR },
 		{ re: /^https:\/\/(chatterinohomies\.com|itzalex\.github\.io|flxrs\.com|dank-chat-badges\.marseceva\.workers\.dev)/, fresh: 6 * HOUR },
-
-		{ re: /^https:\/\/7tv\.io\/v3\/(users|emote-sets)\//, fresh: 0 },
-		{ re: /^https:\/\/api\.betterttv\.net\/3\/cached\/users\//, fresh: 0 },
-		{ re: /^https:\/\/api\.frankerfacez\.com\/v1\/(room|user)\//, fresh: 0 },
-
-		{ re: /^https:\/\/api\.7tv\.app\/v4\/gql/, fresh: 30 * 1000, maxStale: 10 * MIN, post: true },
+		{ re: /^https:\/\/7tv\.io\/v3\/(users|emote-sets)\//, fresh: 2 * MIN, live: true },
+		{ re: /^https:\/\/api\.betterttv\.net\/3\/cached\/users\//, fresh: 2 * MIN, live: true },
+		{ re: /^https:\/\/api\.frankerfacez\.com\/v1\/(room|user)\//, fresh: 2 * MIN, live: true },
+		{ re: /^https:\/\/api\.7tv\.app\/v4\/gql/, fresh: 5 * MIN, maxStale: 10 * MIN, post: true },
 		{ re: /^https:\/\/gql\.twitch\.tv\/gql/, fresh: 6 * HOUR, post: true },
 	];
 
@@ -120,39 +118,38 @@
 		return promise.then((response) => response.clone());
 	}
 
-	function fromEntry(entry) {
-		return new Response(entry.text, {
-			status: 200,
-			headers: { "Content-Type": entry.type },
-		});
-	}
-
 	async function cachedFetch(key, rule, input, init) {
 		const entry = await dbGet(key);
 		const age = entry ? Date.now() - entry.t : Infinity;
 		const maxStale = rule.maxStale ?? MAX_STALE_MS;
-		const usable = entry && age < maxStale;
 
-		if (usable && age < rule.fresh) {
-			return fromEntry(entry);
-		}
+		if (entry && age < maxStale && rule.live && window.mchatLiveRefresh) {
+			try {
+				const response = await network(key, input, { cache: "no-cache", ...init });
 
-		try {
-			const response = await network(key, input, {
-				cache: "no-cache",
-				...init,
+				if (response.ok) {
+					return response;
+				}
+			} catch {}
+
+			return new Response(entry.text, {
+				status: 200,
+				headers: { "Content-Type": entry.type },
 			});
-
-			if (response.ok || !usable) {
-				return response;
-			}
-		} catch (error) {
-			if (!usable) {
-				throw error;
-			}
 		}
 
-		return fromEntry(entry);
+		if (entry && age < maxStale) {
+			if (age >= rule.fresh) {
+				network(key, input, init).catch(() => {});
+			}
+
+			return new Response(entry.text, {
+				status: 200,
+				headers: { "Content-Type": entry.type },
+			});
+		}
+
+		return network(key, input, init);
 	}
 
 	window.fetch = function (input, init) {
@@ -177,4 +174,4 @@
 	};
 
 	openDb();
-})();													
+})();

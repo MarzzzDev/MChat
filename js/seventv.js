@@ -293,7 +293,6 @@ function handleSevenTVEventMessage(data) {
 		subscribeToSevenTVChannelEmoteSets(TWITCH_USER_ID, "TWITCH");
 		subscribeToSevenTVChannelEmoteSets(KICK_USER_ID, "KICK");
 
-		// we were disconnected for a while and missed events: resync
 		if (sevenTVHadSession && typeof refreshChannelEmotes === "function") {
 			refreshChannelEmotes();
 		}
@@ -426,7 +425,6 @@ async function handleSevenTVEmoteSetUpdate(body) {
 
 	const emoteSetId = body.id || body.object_id || null;
 
-	// Twitch and Kick can share the same 7TV set, so update every map that uses it
 	const targets = [];
 
 	if (emoteSetId && emoteSetId === sevenTVEmoteSetId) {
