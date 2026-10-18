@@ -767,6 +767,22 @@ function renderExternalText(container, value, username = null, platform = "twitc
 			}
 		}
 
+		if (isLinkToken(part)) {
+			const trailing = part.match(/[),.!?]*$/)[0];
+			const linkText = trailing ? part.slice(0, -trailing.length) : part;
+			const link = document.createElement("span");
+
+			link.className = "chat-link";
+			link.textContent = linkText;
+			container.appendChild(link);
+
+			if (trailing) {
+				container.appendChild(document.createTextNode(trailing));
+			}
+
+			continue;
+		}
+
 		if (highlightsEnabled) {
 			try {
 				const mentionMatch = part.match(/^(@?)(\w{2,25})(\W*)$/);

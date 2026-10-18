@@ -246,6 +246,13 @@ const OVERLAY_OPTIONS = {
 			applyTextColor(v);
 		},
 	),
+	linkcolor: colorOption(
+		() => linkColor,
+		(v) => {
+			linkColor = v;
+			applyLinkColor(v);
+		},
+	),
 	strokecolor: colorOption(
 		() => strokeColor,
 		(v) => {

@@ -701,6 +701,7 @@ function importFromMChat(p) {
 			? importClamp(backgroundOpacityRaw, 0, 1)
 			: 0,
 		textColor: importColor(p.get("textColor"), "#ffffff"),
+		linkColor: importColor(p.get("linkColor"), "#4da3ff"),
 		messageCards: importBool(p.get("messageCards"), false),
 		messageCardColor: importColor(p.get("messageCardColor"), "#141414"),
 		messageCardOpacity: importClamp(importNumber(p.get("messageCardOpacity"), 0.72), 0, 1),
@@ -2564,6 +2565,33 @@ function showOverlaySetupScreen() {
 	textColorRow.appendChild(textColorInput);
 	appearancePanel.appendChild(textColorRow);
 
+	const linkColorRow = document.createElement("div");
+	linkColorRow.className = "mc-toggle-row mc-static-row";
+
+	const linkColorCopy = document.createElement("div");
+	linkColorCopy.className = "mc-toggle-copy";
+
+	const linkColorTitle = document.createElement("div");
+	linkColorTitle.className = "mc-toggle-title";
+	linkColorTitle.textContent = "Link color";
+
+	const linkColorText = document.createElement("div");
+	linkColorText.className = "mc-toggle-note";
+	linkColorText.textContent = linkColor;
+
+	linkColorCopy.appendChild(linkColorTitle);
+	linkColorCopy.appendChild(linkColorText);
+
+	const linkColorInput = document.createElement("input");
+	linkColorInput.type = "color";
+	linkColorInput.className = "mc-color";
+	linkColorInput.value = linkColor;
+	linkColorInput.setAttribute("aria-label", "Link color");
+
+	linkColorRow.appendChild(linkColorCopy);
+	linkColorRow.appendChild(linkColorInput);
+	appearancePanel.appendChild(linkColorRow);
+
 	appearancePanel.to(layoutPanel);
 	subhead(layoutPanel, "Layout");
 	const wrapCheckbox = addToggle(
@@ -3763,6 +3791,15 @@ function showOverlaySetupScreen() {
 		applyTextColor(textColor);
 	}
 
+	function applyLinkColorPreview() {
+		linkColor = linkColorInput.value;
+		linkColorText.textContent = linkColor;
+		applyLinkColor(linkColor);
+	}
+
+	linkColorInput.addEventListener("input", applyLinkColorPreview);
+	linkColorInput.addEventListener("change", applyLinkColorPreview);
+
 	backgroundCheckbox.addEventListener("change", applyBackgroundPreview);
 	backgroundColorInput.addEventListener("input", applyBackgroundPreview);
 	backgroundColorInput.addEventListener("change", applyBackgroundPreview);
@@ -4150,6 +4187,8 @@ function showOverlaySetupScreen() {
 			backgroundColor: backgroundColorInput.value,
 
 			textColor: textColorInput.value,
+
+			linkColor: linkColorInput.value,
 
 			messageCards: messageCardsCheckbox.checked,
 
@@ -4613,6 +4652,7 @@ function showOverlaySetupScreen() {
 		importSet(fontSelect, s.font);
 		importSet(customFontInput, s.customFont || "");
 		importSet(textColorInput, s.textColor);
+		importSet(linkColorInput, s.linkColor);
 		importSet(boldCheckbox, s.bold);
 		importSet(uppercaseCheckbox, s.uppercase);
 
@@ -4914,7 +4954,6 @@ function showOverlaySetupScreen() {
 		importStatus.classList.remove("is-ok", "is-bad");
 	});
 
-	// ---- Persist setup settings between visits (localStorage) ----
 	const SETUP_STORAGE_KEY = "mchat:setup-settings:v1";
 	let restoringSettings = false;
 	let saveTimer = null;
@@ -4966,18 +5005,15 @@ function showOverlaySetupScreen() {
 
 	restoreSetupSettings();
 
-	// inputs, checkboxes, selects, color pickers
 	screen.addEventListener("input", scheduleSaveSetupSettings);
 	screen.addEventListener("change", scheduleSaveSetupSettings);
 
-	// badge platform toggle buttons aren't inputs
 	screen.addEventListener("click", (event) => {
 		if (event.target.closest?.(".mc-platform-button")) {
 			scheduleSaveSetupSettings();
 		}
 	});
 
-	// make sure the latest state is stored if the tab is closed mid-debounce
 	window.addEventListener("pagehide", saveSetupSettings);
 
 	syncFadeState();

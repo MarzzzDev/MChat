@@ -68,6 +68,12 @@ function normaliseOverlaySettings(settings = {}) {
 			? settings.textColor
 			: "#ffffff";
 
+	result.linkColor =
+		typeof settings.linkColor === "string" &&
+			/^#[0-9a-fA-F]{6}$/.test(settings.linkColor)
+			? settings.linkColor
+			: "#4da3ff";
+
 	result.messageCards = settings.messageCards === true;
 
 	result.messageCardColor =
@@ -553,6 +559,12 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["textColor", cleanedTextColor]);
 	}
 
+	const cleanedLinkColor = cleanQueryTextColor(normalised.linkColor);
+
+	if (cleanedLinkColor !== "ffffff" && cleanedLinkColor !== "4da3ff") {
+		query.push(["linkColor", cleanedLinkColor]);
+	}
+
 	if (normalised.messageCards) {
 		query.push(["messageCards", "1"]);
 	}
@@ -832,6 +844,14 @@ let textColor = (() => {
 	return /^[0-9a-fA-F]{6}$/.test(value) ? `#${value}` : "#ffffff";
 })();
 
+let linkColor = (() => {
+	const value = String(params.get("linkColor") || "")
+		.trim()
+		.replace(/^#/, "");
+
+	return /^[0-9a-fA-F]{6}$/.test(value) ? `#${value}` : "#4da3ff";
+})();
+
 let messageCardsEnabled = parseQueryBoolean("messageCards", false);
 
 let messageCardColor = (() => {
@@ -1097,6 +1117,15 @@ function applyTextColor(hex) {
 }
 
 applyTextColor(textColor);
+
+function applyLinkColor(hex) {
+	document.documentElement.style.setProperty(
+		"--link-color",
+		hexToRgbaString(hex, 1),
+	);
+}
+
+applyLinkColor(linkColor);
 
 const CHAT_FONTS = [
 	{ label: "Open Sans", value: "'Open Sans', sans-serif" },

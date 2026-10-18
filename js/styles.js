@@ -40,6 +40,12 @@ function ensureEmoteScaleStyle() {
 					) !important;
 			}
 
+			.chat-link {
+				color: var(--link-color, #4da3ff);
+				-webkit-text-fill-color: var(--link-color, #4da3ff);
+				text-decoration: underline;
+			}
+
 			.twitch-gif {
 				display: block !important;
 				width: auto !important;
