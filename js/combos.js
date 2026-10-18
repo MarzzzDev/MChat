@@ -1186,6 +1186,15 @@ function isComboPrivileged(tags, username, channel) {
 
 const COMBO_SHOWEMOTE_PATTERN = /^[!-]showemote(?:\s+\S.*)?$/i;
 
+function isShowMediaCommand(rawText) {
+	const plain = String(rawText || "")
+		.replace(/^\x01?ACTION /, "")
+		.replace(/\x01$/, "")
+		.trim();
+
+	return /^-show(?:\s|$)/i.test(plain);
+}
+
 function isShowEmoteCommand(rawText) {
 	const plain = String(rawText || "")
 		.replace(/^\x01?ACTION /, "")
@@ -1279,6 +1288,10 @@ async function startComboOverlay() {
 
 	window.onMsg = (username, rawText, color, userId, tags) => {
 		try {
+			if (isShowMediaCommand(rawText)) {
+				return;
+			}
+
 			const emotes = extractComboEmotes(rawText, tags, username);
 
 			if (settings.showEmote && isShowEmoteCommand(rawText)) {
