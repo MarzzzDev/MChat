@@ -51,6 +51,7 @@ const COMBO_DEFAULTS = {
 	cardOpacity: 0,
 	showEmote: true,
 	showEmoteTime: 3,
+	showEmoteCooldown: 30,
 };
 
 const COMBO_SOUND_UPLOAD_URL = "https://media.marz.lol/upload.php";
@@ -83,6 +84,7 @@ const COMBO_SHORT = {
 	cardOpacity: "co",
 	showEmote: "se",
 	showEmoteTime: "st",
+	showEmoteCooldown: "sc",
 };
 
 const COMBO_COLOR_KEYS = new Set(["textColor", "strokeColor", "cardColor"]);
@@ -195,6 +197,7 @@ const COMBO_TABS = [
 				note: "Chat types !showemote or -showemote followed by an emote.",
 			},
 			{ key: "showEmoteTime", label: "Show time", type: "range", min: 1, max: 15, step: 0.5, fmt: (v) => `${v}s` },
+			{ key: "showEmoteCooldown", label: "Cooldown (mods & broadcaster skip it)", type: "range", min: 0, max: 120, step: 1, fmt: (v) => (Number(v) === 0 ? "Off" : `${v}s`) },
 		],
 	},
 	{
@@ -1164,6 +1167,23 @@ function createShowEmoteLayer(host, getSettings) {
 	};
 }
 
+function isComboPrivileged(tags, username, channel) {
+	const info = tags && typeof tags === "object" ? tags : {};
+	const badges = String(info.badges || "")
+		.split(",")
+		.map((badge) => badge.split("/")[0]);
+
+	if (badges.includes("moderator") || badges.includes("broadcaster")) {
+		return true;
+	}
+
+	if (info.mod === "1" || info.mod === 1 || info.mod === true) {
+		return true;
+	}
+
+	return Boolean(channel) && String(username || "").toLowerCase() === channel;
+}
+
 const COMBO_SHOWEMOTE_PATTERN = /^[!-]showemote(?:\s+\S.*)?$/i;
 
 function isShowEmoteCommand(rawText) {
@@ -1245,6 +1265,7 @@ async function startComboOverlay() {
 
 	const widget = createComboWidget(host, () => settings);
 	const showLayer = createShowEmoteLayer(host, () => settings);
+	let lastShowAt = 0;
 	const soundEngine = createComboSoundEngine(() => settings);
 
 	soundEngine.preload();
@@ -1261,7 +1282,14 @@ async function startComboOverlay() {
 			const emotes = extractComboEmotes(rawText, tags, username);
 
 			if (settings.showEmote && isShowEmoteCommand(rawText)) {
-				if (emotes.length) {
+				const now = Date.now();
+				const exempt = isComboPrivileged(tags, username, settings.channel);
+
+				if (emotes.length && (exempt || now - lastShowAt >= settings.showEmoteCooldown * 1000)) {
+					if (!exempt) {
+						lastShowAt = now;
+					}
+
 					showLayer.show(emotes[0]);
 				}
 
