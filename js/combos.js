@@ -49,6 +49,8 @@ const COMBO_DEFAULTS = {
 	animation: "pop",
 	cardColor: "#000000",
 	cardOpacity: 0,
+	showEmote: true,
+	showEmoteTime: 3,
 };
 
 const COMBO_SOUND_UPLOAD_URL = "https://media.marz.lol/upload.php";
@@ -79,6 +81,8 @@ const COMBO_SHORT = {
 	animation: "an",
 	cardColor: "cc",
 	cardOpacity: "co",
+	showEmote: "se",
+	showEmoteTime: "st",
 };
 
 const COMBO_COLOR_KEYS = new Set(["textColor", "strokeColor", "cardColor"]);
@@ -177,6 +181,20 @@ const COMBO_TABS = [
 			{ section: "Background card" },
 			{ key: "cardColor", label: "Card color", type: "color" },
 			{ key: "cardOpacity", label: "Card opacity", type: "range", min: 0, max: 1, step: 0.01, fmt: comboPercent },
+		],
+	},
+	{
+		id: "showemote",
+		title: "Show Emote",
+		desc: "Let chat drop an emote at a random spot on screen with !showemote or -showemote.",
+		fields: [
+			{
+				key: "showEmote",
+				label: "Enable !showemote",
+				type: "bool",
+				note: "Chat types !showemote or -showemote followed by an emote.",
+			},
+			{ key: "showEmoteTime", label: "Show time", type: "range", min: 1, max: 15, step: 0.5, fmt: (v) => `${v}s` },
 		],
 	},
 	{
@@ -778,6 +796,30 @@ const COMBO_WIDGET_CSS = `
 	display: block;
 }
 
+.cb-show-layer {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.cb-show-emote {
+	position: absolute;
+	display: block;
+	width: auto;
+	max-width: none;
+	object-fit: contain;
+	opacity: 0;
+	transform: scale(0.7);
+	transition: opacity 0.6s ease-in, transform 0.2s ease-out;
+}
+
+.cb-show-emote.is-in {
+	opacity: 1;
+	transform: scale(1);
+	transition: opacity 0.15s ease-out, transform 0.2s ease-out;
+}
+
 .cb-card.a-in { animation: cbIn 0.3s ease-out; }
 .cb-card.a-out { animation: cbOut 0.35s ease-in forwards; }
 .cb-card.a-pop { animation: cbPop 0.28s ease-out; }
@@ -1034,6 +1076,105 @@ function createComboWidget(host, getSettings) {
 	};
 }
 
+function createShowEmoteLayer(host, getSettings) {
+	ensureComboWidgetStyle();
+
+	const layer = document.createElement("div");
+
+	layer.className = "cb-show-layer";
+	host.appendChild(layer);
+
+	const MAX_ACTIVE = 40;
+	const timers = new Set();
+
+	function later(fn, ms) {
+		const id = setTimeout(() => {
+			timers.delete(id);
+			fn();
+		}, ms);
+
+		timers.add(id);
+
+		return id;
+	}
+
+	function show(emote) {
+		if (!emote || !emote.url) {
+			return;
+		}
+
+		const s = getSettings();
+
+		while (layer.children.length >= MAX_ACTIVE) {
+			layer.firstChild.remove();
+		}
+
+		const img = document.createElement("img");
+
+		img.className = "cb-show-emote";
+		img.draggable = false;
+		img.alt = emote.name || "";
+		img.style.height = `${96 * s.emoteScale}px`;
+		img.style.filter = s.shadow ? "drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.85))" : "none";
+
+		img.addEventListener("error", () => img.remove());
+
+		img.addEventListener("load", () => {
+			const width = layer.clientWidth;
+			const height = layer.clientHeight;
+			const w = img.offsetWidth;
+			const h = img.offsetHeight;
+
+			img.style.left = `${Math.max(0, Math.random() * (width - w))}px`;
+			img.style.top = `${Math.max(0, Math.random() * (height - h))}px`;
+
+			void img.offsetWidth;
+
+			img.classList.add("is-in");
+
+			later(() => {
+				img.classList.remove("is-in");
+
+				later(() => img.remove(), 650);
+			}, Math.max(0.5, Number(getSettings().showEmoteTime) || 3) * 1000);
+		});
+
+		layer.appendChild(img);
+		img.src = emote.url;
+	}
+
+	return {
+		show,
+		clear() {
+			for (const id of timers) {
+				clearTimeout(id);
+			}
+
+			timers.clear();
+			layer.replaceChildren();
+		},
+		destroy() {
+			for (const id of timers) {
+				clearTimeout(id);
+			}
+
+			timers.clear();
+			layer.remove();
+		},
+	};
+}
+
+const COMBO_SHOWEMOTE_PATTERN = /^[!-]showemote(?:\s+\S.*)?$/i;
+
+function isShowEmoteCommand(rawText) {
+	const plain = String(rawText || "")
+		.replace(/^\x01?ACTION /, "")
+		.replace(/\x01$/, "")
+		.trim();
+
+	return COMBO_SHOWEMOTE_PATTERN.test(plain);
+}
+
 function extractComboEmotes(text, tags, username) {
 	const plain = String(text || "")
 		.replace(/^\x01?ACTION /, "")
@@ -1103,6 +1244,7 @@ async function startComboOverlay() {
 	document.body.appendChild(host);
 
 	const widget = createComboWidget(host, () => settings);
+	const showLayer = createShowEmoteLayer(host, () => settings);
 	const soundEngine = createComboSoundEngine(() => settings);
 
 	soundEngine.preload();
@@ -1117,6 +1259,14 @@ async function startComboOverlay() {
 	window.onMsg = (username, rawText, color, userId, tags) => {
 		try {
 			const emotes = extractComboEmotes(rawText, tags, username);
+
+			if (settings.showEmote && isShowEmoteCommand(rawText)) {
+				if (emotes.length) {
+					showLayer.show(emotes[0]);
+				}
+
+				return;
+			}
 
 			widget.push(emotes);
 			soundEngine.handle(emotes);
@@ -1236,8 +1386,9 @@ function showComboMenu() {
 	const hitButton = comboEl("button", "mc-sim-btn", "+1 combo");
 	const breakButton = comboEl("button", "mc-sim-btn", "Break");
 	const autoButton = comboEl("button", "mc-sim-btn", "Auto play");
+	const showButton = comboEl("button", "mc-sim-btn", "Show emote");
 
-	for (const button of [hitButton, breakButton, autoButton]) {
+	for (const button of [hitButton, breakButton, autoButton, showButton]) {
 		button.type = "button";
 		stageMeta.appendChild(button);
 	}
@@ -1252,6 +1403,7 @@ function showComboMenu() {
 	stage.appendChild(stageCanvas);
 
 	const widget = createComboWidget(previewFrame, () => settings);
+	const showLayer = createShowEmoteLayer(previewFrame, () => settings);
 
 	function commit() {
 		saveStoredComboSettings(settings);
@@ -1890,6 +2042,8 @@ function showComboMenu() {
 
 	hitButton.addEventListener("click", () => widget.push([COMBO_PREVIEW_EMOTE]));
 
+	showButton.addEventListener("click", () => showLayer.show(COMBO_PREVIEW_EMOTE));
+
 	breakButton.addEventListener("click", () => {
 		stopAuto();
 		widget.reset();
@@ -1909,6 +2063,7 @@ function showComboMenu() {
 	backLink.addEventListener("click", () => {
 		stopAuto();
 		widget.destroy();
+		showLayer.destroy();
 		screen.replaceChildren(...savedNodes);
 		delete screen.dataset.comboOpen;
 	});
