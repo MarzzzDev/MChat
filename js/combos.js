@@ -83,6 +83,7 @@ const COMBO_SHORT = {
 
 const COMBO_COLOR_KEYS = new Set(["textColor", "strokeColor", "cardColor"]);
 const COMBO_SOUND_BASE = new URL(COMBO_SOUND_UPLOAD_URL).origin + "/";
+const COMBO_SOUND_PATH = COMBO_SOUND_BASE + "uploads/";
 
 const comboPercent = (value) => `${Math.round(Number(value) * 100)}%`;
 
@@ -257,9 +258,15 @@ function encodeComboSoundsShort(list) {
 	return list
 		.filter((rule) => rule.name && rule.urls.length)
 		.map((rule) => {
-			const files = rule.urls.map((url) =>
-				url.startsWith(COMBO_SOUND_BASE) ? url.slice(COMBO_SOUND_BASE.length) : url,
-			);
+			const files = rule.urls.map((url) => {
+				if (url.startsWith(COMBO_SOUND_PATH)) {
+					return url.slice(COMBO_SOUND_PATH.length);
+				}
+
+				return url.startsWith(COMBO_SOUND_BASE)
+					? url.slice(COMBO_SOUND_BASE.length)
+					: url;
+			});
 
 			return [rule.name, files.join("|"), rule.count].join("~");
 		})
@@ -288,9 +295,15 @@ function decodeComboSounds(raw) {
 				const urls = (files || "")
 					.split("|")
 					.filter(Boolean)
-					.map((file) =>
-						/^https?:\/\//.test(file) ? file : COMBO_SOUND_BASE + file,
-					);
+					.map((file) => {
+						if (/^https?:\/\//.test(file)) {
+							return file;
+						}
+
+						return file.includes("/")
+							? COMBO_SOUND_BASE + file
+							: COMBO_SOUND_PATH + file;
+					});
 
 				return { name, urls, count };
 			}),
