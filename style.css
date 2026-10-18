@@ -46,7 +46,7 @@ body {
     min-width: 0;
     box-sizing: border-box;
     margin: 0 0 var(--message-spacing) 0;
-    padding: 2px 12px 7px 12px;
+    padding: 1px 12px 3px 12px;
     line-height: var(--chat-line-height);
     flex-shrink: 0;
     border-radius: 14px;
@@ -309,8 +309,8 @@ body[data-entry-animation="none"] {
     height: calc(1.3em * var(--gif-scale, 1));
     width: auto;
     object-fit: contain;
-    vertical-align: middle;
-    margin: calc((var(--chat-line-height) * 1em - 1.3em * var(--gif-scale, 1)) / 2) 3px;
+    vertical-align: text-bottom;
+    margin: 0 3px;
     flex: 0 0 auto;
     filter: var(--ffz-effect-filter, );
     transition: transform 0.15s ease;
@@ -321,7 +321,7 @@ body[data-entry-animation="none"] {
 .emote-overlay-target {
     display: inline-block;
     position: relative;
-    vertical-align: middle;
+    vertical-align: text-bottom;
     line-height: 0;
 }
 
