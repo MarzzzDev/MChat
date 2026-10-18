@@ -1,6 +1,10 @@
+const KICK_PUSHER_KEY = params.get("kickPusherKey") || "34bf7a0ff419a2a775b9";
+
+const KICK_PUSHER_CLUSTER = params.get("kickPusherCluster") || "us2";
+
 const KICK_PUSHER_URL =
-	"wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679" +
-	"?protocol=7&client=js&version=8.4.0&flash=false";
+	`wss://ws-${KICK_PUSHER_CLUSTER}.pusher.com/app/${KICK_PUSHER_KEY}` +
+	"?protocol=7&client=js&version=8.5.0&flash=false";
 
 const KICK_CHANNEL_ENDPOINTS = [
 	"https://kick.com/api/v2/channels/",
@@ -114,6 +118,7 @@ function getKickBadgeIcons() {
 
 let kickSocket = null;
 let kickReconnectTimer = null;
+let kickReconnectDelay = 3000;
 let kickDataReady = Promise.resolve();
 
 const kickSeenEvents = new Set();
@@ -581,7 +586,10 @@ function connectKickSocket() {
 
 	kickSocket = socket;
 
-	socket.onopen = () => console.log("Connected to Kick (Pusher).");
+	socket.onopen = () => {
+		console.log("Connected to Kick (Pusher).");
+		kickReconnectDelay = 3000;
+	};
 
 	socket.onmessage = (event) => {
 		try {
@@ -600,7 +608,13 @@ function connectKickSocket() {
 			kickSocket = null;
 		}
 
-		kickReconnectTimer = setTimeout(connectKickSocket, 3000);
+		if (event.code >= 4000 && event.code < 4100) {
+			console.error("Kick config error, not reconnecting:", event.reason);
+			return;
+		}
+
+		kickReconnectTimer = setTimeout(connectKickSocket, kickReconnectDelay);
+		kickReconnectDelay = Math.min(kickReconnectDelay * 2, 60000);
 	};
 }
 

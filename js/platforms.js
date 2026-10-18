@@ -1,661 +1,967 @@
-const KICK_PUSHER_KEY = params.get("kickPusherKey") || "34bf7a0ff419a2a775b9";
+const PLATFORM_PROXY_URL = "https://dark-sky-7185.marseceva.workers.dev/";
 
-const KICK_PUSHER_CLUSTER = params.get("kickPusherCluster") || "us2";
+function getPlatformProxy() {
+	const value = String(params.get("proxy") || PLATFORM_PROXY_URL || "").trim();
 
-const KICK_PUSHER_URL =
-	`wss://ws-${KICK_PUSHER_CLUSTER}.pusher.com/app/${KICK_PUSHER_KEY}` +
-	"?protocol=7&client=js&version=8.5.0&flash=false";
+	return value.replace(/\/+$/, "");
+}
 
-const KICK_CHANNEL_ENDPOINTS = [
-	"https://kick.com/api/v2/channels/",
-	"https://kick.com/api/v1/channels/",
-];
+function proxiedUrl(target) {
+	return `${getPlatformProxy()}/?u=${encodeURIComponent(target)}`;
+}
 
-const KICK_EMOTE_TOKEN = /\[emote:(\d+):([^\]]+)\]/g;
+async function platformFetch(url, init = {}) {
+	if (!getPlatformProxy()) {
+		return fetch(url, init);
+	}
 
-const KICK_BOTS = new Set([
-	"botrix",
-	"kickbot",
-	"nightbot",
-	"moobot",
-	"streamelements",
-	"streamlabs",
-	"fossabot",
-]);
+	return fetch(proxiedUrl(url), init);
+}
 
-const KICK_BADGE_ORDER = [
-	"broadcaster",
-	"owner",
-	"staff",
-	"moderator",
-	"verified",
-	"sidekick",
-	"og",
-	"vip",
-	"founder",
-	"sub_gifter",
-	"subscriber",
-];
+const MOD_COMMANDS = new Map([["-refresh", () => hardRefreshOverlay()]]);
 
-const KICK_BADGE_BASE = (
-	params.get("kickBadgeBase") || "https://www.kickdatabase.com/kickBadges/"
-).replace(/\/*$/, "/");
+const ALWAYS_ALLOWED_MOD_COMMANDS = new Set(["-refresh", "-modcommands"]);
 
-const KICK_BADGE_FILES = {
-	broadcaster: "broadcaster",
-	owner: "broadcaster",
-	moderator: "moderator",
-	vip: "vip",
-	og: "og",
-	founder: "founder",
-	staff: "staff",
-	verified: "verified",
-	sidekick: "sidekick",
-	subscriber: "subscriber",
-	sub_gifter: "subGifter",
+const OPTION_OVERRIDES_KEY = "mchat-option-overrides";
+const optionOverrides = {};
+
+const OPTION_BOOL_WORDS = {
+	on: true,
+	true: true,
+	yes: true,
+	1: true,
+	off: false,
+	false: false,
+	no: false,
+	0: false,
 };
 
-function kickBadgeUrl(type, count = 0) {
-	let file = KICK_BADGE_FILES[type];
+const rootStyle = () => document.documentElement.style;
 
-	if (!file) {
+function numberOption(min, max, get, set) {
+	return { kind: "number", min, max, get, set };
+}
+
+function boolOption(get, set) {
+	return { kind: "bool", get, set };
+}
+
+function enumOption(values, get, set) {
+	return { kind: "enum", values, get, set };
+}
+
+function colorOption(get, set) {
+	return { kind: "color", get, set };
+}
+
+function listOption(get, set) {
+	return { kind: "list", get, set };
+}
+
+function simpleBool(read, write, after) {
+	return boolOption(read, (value) => {
+		write(value);
+		after?.();
+	});
+}
+
+const OVERLAY_OPTIONS = {
+	scale: numberOption(
+		0.25,
+		3,
+		() => scale,
+		(v) => {
+			scale = v;
+			rootStyle().setProperty("--chat-scale", v);
+		},
+	),
+	emotescale: numberOption(
+		0.25,
+		3,
+		() => emoteScale,
+		(v) => {
+			emoteScale = v;
+			rootStyle().setProperty("--emote-scale", v);
+		},
+	),
+	bigemotescale: numberOption(
+		1,
+		3,
+		() => bigEmoteScale,
+		(v) => {
+			bigEmoteScale = v;
+			applyBigEmoteSettings();
+		},
+	),
+	badgescale: numberOption(
+		0.25,
+		2,
+		() => badgeScale,
+		(v) => {
+			badgeScale = v;
+			rootStyle().setProperty("--badge-scale", String(v));
+		},
+	),
+	badgespacing: numberOption(
+		0,
+		30,
+		() => badgeSpacing,
+		(v) => {
+			badgeSpacing = v;
+			rootStyle().setProperty("--badge-spacing", `${v}px`);
+		},
+	),
+	gifscale: numberOption(
+		0.25,
+		3,
+		() => gifScale,
+		(v) => {
+			gifScale = v;
+			applyTextStyleSettings();
+		},
+	),
+	usernamesize: numberOption(
+		8,
+		100,
+		() => usernameFontSize,
+		(v) => {
+			usernameFontSize = v;
+			roleTypographyEnabled = true;
+			applyRoleTypography();
+		},
+	),
+	messagesize: numberOption(
+		8,
+		100,
+		() => messageFontSize,
+		(v) => {
+			messageFontSize = v;
+			roleTypographyEnabled = true;
+			applyRoleTypography();
+		},
+	),
+	strokewidth: numberOption(
+		0,
+		20,
+		() => strokeWidth,
+		(v) => {
+			strokeWidth = v;
+			applyTextStyleSettings();
+		},
+	),
+	shadowintensity: numberOption(
+		0,
+		1,
+		() => shadowIntensity,
+		(v) => {
+			shadowIntensity = v;
+			applyShadowSettings();
+		},
+	),
+	shadowsize: numberOption(
+		0,
+		40,
+		() => shadowSize,
+		(v) => {
+			shadowSize = v;
+			applyShadowSettings();
+		},
+	),
+	shadowoffset: numberOption(
+		0,
+		20,
+		() => shadowOffset,
+		(v) => {
+			shadowOffset = v;
+			applyShadowSettings();
+		},
+	),
+	messagespacing: numberOption(
+		0,
+		32,
+		() => messageSpacing,
+		(v) => {
+			messageSpacing = v;
+			applyMessageCardSettings();
+		},
+	),
+	messagecardopacity: numberOption(
+		0,
+		1,
+		() => messageCardOpacity,
+		(v) => {
+			messageCardOpacity = v;
+			applyMessageCardSettings();
+		},
+	),
+	messagecardradius: numberOption(
+		0,
+		32,
+		() => messageCardRadius,
+		(v) => {
+			messageCardRadius = v;
+			applyMessageCardSettings();
+		},
+	),
+	messagecardborderwidth: numberOption(
+		0,
+		8,
+		() => messageCardBorderWidth,
+		(v) => {
+			messageCardBorderWidth = v;
+			applyMessageCardSettings();
+		},
+	),
+	messagecardpadding: numberOption(
+		0,
+		24,
+		() => messageCardPadding,
+		(v) => {
+			messageCardPadding = v;
+			applyMessageCardSettings();
+		},
+	),
+	fade: {
+		kind: "fade",
+		get: () => fade,
+		set: (v) => {
+			fade = v;
+
+			for (const message of document.querySelectorAll("#chat > .message")) {
+				if (
+					message.classList.contains("hl-card") ||
+					message.style.animation.includes("messageFadeOut")
+				) {
+					continue;
+				}
+
+				scheduleMessageFade(message, message.dataset.userKey || null);
+			}
+		},
+	},
+	textcolor: colorOption(
+		() => textColor,
+		(v) => {
+			textColor = v;
+			applyTextColor(v);
+		},
+	),
+	strokecolor: colorOption(
+		() => strokeColor,
+		(v) => {
+			strokeColor = v;
+			applyTextStyleSettings();
+		},
+	),
+	messagecardcolor: colorOption(
+		() => messageCardColor,
+		(v) => {
+			messageCardColor = v;
+			applyMessageCardSettings();
+		},
+	),
+	messagecardbordercolor: colorOption(
+		() => messageCardBorderColor,
+		(v) => {
+			messageCardBorderColor = v;
+			applyMessageCardSettings();
+		},
+	),
+	entryanimation: enumOption(
+		["classic", "from-left", "from-right", "none"],
+		() => entryAnimation,
+		(v) => {
+			entryAnimation = v;
+			applyEntryAnimation();
+		},
+	),
+	align: enumOption(
+		["left", "center", "right"],
+		() => alignMode,
+		(v) => {
+			alignMode = v;
+			applyLayoutSettings();
+		},
+	),
+	messagecardborderstyle: enumOption(
+		["solid", "dashed", "dotted"],
+		() => messageCardBorderStyle,
+		(v) => {
+			messageCardBorderStyle = v;
+			applyMessageCardSettings();
+		},
+	),
+	font: enumOption(
+		["opensans", "arial", "comicsans", "roboto", "montserrat", "minecraft"],
+		() => fontValueToQueryKey(chatFont),
+		(v) => {
+			chatFont = fontQueryKeyToValue(v);
+			applyChatFont();
+			applyRoleTypography();
+		},
+	),
+	bold: simpleBool(() => boldEnabled, (v) => (boldEnabled = v), () => applyTextStyleSettings()),
+	uppercase: simpleBool(() => uppercaseEnabled, (v) => (uppercaseEnabled = v), () => applyTextStyleSettings()),
+	centerbadges: simpleBool(() => centerBadgesEnabled, (v) => (centerBadgesEnabled = v), () => applyTextStyleSettings()),
+	centeremotes: simpleBool(() => centerEmotesEnabled, (v) => (centerEmotesEnabled = v), () => applyTextStyleSettings()),
+	shadow: simpleBool(() => shadowEnabled, (v) => (shadowEnabled = v), () => applyShadowSettings()),
+	messagecards: simpleBool(() => messageCardsEnabled, (v) => (messageCardsEnabled = v), () => applyMessageCardSettings()),
+	newesttop: simpleBool(() => newestTopEnabled, (v) => (newestTopEnabled = v), () => applyLayoutSettings()),
+	wrap: simpleBool(
+		() => wrapEnabled,
+		(v) => {
+			wrapEnabled = v;
+
+			if (v) {
+				wrapAfterColonEnabled = false;
+			}
+		},
+		() => {
+			applyLayoutSettings();
+
+			for (const message of document.querySelectorAll("#chat > .message:not(.hl-card)")) {
+				message.classList.toggle("wrap-message", wrapEnabled);
+			}
+		},
+	),
+	wrapaftercolon: simpleBool(
+		() => wrapAfterColonEnabled,
+		(v) => {
+			wrapAfterColonEnabled = v;
+
+			if (v) {
+				wrapEnabled = false;
+			}
+		},
+		() => {
+			applyLayoutSettings();
+
+			for (const message of document.querySelectorAll("#chat > .message:not(.hl-card)")) {
+				message.classList.toggle("wrap-message", wrapEnabled);
+			}
+		},
+	),
+	bigemotes: simpleBool(() => bigEmotesEnabled, (v) => (bigEmotesEnabled = v)),
+	badges: simpleBool(() => badgesEnabled, (v) => (badgesEnabled = v)),
+	badgetwitch: simpleBool(() => badgeTwitch, (v) => (badgeTwitch = v)),
+	badgeffz: simpleBool(() => badgeFfz, (v) => (badgeFfz = v)),
+	badgeseventv: simpleBool(() => badgeSeventv, (v) => (badgeSeventv = v)),
+	badgechatterino: simpleBool(() => badgeChatterino, (v) => (badgeChatterino = v)),
+	badgehomies: simpleBool(() => badgeHomies, (v) => (badgeHomies = v)),
+	badgebttv: simpleBool(() => badgeBttv, (v) => (badgeBttv = v)),
+	badgedankchat: simpleBool(() => badgeDankchat, (v) => (badgeDankchat = v)),
+	badgemoltorino: simpleBool(() => badgeMoltorino, (v) => (badgeMoltorino = v)),
+	pfps: simpleBool(() => pfpsEnabled, (v) => (pfpsEnabled = v)),
+	gifs: simpleBool(() => gifsEnabled, (v) => (gifsEnabled = v)),
+	highlights: simpleBool(() => highlightsEnabled, (v) => (highlightsEnabled = v)),
+	hlfirst: simpleBool(() => hlFirstEnabled, (v) => (hlFirstEnabled = v)),
+	hlredeems: simpleBool(() => hlRedeemsEnabled, (v) => (hlRedeemsEnabled = v)),
+	hlgifts: simpleBool(() => hlGiftsEnabled, (v) => (hlGiftsEnabled = v)),
+	hlsubs: simpleBool(() => hlSubsEnabled, (v) => (hlSubsEnabled = v)),
+	hlraids: simpleBool(() => hlRaidsEnabled, (v) => (hlRaidsEnabled = v)),
+	hlstreaks: simpleBool(() => hlStreaksEnabled, (v) => (hlStreaksEnabled = v)),
+	pins: simpleBool(() => pinsEnabled, (v) => (pinsEnabled = v)),
+	bots: simpleBool(() => botsEnabled, (v) => (botsEnabled = v)),
+	hidelinks: simpleBool(() => hideLinksEnabled, (v) => (hideLinksEnabled = v)),
+	platformindicator: simpleBool(() => platformIndicatorEnabled, (v) => (platformIndicatorEnabled = v)),
+	colonmatchusername: simpleBool(() => colonMatchUsernameEnabled, (v) => (colonMatchUsernameEnabled = v)),
+	unlisted: simpleBool(() => showUnlisted7TV, (v) => (showUnlisted7TV = v)),
+	cheers: simpleBool(() => cheersEnabled, (v) => (cheersEnabled = v)),
+	collapse: simpleBool(() => collapseEnabled, (v) => (collapseEnabled = v)),
+	msgfilter: listOption(
+		() => messageFilters,
+		(v) => {
+			messageFilters = v;
+		},
+	),
+	botfilter: listOption(
+		() => botFilterUsers,
+		(v) => {
+			botFilterUsers = v;
+		},
+	),
+};
+
+function coerceOptionValue(option, input) {
+	switch (option.kind) {
+		case "number": {
+			const value = Number(input);
+
+			return Number.isFinite(value)
+				? Math.max(option.min, Math.min(value, option.max))
+				: undefined;
+		}
+
+		case "bool":
+			if (typeof input === "boolean") {
+				return input;
+			}
+
+			return OPTION_BOOL_WORDS[String(input).toLowerCase()];
+
+		case "enum": {
+			const value = String(input).toLowerCase();
+
+			return option.values.includes(value) ? value : undefined;
+		}
+
+		case "color": {
+			const match = /^#?([0-9a-f]{6})$/i.exec(String(input).trim());
+
+			return match ? `#${match[1].toLowerCase()}` : undefined;
+		}
+
+		case "fade": {
+			if (input === false || /^(off|false|no)$/i.test(String(input))) {
+				return false;
+			}
+
+			const value = Number(input);
+
+			return Number.isFinite(value) && value >= 1 ? value : undefined;
+		}
+
+		case "list": {
+			if (Array.isArray(input)) {
+				return input.map(String);
+			}
+
+			return /^(off|none|clear)$/i.test(String(input).trim())
+				? []
+				: parseQueryList(input, { stripAt: option === OVERLAY_OPTIONS.botfilter });
+		}
+	}
+
+	return undefined;
+}
+
+function saveOptionOverrides() {
+	try {
+		localStorage.setItem(
+			OPTION_OVERRIDES_KEY,
+			JSON.stringify({ query: location.search, values: optionOverrides }),
+		);
+	} catch {}
+}
+
+function runOptionCommand(name, option, args) {
+	let input;
+
+	if (option.kind === "bool" && !args.length) {
+		input = !option.get();
+	} else if (!args.length) {
+		return;
+	} else if (option.kind === "list") {
+		input = args.join(" ");
+	} else {
+		input = args[0];
+	}
+
+	const value = coerceOptionValue(option, input);
+
+	if (value === undefined) {
+		console.warn(`[mod] Invalid value for -${name}:`, input);
+		return;
+	}
+
+	option.set(value);
+	optionOverrides[name] = value;
+	saveOptionOverrides();
+
+	console.log(`[mod] -${name} set to`, value);
+}
+
+function applyStoredOptionOverrides() {
+	try {
+		const saved = JSON.parse(localStorage.getItem(OPTION_OVERRIDES_KEY) || "null");
+
+		if (!saved || saved.query !== location.search) {
+			localStorage.removeItem(OPTION_OVERRIDES_KEY);
+			return;
+		}
+
+		for (const [name, stored] of Object.entries(saved.values || {})) {
+			const option = OVERLAY_OPTIONS[name];
+			const value = option ? coerceOptionValue(option, stored) : undefined;
+
+			if (value === undefined) {
+				continue;
+			}
+
+			option.set(value);
+			optionOverrides[name] = value;
+		}
+	} catch (error) {
+		console.warn("Stored option overrides could not be applied:", error);
+	}
+}
+
+function resetOptionOverrides() {
+	try {
+		localStorage.removeItem(OPTION_OVERRIDES_KEY);
+	} catch {}
+
+	location.reload();
+}
+
+for (const [name, option] of Object.entries(OVERLAY_OPTIONS)) {
+	MOD_COMMANDS.set(`-${name}`, (args) => runOptionCommand(name, option, args));
+}
+
+MOD_COMMANDS.set("-reset", resetOptionOverrides);
+
+const SHOW_TRUSTED_HOSTS = ["kappa.lol", "femboy.beauty", "olrite.lol", "gachi.gay"];
+const SHOW_DURATION_MS = 5000;
+const SHOW_IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"]);
+const SHOW_VIDEO_EXT = new Set(["mp4", "webm", "mov", "m4v"]);
+const SHOW_AUDIO_EXT = new Set(["mp3", "ogg", "wav", "m4a", "flac", "opus", "aac"]);
+
+let activeShow = null;
+
+function resolveTrustedShowUrl(input) {
+	let url;
+
+	try {
+		url = new URL(String(input || "").trim());
+	} catch {
 		return null;
 	}
 
-	if (type === "sub_gifter") {
-		const tier = [200, 100, 50, 25].find((value) => count >= value);
-
-		file = tier ? `subGifter${tier}` : "subGifter";
+	if (url.protocol !== "https:" || url.username || url.password) {
+		return null;
 	}
 
-	return `${KICK_BADGE_BASE}${file}.svg`;
+	const host = url.hostname.toLowerCase();
+
+	const trusted = SHOW_TRUSTED_HOSTS.some(
+		(allowed) => host === allowed || host.endsWith(`.${allowed}`),
+	);
+
+	return trusted ? url.href : null;
 }
 
-const KICK_GLYPHS = {
-	camera:
-		'<rect x="5" y="10" width="15" height="12" rx="2"/>' +
-		'<path d="M22 14.5l5-3v9l-5-3z"/>',
-	sword:
-		'<path d="M24 5l3 3-11 11-3-3z"/>' +
-		'<path d="M11 16l5 5-2 2-5-5z"/>' +
-		'<path d="M8 20l4 4-3 3-2-2-2 1 1-2z"/>',
-	gem: '<path d="M10 7h12l5 7-11 13L5 14z"/>',
-	crown: '<path d="M5 24V10l6 5 5-8 5 8 6-5v14z"/>',
-	star:
-		'<path d="M16 4.5l3.5 7.2 7.9 1.1-5.7 5.5 1.4 7.8L16 22.4l-7.1 3.7 ' +
-		'1.4-7.8-5.7-5.5 7.9-1.1z"/>',
-	gift:
-		'<path d="M6 12h20v5H6zM8 18h16v9H8z"/>' +
-		'<path d="M16 12c-3-6-9-4-6 0M16 12c3-6 9-4 6 0" fill="none" ' +
-		'stroke="#fff" stroke-width="2.4"/>',
-	shield:
-		'<path d="M16 4l10 3.5V16c0 5.5-4.3 9.5-10 12C10.3 25.5 6 21.5 6 16V7.5z"/>',
-};
+function detectShowKinds(href) {
+	const match = /\.([a-z0-9]+)$/i.exec(new URL(href).pathname);
+	const ext = match ? match[1].toLowerCase() : "";
 
-let kickBadgeIconCache = null;
-
-function getKickBadgeIcons() {
-	if (!kickBadgeIconCache) {
-		const broadcaster = glyphBadgeIcon("#e91916", KICK_GLYPHS.camera);
-
-		kickBadgeIconCache = {
-			broadcaster,
-			owner: broadcaster,
-			moderator: glyphBadgeIcon("#00a94f", KICK_GLYPHS.sword),
-			vip: glyphBadgeIcon("#d62ecf", KICK_GLYPHS.gem),
-			og: glyphBadgeIcon("#e08a00", KICK_GLYPHS.crown),
-			founder: glyphBadgeIcon("#b8860b", KICK_GLYPHS.star),
-			sub_gifter: glyphBadgeIcon("#2563eb", KICK_GLYPHS.gift),
-			staff: glyphBadgeIcon("#2b2b2b", KICK_GLYPHS.shield),
-			subscriber: glyphBadgeIcon("#2fa80e", KICK_GLYPHS.star),
-			sidekick: glyphBadgeIcon("#7c3aed", KICK_GLYPHS.star),
-			verified: checkBadgeIcon("#2fb80f"),
-		};
+	if (SHOW_IMAGE_EXT.has(ext)) {
+		return ["image"];
 	}
 
-	return kickBadgeIconCache;
+	if (SHOW_VIDEO_EXT.has(ext)) {
+		return ["video"];
+	}
+
+	if (SHOW_AUDIO_EXT.has(ext)) {
+		return ["audio"];
+	}
+
+	return ["image", "video"];
 }
 
-let kickSocket = null;
-let kickReconnectTimer = null;
-let kickReconnectDelay = 3000;
-let kickDataReady = Promise.resolve();
+function getShowLayer() {
+	let layer = document.getElementById("show-layer");
 
-const kickSeenEvents = new Set();
-
-function markKickSeen(key) {
-	if (!key) {
-		return true;
+	if (layer) {
+		return layer;
 	}
 
-	if (kickSeenEvents.has(key)) {
+	layer = document.createElement("div");
+	layer.id = "show-layer";
+
+	Object.assign(layer.style, {
+		position: "fixed",
+		left: "0",
+		right: "0",
+		top: "50%",
+		bottom: "0",
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		pointerEvents: "none",
+		zIndex: "2147483647",
+	});
+
+	document.body.appendChild(layer);
+
+	return layer;
+}
+
+function clearShow() {
+	if (!activeShow) {
+		return;
+	}
+
+	clearTimeout(activeShow.timer);
+
+	for (const node of activeShow.nodes) {
+		if (typeof node.pause === "function") {
+			node.pause();
+		}
+
+		node.removeAttribute?.("src");
+		node.remove?.();
+	}
+
+	activeShow = null;
+}
+
+function buildShowNode(kind, href) {
+	if (kind === "audio") {
+		const audio = new Audio();
+
+		audio.preload = "auto";
+		audio.autoplay = true;
+		audio.src = href;
+
+		return audio;
+	}
+
+	const node = document.createElement(kind === "video" ? "video" : "img");
+
+	Object.assign(node.style, {
+		maxWidth: "100%",
+		maxHeight: "100%",
+		objectFit: "contain",
+	});
+
+	if (kind === "video") {
+		node.autoplay = true;
+		node.playsInline = true;
+		node.preload = "auto";
+	} else {
+		node.decoding = "async";
+		node.referrerPolicy = "no-referrer";
+	}
+
+	node.src = href;
+
+	return node;
+}
+
+function showMedia(href) {
+	clearShow();
+
+	const layer = getShowLayer();
+	const kinds = detectShowKinds(href);
+	const state = { nodes: [], timer: null };
+
+	activeShow = state;
+
+	const attempt = (index) => {
+		if (activeShow !== state) {
+			return;
+		}
+
+		const kind = kinds[index];
+
+		if (!kind) {
+			clearShow();
+			return;
+		}
+
+		clearTimeout(state.timer);
+
+		if (kind !== "video") {
+			state.timer = setTimeout(clearShow, SHOW_DURATION_MS);
+		}
+
+		const node = buildShowNode(kind, href);
+
+		state.nodes.push(node);
+
+		if (kind === "video") {
+			node.addEventListener("ended", () => {
+				if (activeShow === state) {
+					clearShow();
+				}
+			});
+		}
+
+		node.addEventListener(
+			"error",
+			() => {
+				if (activeShow !== state) {
+					return;
+				}
+
+				if (typeof node.pause === "function") {
+					node.pause();
+				}
+
+				node.removeAttribute("src");
+				node.remove();
+				state.nodes = state.nodes.filter((item) => item !== node);
+
+				attempt(index + 1);
+			},
+			{ once: true },
+		);
+
+		if (kind !== "audio") {
+			layer.appendChild(node);
+		}
+
+		if (typeof node.play === "function") {
+			node.play().catch(() => {});
+		}
+	};
+
+	attempt(0);
+}
+
+MOD_COMMANDS.set("-show", (args, rawArgs) => {
+	const href = resolveTrustedShowUrl(rawArgs[0]);
+
+	if (!href) {
+		console.warn("[mod] -show rejected: untrusted or invalid url");
+		return;
+	}
+
+	showMedia(href);
+});
+
+MOD_COMMANDS.set("-skip", () => {
+	clearShow();
+});
+
+MOD_COMMANDS.set("-modcommands", (args, rawArgs, isBroadcaster) => {
+	const value = OPTION_BOOL_WORDS[String(args[0] || "").toLowerCase()];
+
+	if (value === undefined) {
+		return;
+	}
+
+	if (value === false || isBroadcaster) {
+		modCommandsEnabled = value;
+		console.log(`[mod] Mod commands ${value ? "enabled" : "disabled"}`);
+	}
+});
+
+function runModCommand(text, isMod, isBroadcaster = false) {
+	const broadcaster = Boolean(isBroadcaster);
+
+	if (!isMod && !broadcaster) {
 		return false;
 	}
 
-	kickSeenEvents.add(key);
+	const original = String(text || "")
+		.replace(/^\x01?ACTION /, "")
+		.replace(/\x01$/, "")
+		.trim();
 
-	if (kickSeenEvents.size > 3000) {
-		kickSeenEvents.delete(kickSeenEvents.values().next().value);
+	const [name, ...args] = original.toLowerCase().split(/\s+/);
+
+	if (
+		!broadcaster &&
+		!modCommandsEnabled &&
+		!ALWAYS_ALLOWED_MOD_COMMANDS.has(name)
+	) {
+		return false;
 	}
+
+	const rawArgs = original.split(/\s+/).slice(1);
+
+	const handler = MOD_COMMANDS.get(name);
+
+	if (!handler) {
+		return false;
+	}
+
+	handler(args, rawArgs, broadcaster);
 
 	return true;
 }
 
-function kickTimeBucket() {
-	return Math.floor(Date.now() / 5000);
+function removePlatformElement(element) {
+	element.remove();
+	unregisterMessageIds(element);
+
+	for (const [key, set] of userMessageElements) {
+		if (set.delete(element) && set.size === 0) {
+			userMessageElements.delete(key);
+		}
+	}
 }
 
-async function resolveKickChannel(slug) {
-	const manualChatroom = params.get("kickChatroom");
-
-	if (manualChatroom) {
-		KICK_CHATROOM_ID = String(manualChatroom);
-		KICK_USER_ID = params.get("kickUserId") || null;
-		KICK_CHANNEL_ID = params.get("kickChannelId") || null;
-
+function removePlatformMessage(messageId) {
+	if (!messageId) {
 		return;
 	}
 
-	const encodedSlug = encodeURIComponent(slug.replace(/_/g, "-"));
+	const element = messageElements.get(String(messageId));
 
-	let data = null;
-	let lastStatus = 0;
-
-	for (const base of KICK_CHANNEL_ENDPOINTS) {
-		try {
-			const response = await platformFetch(base + encodedSlug, {
-				headers: { Accept: "application/json" },
-			});
-
-			if (!response.ok) {
-				lastStatus = response.status;
-
-				continue;
-			}
-
-			data = await response.json();
-
-			break;
-		} catch (error) {
-			console.warn("Kick channel lookup failed:", base, error);
-		}
-	}
-
-	if (!data) {
-		const error = new Error(
-			`Kick channel lookup failed: ${lastStatus || "network error"}`,
-		);
-		error.retryable =
-			!lastStatus || lastStatus === 408 || lastStatus === 429 || lastStatus >= 500;
-		throw error;
-	}
-
-	if (data?.chatroom?.id == null) {
-		const error = new Error("Kick channel lookup returned no chatroom ID");
-		error.retryable = true;
-		throw error;
-	}
-
-	KICK_CHATROOM_ID = data?.chatroom?.id != null ? String(data.chatroom.id) : null;
-
-	KICK_CHANNEL_ID = data?.id != null ? String(data.id) : null;
-
-	KICK_USER_ID =
-		data?.user_id != null
-			? String(data.user_id)
-			: data?.user?.id != null
-				? String(data.user.id)
-				: null;
-
-	kickSubscriberBadges = (data?.subscriber_badges || [])
-		.map((badge) => ({
-			months: Number(badge?.months) || 0,
-			url: normalizeImageUrl(badge?.badge_image?.src) || null,
-		}))
-		.filter((badge) => badge.url)
-		.sort((a, b) => a.months - b.months);
-
-	if (!KICK_CHATROOM_ID) {
-		throw new Error("Kick channel lookup returned no chatroom id.");
+	if (element) {
+		removePlatformElement(element);
 	}
 }
 
-function pickKickSubscriberBadge(months) {
-	if (!kickSubscriberBadges.length) {
+function removePlatformUserMessages(platform, userId) {
+	if (userId == null) {
+		return;
+	}
+
+	const set = userMessageElements.get(`${platform}:${userId}`);
+
+	if (!set) {
+		return;
+	}
+
+	for (const element of [...set]) {
+		removePlatformElement(element);
+	}
+}
+
+function clearPlatformMessages(platform) {
+	const chat = document.getElementById("chat");
+
+	if (!chat) {
+		return;
+	}
+
+	for (const element of chat.querySelectorAll(
+		`.message[data-platform="${platform}"]`,
+	)) {
+		removePlatformElement(element);
+	}
+}
+
+function checkBadgeIcon(background) {
+	const svg =
+		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+		`<rect width="32" height="32" rx="16" fill="${background}"/>` +
+		`<path d="M9 17l5 5 9-11" stroke="#fff" stroke-width="3.5" fill="none" ` +
+		`stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+	return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+}
+
+function glyphBadgeIcon(background, shapes, radius = 6) {
+	const svg =
+		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+		`<rect width="32" height="32" rx="${radius}" fill="${background}"/>` +
+		`<g fill="#fff">${shapes}</g></svg>`;
+
+	return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+}
+
+function createPlatformBadges(tags) {
+	const container = document.createElement("span");
+
+	container.className = "badges platform-badges";
+
+	for (const badge of tags["platform-badges"] || []) {
+		const img = createBadge(badge.url, badge.title);
+
+		if (img) {
+			img.alt = badge.title || "";
+
+			if (badge.fallback) {
+				img.addEventListener(
+					"error",
+					() => {
+						img.src = badge.fallback;
+					},
+					{ once: true },
+				);
+			}
+
+			container.appendChild(img);
+		}
+	}
+
+	return container;
+}
+
+function isCommandMessage(text) {
+	return String(text || "")
+		.trim()
+		.startsWith("!");
+}
+
+function emitPlatformMessage({
+	platform,
+	username,
+	color,
+	userId,
+	messageId,
+	segments,
+	badges = [],
+	extraTags = {},
+}) {
+	const text = segments
+		.map((segment) => (segment.type === "emote" ? segment.name : segment.text))
+		.join("");
+
+	const tags = {
+		platform,
+		segments,
+		emotes: "",
+		gifs: "",
+		badges: "",
+		"platform-badges": badges,
+		"display-name": username,
+		"user-id": userId,
+		"is-action": false,
+		"custom-reward-id": "",
+		...extraTags,
+	};
+
+	Promise.resolve(
+		onMsg(username, text, color, userId, tags, null, messageId),
+	).catch((error) => console.error(`${platform} message rendering error:`, error));
+}
+
+const PLATFORM_INDICATOR_LOGOS = {
+	twitch: "logos/twitch.png",
+	kick: "logos/kick.svg",
+	youtube: "logos/youtube.webp",
+};
+
+const PLATFORM_INDICATOR_TITLES = {
+	twitch: "Twitch",
+	kick: "Kick",
+	youtube: "YouTube",
+};
+
+function isMultiChat() {
+	return (
+		[selectedChannel, selectedKick, selectedYouTube].filter(Boolean).length > 1
+	);
+}
+
+function createPlatformIndicator(platform) {
+	const url = PLATFORM_INDICATOR_LOGOS[platform];
+
+	if (!url) {
 		return null;
 	}
 
-	let chosen = kickSubscriberBadges[0];
+	const container = document.createElement("span");
 
-	for (const badge of kickSubscriberBadges) {
-		if (badge.months <= months) {
-			chosen = badge;
-		}
-	}
+	container.className = "badges message-badges platform-indicator";
 
-	return chosen.url;
-}
+	container.dataset.platform = platform;
 
-function kickBadgeRank(type) {
-	const index = KICK_BADGE_ORDER.indexOf(type);
+	const img = document.createElement("img");
 
-	return index === -1 ? KICK_BADGE_ORDER.length : index;
-}
+	img.className = "badge platform-indicator-badge";
 
-function buildKickBadges(rawBadges) {
-	const icons = getKickBadgeIcons();
-	const entries = [];
+	img.src = url;
 
-	for (const badge of Array.isArray(rawBadges) ? rawBadges : []) {
-		const type = String(badge?.type || "").toLowerCase();
-		const count = Number(badge?.count) || 0;
-		const label = badge?.text || type;
+	img.alt = PLATFORM_INDICATOR_TITLES[platform] || platform;
 
-		if (type === "subscriber") {
-			const custom = pickKickSubscriberBadge(count);
+	img.title = PLATFORM_INDICATOR_TITLES[platform] || platform;
 
-			entries.push({
-				type,
-				url: custom || kickBadgeUrl("subscriber"),
-				fallback: icons.subscriber,
-				title: count > 1 ? `${label} (${count} months)` : label,
-			});
+	img.draggable = false;
 
-			continue;
-		}
+	img.style.width = "calc(45px * var(--badge-scale, 1))";
 
-		const url = kickBadgeUrl(type, count);
+	img.style.height = "calc(45px * var(--badge-scale, 1))";
 
-		if (!url) {
-			continue;
-		}
+	img.style.objectFit = "contain";
 
-		entries.push({
-			type,
-			url,
-			fallback: icons[type] || null,
-			title: type === "sub_gifter" && count > 0 ? `${label} (${count})` : label,
-		});
-	}
+	container.appendChild(img);
 
-	entries.sort((a, b) => kickBadgeRank(a.type) - kickBadgeRank(b.type));
-
-	return entries.map(({ url, title, fallback }) => ({ url, title, fallback }));
-}
-
-function parseKickContent(content) {
-	const segments = [];
-	let cursor = 0;
-
-	for (const match of content.matchAll(KICK_EMOTE_TOKEN)) {
-		if (match.index > cursor) {
-			segments.push({ type: "text", text: content.slice(cursor, match.index) });
-		}
-
-		segments.push({
-			type: "emote",
-			url: `https://files.kick.com/emotes/${match[1]}/fullsize`,
-			name: match[2],
-		});
-
-		cursor = match.index + match[0].length;
-	}
-
-	if (cursor < content.length) {
-		segments.push({ type: "text", text: content.slice(cursor) });
-	}
-
-	return segments;
-}
-
-function handleKickChatMessage(data) {
-	const sender = data?.sender || {};
-	const username = sender.username || sender.slug || "Unknown";
-	const login = String(sender.slug || username).toLowerCase();
-	const userId = sender.id != null ? String(sender.id) : null;
-	const identity = sender.identity || {};
-	const content = String(data?.content || "");
-
-	if (!markKickSeen(data?.id ? `msg:${data.id}` : null)) {
-		return;
-	}
-
-	const kickRoles = (Array.isArray(identity.badges) ? identity.badges : []).map(
-		(badge) => String(badge?.type || "").toLowerCase(),
-	);
-
-	const isKickMod = kickRoles.some((role) =>
-		["moderator", "broadcaster", "owner"].includes(role),
-	);
-
-	if (runModCommand(content, isKickMod)) {
-		return;
-	}
-
-	if (!botsEnabled && (KICK_BOTS.has(login) || isCommandMessage(content))) {
-		return;
-	}
-
-	const replyTo = data?.metadata?.original_sender?.username || "";
-	const replyBody = data?.metadata?.original_message?.content || "";
-
-	const extraTags = replyTo
-		? {
-				"reply-parent-display-name": replyTo,
-				"reply-parent-msg-body": replyBody,
-			}
-		: {};
-
-	kickDataReady
-		.catch(() => {})
-		.then(() =>
-			emitPlatformMessage({
-				platform: "kick",
-				username,
-				color: getTwitchDisplayColor(identity.color, login),
-				userId,
-				messageId: data?.id ? String(data.id) : null,
-				segments: parseKickContent(content),
-				badges: buildKickBadges(identity.badges),
-				extraTags,
-			}),
-		);
-}
-
-function handleKickReward(data) {
-	const username = String(data?.username || "").trim();
-
-	if (!username) {
-		return;
-	}
-
-	const title = String(data?.reward_title || "Reward");
-	const userId = data?.user_id != null ? String(data.user_id) : null;
-	const input = String(data?.user_input || "").trim();
-
-	if (!markKickSeen(`reward:${userId || username}:${title}:${kickTimeBucket()}`)) {
-		return;
-	}
-
-	kickDataReady
-		.catch(() => {})
-		.then(() =>
-			emitPlatformMessage({
-				platform: "kick",
-				username,
-				color: getTwitchDisplayColor("", username.toLowerCase()),
-				userId,
-				messageId: null,
-				segments: parseKickContent(input || `redeemed ${title}`),
-				extraTags: {
-					"custom-reward-id": `kick:${title}`,
-					"hl-label": title,
-					"is-action": !input,
-				},
-			}),
-		);
-}
-
-function handleKickSubscription(data) {
-	const username = String(data?.username || "").trim();
-
-	if (!username) {
-		return;
-	}
-
-	if (!markKickSeen(`sub:${username}:${kickTimeBucket()}`)) {
-		return;
-	}
-
-	const months = Number(data?.months) || 1;
-
-	appendNoticeCard({
-		platform: "kick",
-		name: username,
-		text: months > 1 ? `Subscribed for ${months} months` : "Subscribed",
-	});
-}
-
-function handleKickGiftedSubscriptions(data) {
-	const recipients = Array.isArray(data?.gifted_usernames)
-		? data.gifted_usernames.filter(Boolean)
-		: [];
-
-	if (!recipients.length || !hlGiftsEnabled) {
-		return;
-	}
-
-	const gifter = String(data?.gifter_username || "Anonymous");
-
-	if (!markKickSeen(`gift:${gifter}:${recipients.join(",")}:${kickTimeBucket()}`)) {
-		return;
-	}
-
-	if (recipients.length === 1) {
-		hlAppendToChat(
-			createSubGiftCard({
-				gifter,
-				recipient: String(recipients[0]),
-				tier: "",
-				gifterInfo: { platform: "kick", plain: gifter === "Anonymous" },
-				recipientInfo: { platform: "kick" },
-			}),
-		);
-
-		return;
-	}
-
-	hlAppendToChat(
-		createMassGiftCard({
-			gifter,
-			count: recipients.length,
-			senderCount: Number(data?.gifter_total) || 0,
-			tier: "",
-			gifterInfo: { platform: "kick", plain: gifter === "Anonymous" },
-		}),
-	);
-}
-
-function handleKickPin(data) {
-	const message = data?.message || {};
-	const sender = message.sender || {};
-	const identity = sender.identity || {};
-	const username = sender.username || sender.slug || "";
-	const login = String(sender.slug || username).toLowerCase();
-	const content = String(message.content || "");
-	const duration = Number(data?.duration) || 0;
-
-	if (!username || !content) {
-		return;
-	}
-
-	hlShowPin({
-		platform: "kick",
-		id: message.id != null ? String(message.id) : null,
-		username,
-		color: getTwitchDisplayColor(identity.color, login),
-		userId: sender.id != null ? String(sender.id) : null,
-		text: content,
-		tags: {
-			segments: parseKickContent(content),
-			"platform-badges": buildKickBadges(identity.badges),
-		},
-		pinnedBy: (() => {
-			const by = data?.pinnedBy || data?.pinned_by || {};
-
-			return {
-				name: by.username || "",
-				userId: by.id != null ? String(by.id) : null,
-				color: by.identity?.color || "",
-				platformBadges: buildKickBadges(by.identity?.badges),
-			};
-		})(),
-		endsAt: duration > 0 ? Date.now() + duration * 1000 : null,
-	});
-}
-
-function getKickChannels() {
-	const channels = [
-		`chatrooms.${KICK_CHATROOM_ID}.v2`,
-		`chatroom_${KICK_CHATROOM_ID}`,
-	];
-
-	if (KICK_CHANNEL_ID) {
-		channels.push(`channel.${KICK_CHANNEL_ID}`);
-	}
-
-	return channels;
-}
-
-function handleKickPusherEvent(message) {
-	const event = message?.event;
-
-	if (event === "pusher:ping") {
-		kickSocket?.send(JSON.stringify({ event: "pusher:pong", data: {} }));
-		return;
-	}
-
-	if (event === "pusher:connection_established") {
-		for (const channel of getKickChannels()) {
-			kickSocket?.send(
-				JSON.stringify({
-					event: "pusher:subscribe",
-					data: { auth: "", channel },
-				}),
-			);
-		}
-
-		return;
-	}
-
-	if (typeof event !== "string" || !event.startsWith("App\\Events\\")) {
-		return;
-	}
-
-	let data = message.data;
-
-	try {
-		data = typeof data === "string" ? JSON.parse(data) : data;
-	} catch {
-		return;
-	}
-
-	switch (event) {
-		case "App\\Events\\ChatMessageEvent":
-			handleKickChatMessage(data);
-			break;
-
-		case "App\\Events\\MessageDeletedEvent":
-			removePlatformMessage(data?.message?.id);
-			break;
-
-		case "App\\Events\\UserBannedEvent":
-			removePlatformUserMessages("kick", data?.user?.id);
-			break;
-
-		case "App\\Events\\ChatroomClearEvent":
-			clearPlatformMessages("kick");
-			break;
-
-		case "App\\Events\\RewardRedeemedEvent":
-			handleKickReward(data);
-			break;
-
-		case "App\\Events\\SubscriptionEvent":
-			handleKickSubscription(data);
-			break;
-
-		case "App\\Events\\GiftedSubscriptionsEvent":
-			handleKickGiftedSubscriptions(data);
-			break;
-
-		case "App\\Events\\PinnedMessageCreatedEvent":
-			handleKickPin(data);
-			break;
-
-		case "App\\Events\\PinnedMessageDeletedEvent":
-			hlHidePin("kick");
-			break;
-	}
-}
-
-function connectKickSocket() {
-	clearTimeout(kickReconnectTimer);
-
-	const socket = new WebSocket(KICK_PUSHER_URL);
-
-	kickSocket = socket;
-
-	socket.onopen = () => {
-		console.log("Connected to Kick (Pusher).");
-		kickReconnectDelay = 3000;
-	};
-
-	socket.onmessage = (event) => {
-		try {
-			handleKickPusherEvent(JSON.parse(event.data));
-		} catch (error) {
-			console.error("Kick message error:", error);
-		}
-	};
-
-	socket.onerror = (error) => console.error("Kick WebSocket error:", error);
-
-	socket.onclose = (event) => {
-		console.log("Kick WebSocket closed:", event.code, event.reason);
-
-		if (kickSocket === socket) {
-			kickSocket = null;
-		}
-
-		if (event.code >= 4000 && event.code < 4100) {
-			console.error("Kick config error, not reconnecting:", event.reason);
-			return;
-		}
-
-		kickReconnectTimer = setTimeout(connectKickSocket, kickReconnectDelay);
-		kickReconnectDelay = Math.min(kickReconnectDelay * 2, 60000);
-	};
-}
-
-async function startKickChat(slug) {
-	KICK_CHANNEL = slug;
-
-	let attempt = 0;
-	while (KICK_CHANNEL === slug && !KICK_CHATROOM_ID) {
-		try {
-			await resolveKickChannel(slug);
-		} catch (error) {
-			if (error.retryable === false) {
-				throw error;
-			}
-
-			attempt += 1;
-			const delay = Math.min(5000 * 2 ** Math.min(attempt - 1, 4), 60000);
-			console.warn(
-				`Kick channel lookup failed; retrying in ${Math.round(delay / 1000)}s:`,
-				error,
-			);
-			await new Promise((resolve) => setTimeout(resolve, delay));
-		}
-	}
-
-	if (KICK_CHANNEL !== slug) {
-		return;
-	}
-
-	console.log(
-		"Kick chatroom:",
-		KICK_CHATROOM_ID,
-		"channel:",
-		KICK_CHANNEL_ID,
-		"user:",
-		KICK_USER_ID,
-	);
-
-	kickDataReady = load7TVKickEmotes();
-
-	connectKickSocket();
-
-	await kickDataReady;
+	return container;
 }
