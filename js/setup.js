@@ -4107,11 +4107,15 @@ function showOverlaySetupScreen() {
 		}
 	});
 
-	function getOverlayUrl() {
+	function getOverlayUrl({ silent = false } = {}) {
 		const rawChannel = channelInput.value.trim();
 		const channel = normalizeTwitchChannel(rawChannel);
 		const kickChannel = cleanKickInput(kickInput.value);
 		const youtubeChannel = cleanYouTubeInput(youtubeInput.value);
+
+		if (silent && ((rawChannel && !channel) || (!channel && !kickChannel && !youtubeChannel))) {
+			return null;
+		}
 
 		if (rawChannel && !channel) {
 			error.textContent =
@@ -4136,7 +4140,9 @@ function showOverlaySetupScreen() {
 			return null;
 		}
 
-		error.style.display = "none";
+		if (!silent) {
+			error.style.display = "none";
+		}
 
 		const overlaySettings = {
 			background: backgroundCheckbox.checked,
@@ -4907,6 +4913,72 @@ function showOverlaySetupScreen() {
 		importStatus.textContent = "";
 		importStatus.classList.remove("is-ok", "is-bad");
 	});
+
+	// ---- Persist setup settings between visits (localStorage) ----
+	const SETUP_STORAGE_KEY = "mchat:setup-settings:v1";
+	let restoringSettings = false;
+	let saveTimer = null;
+
+	function saveSetupSettings() {
+		if (restoringSettings) {
+			return;
+		}
+
+		try {
+			const url = getOverlayUrl({ silent: true });
+
+			if (url) {
+				localStorage.setItem(SETUP_STORAGE_KEY, url);
+			}
+		} catch (error) {
+			console.warn("Couldn't save setup settings:", error);
+		}
+	}
+
+	function scheduleSaveSetupSettings() {
+		clearTimeout(saveTimer);
+		saveTimer = setTimeout(saveSetupSettings, 300);
+	}
+
+	function restoreSetupSettings() {
+		let saved = null;
+
+		try {
+			saved = localStorage.getItem(SETUP_STORAGE_KEY);
+		} catch {
+			return;
+		}
+
+		if (!saved) {
+			return;
+		}
+
+		restoringSettings = true;
+
+		try {
+			applyImportedSettings(convertMChatOverlayLink(saved));
+		} catch (error) {
+			console.warn("Couldn't restore saved setup settings:", error);
+		} finally {
+			restoringSettings = false;
+		}
+	}
+
+	restoreSetupSettings();
+
+	// inputs, checkboxes, selects, color pickers
+	screen.addEventListener("input", scheduleSaveSetupSettings);
+	screen.addEventListener("change", scheduleSaveSetupSettings);
+
+	// badge platform toggle buttons aren't inputs
+	screen.addEventListener("click", (event) => {
+		if (event.target.closest?.(".mc-platform-button")) {
+			scheduleSaveSetupSettings();
+		}
+	});
+
+	// make sure the latest state is stored if the tab is closed mid-debounce
+	window.addEventListener("pagehide", saveSetupSettings);
 
 	syncFadeState();
 	prewarmFirstClip();
