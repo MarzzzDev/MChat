@@ -1256,6 +1256,10 @@ function extractComboEmotes(text, tags, username) {
 async function startComboOverlay() {
 	const settings = readComboParams(params);
 
+	if (typeof MOD_COMMANDS !== "undefined") {
+		MOD_COMMANDS.delete("-show");
+	}
+
 	document.documentElement.style.background = "transparent";
 	document.body.style.background = "transparent";
 
