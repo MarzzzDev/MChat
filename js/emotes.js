@@ -1,3 +1,76 @@
+async function pickFirstLoaded(urls, probe, waveSize = 4) {
+	for (let i = 0; i < urls.length; i += waveSize) {
+		const wave = urls
+			.slice(i, i + waveSize)
+			.map((url) => probe(url).then((ok) => (ok ? url : null)));
+
+		for (const pending of wave) {
+			const url = await pending;
+
+			if (url) {
+				return url;
+			}
+		}
+	}
+
+	return null;
+}
+
+const paintLayerUrlCache = new Map();
+
+function getWorking7TVPaintLayerUrl(paint, layer) {
+	const key = `${paint?.id}:${layer?.id}`;
+
+	if (!paintLayerUrlCache.has(key)) {
+		paintLayerUrlCache.set(
+			key,
+			pickFirstLoaded(get7TVPaintLayerUrls(paint, layer), loadPaintImage),
+		);
+	}
+
+	return paintLayerUrlCache.get(key);
+}
+
+function get7TVPaintLayerUrls(paint, layer) {
+	if (!paint?.id || !layer?.id) {
+		return [];
+	}
+
+	const paintId = encodeURIComponent(String(paint.id));
+
+	const layerId = encodeURIComponent(String(layer.id));
+
+	return [
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/4x`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/3x`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/2x`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/1x`,
+
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/4x.webp`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/3x.webp`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/2x.webp`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/1x.webp`,
+	];
+}
+
+function loadPaintImage(url) {
+	return new Promise((resolve) => {
+		const img = new Image();
+
+		img.onload = () => {
+			resolve(url);
+		};
+
+		img.onerror = () => {
+			resolve(null);
+		};
+
+		img.decoding = "async";
+		img.loading = "eager";
+
+		img.src = url;
+	});
+}
 
 function loadTwemoji() {
 	if (window.twemoji) {
@@ -12,7 +85,7 @@ function loadTwemoji() {
 		const script = document.createElement("script");
 
 		script.src =
-			"https://cdn.jsdelivr.net/npm/twemoji@latest/dist/twemoji.min.js";
+			"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js";
 
 		script.onload = () => {
 			if (window.twemoji) {
@@ -26,7 +99,7 @@ function loadTwemoji() {
 			reject(new Error("Failed to load Twemoji."));
 		};
 
-		document.head.appendChild(script);
+		(document.head || document.documentElement).appendChild(script);
 	});
 
 	return twemojiReady;
@@ -399,28 +472,6 @@ function createPaintDropShadowFilter(paint) {
 		}
 	}
 	return null;
-}
-
-function get7TVPaintLayerUrls(paint, layer) {
-	if (!paint?.id || !layer?.id) {
-		return [];
-	}
-
-	const paintId = encodeURIComponent(String(paint.id));
-
-	const layerId = encodeURIComponent(String(layer.id));
-
-	return [
-		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/4x`,
-		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/3x`,
-		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/2x`,
-		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/1x`,
-
-		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/4x.webp`,
-		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/3x.webp`,
-		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/2x.webp`,
-		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/1x.webp`,
-	];
 }
 
 function loadPaintImage(url) {

@@ -1,5 +1,69 @@
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./js/sw.js");
 
+const apiHosts = [
+	"https://7tv.io",
+	"https://api.7tv.app",
+	"https://api.frankerfacez.com",
+	"https://api.betterttv.net",
+	"https://api.chatterino.com",
+	"https://api.moltorino.com",
+	"https://gql.twitch.tv",
+	"https://cdn.jsdelivr.net",
+];
+
+const CHANNEL_ID_KEY = "mchat-channel-id:";
+
+function getCachedChannelId(login) {
+	try {
+		return localStorage.getItem(CHANNEL_ID_KEY + String(login).toLowerCase());
+	} catch {
+		return null;
+	}
+}
+
+function cacheChannelId(login, id) {
+	try {
+		localStorage.setItem(CHANNEL_ID_KEY + String(login).toLowerCase(), String(id));
+	} catch {}
+}
+
+async function resolveTwitchChannelId(login) {
+	const safe = String(login || "").replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
+
+	if (!safe) {
+		return null;
+	}
+
+	const data = await twitchGraphQL(`query { user(login: "${safe}") { id } }`);
+
+	return data?.user?.id ? String(data.user.id) : null;
+}
+
+let resolveChannelData;
+const channelDataReady = new Promise((resolve) => {
+	resolveChannelData = resolve;
+});
+
+function startChannelIdLookup() {
+	const cachedId = getCachedChannelId(CHANNEL);
+
+	if (cachedId) {
+		TWITCH_USER_ID = cachedId;
+		onTwitchRoomReady();
+		return;
+	}
+
+	resolveTwitchChannelId(CHANNEL)
+		.then((id) => {
+			if (id && !TWITCH_USER_ID) {
+				TWITCH_USER_ID = id;
+				cacheChannelId(CHANNEL, id);
+				onTwitchRoomReady();
+			}
+		})
+		.catch(() => {});
+}
+
 (function preconnectHosts() {
 	const apiHosts = [
 		"https://7tv.io",
@@ -31,7 +95,7 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("./js/sw.js")
 	imageHosts.forEach((host) => add(host, false));
 })();
 
-const TWITCH_READY_TIMEOUT_MS = 8000;
+const TWITCH_READY_TIMEOUT_MS = 3000;
 
 function hideStaticLoadingText() {
 	const el = document.getElementById("loading-text");
@@ -50,9 +114,11 @@ function logTaskError(label, error) {
 const startedTasks = [];
 
 function trackTask(label, run) {
+	const startedAt = performance.now();
+
 	const promise = Promise.resolve()
 		.then(run)
-		.catch((error) => logTaskError(label, error));
+		.catch((error) => logTaskError(label, error))
 
 	startedTasks.push(promise);
 
@@ -66,10 +132,10 @@ function onTwitchRoomReady() {
 		return;
 	}
 
-	trackTask("Twitch badges", loadTwitchBadges);
-
 	channelDataPromise = trackTask("7TV channel emotes", load7TVEmotes);
+	channelDataPromise.then(resolveChannelData);
 
+	trackTask("Twitch badges", loadTwitchBadges);
 	trackTask("BTTV emotes", loadBTTVEmotes);
 	trackTask("FFZ badges", loadFFZBadges);
 	trackTask("Channel highlights", loadChannelHighlightData);
@@ -81,6 +147,17 @@ async function startOverlay() {
 	startGithubUpdater();
 	ensureEmoteScaleStyle();
 	addGlobalStyle();
+
+	const startedAt = performance.now();
+
+	CHANNEL = selectedChannel || null;
+	hideOverlaySetupScreen();
+
+	loadTwemoji().catch(() => {});
+
+	if (CHANNEL) {
+		startChannelIdLookup();
+	}
 
 	if (params.get("combo") === "1") {
 		await startComboOverlay();
@@ -131,7 +208,7 @@ async function startOverlay() {
 	}
 
 	if (CHANNEL) {
-		required.push(ircReady.then(() => channelDataPromise));
+		required.push(channelDataReady);
 	}
 
 	await Promise.race([
@@ -140,7 +217,7 @@ async function startOverlay() {
 	]);
 
 	stopLoadingScreen();
-
+	console.log(`Overlay ready in ${Math.round(performance.now() - startedAt)}ms`);
 	Promise.allSettled(startedTasks).then(() =>
 		console.log("Chat emotes and badge data loaded."),
 	);

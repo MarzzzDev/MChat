@@ -201,7 +201,7 @@ function handleTwitchIRCMessage(raw) {
 
 		if (roomId) {
 			TWITCH_USER_ID = String(roomId);
-
+			cacheChannelId(CHANNEL, TWITCH_USER_ID);
 			console.log("Overlay channel ID from IRC:", TWITCH_USER_ID);
 		}
 

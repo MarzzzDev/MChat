@@ -1,5 +1,7 @@
 const homiesBadges = new Map();
 
+const sevenTVBadgeUrlCache = new Map();
+
 const HOMIES_BADGE_URLS = [
 	"https://chatterinohomies.com/api/badges/list",
 	"https://itzalex.github.io/badges",
@@ -1088,15 +1090,14 @@ async function load7TVUserBadges(userId, platform = "twitch") {
 		loadedUrl: null,
 	};
 
-	for (const url of badgeData.urls) {
-		const image = await preloadBadgeImage(url);
-
-		if (image) {
-			badgeData.loadedUrl = url;
-
-			break;
-		}
+	if (!sevenTVBadgeUrlCache.has(badgeData.id)) {
+		sevenTVBadgeUrlCache.set(
+			badgeData.id,
+			pickFirstLoaded(badgeData.urls, preloadBadgeImage),
+		);
 	}
+
+	badgeData.loadedUrl = await sevenTVBadgeUrlCache.get(badgeData.id);
 
 	const badges = badgeData.loadedUrl ? [badgeData] : [];
 
