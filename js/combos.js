@@ -55,6 +55,7 @@ const COMBO_SOUND_UPLOAD_URL = "https://media.marz.lol/upload.php";
 const COMBO_SOUND_MAX_BYTES = 5 * 1024 * 1024;
 const COMBO_SOUND_DEFAULT_COUNT = 3;
 const COMBO_SOUND_MAX_RULES = 1000;
+const COMBO_SOUND_MAX_FILES = 5;
 
 const COMBO_SHORT = {
 	channel: "c",
@@ -180,7 +181,7 @@ const COMBO_TABS = [
 	{
 		id: "sounds",
 		title: "Emote Combo Sounds",
-		desc: "Play a sound when an exact emote name is repeated in chat.",
+		desc: "Play a random sound when an exact emote name is repeated in chat.",
 		fields: [
 			{ type: "sounds" },
 		],
@@ -220,10 +221,17 @@ function newComboSoundId() {
 }
 
 function normalizeComboSound(raw) {
+	let urls = Array.isArray(raw?.urls) ? raw.urls : raw?.url ? [raw.url] : [];
+
+	urls = urls
+		.map((url) => String(url || "").trim().slice(0, 2000))
+		.filter(Boolean)
+		.slice(0, COMBO_SOUND_MAX_FILES);
+
 	return {
 		id: String(raw?.id || newComboSoundId()),
 		name: String(raw?.name || "").trim().slice(0, 300),
-		url: String(raw?.url || "").trim().slice(0, 2000),
+		urls,
 		count: Math.max(
 			1,
 			Math.min(99, Math.floor(Number(raw?.count)) || COMBO_SOUND_DEFAULT_COUNT),
@@ -240,20 +248,20 @@ function normalizeComboSounds(list) {
 function encodeComboSounds(list) {
 	return JSON.stringify(
 		list
-			.filter((rule) => rule.name && rule.url)
-			.map((rule) => [rule.name, rule.url, rule.count]),
+			.filter((rule) => rule.name && rule.urls.length)
+			.map((rule) => [rule.name, rule.urls, rule.count]),
 	);
 }
 
 function encodeComboSoundsShort(list) {
 	return list
-		.filter((rule) => rule.name && rule.url)
+		.filter((rule) => rule.name && rule.urls.length)
 		.map((rule) => {
-			const file = rule.url.startsWith(COMBO_SOUND_BASE)
-				? rule.url.slice(COMBO_SOUND_BASE.length)
-				: rule.url;
+			const files = rule.urls.map((url) =>
+				url.startsWith(COMBO_SOUND_BASE) ? url.slice(COMBO_SOUND_BASE.length) : url,
+			);
 
-			return [rule.name, file, rule.count].join("~");
+			return [rule.name, files.join("|"), rule.count].join("~");
 		})
 		.join("!");
 }
@@ -268,7 +276,7 @@ function decodeComboSounds(raw) {
 			return normalizeComboSounds(
 				JSON.parse(raw).map((row) => ({
 					name: row?.[0],
-					url: row?.[1],
+					urls: Array.isArray(row?.[1]) ? row[1] : [row?.[1]],
 					count: row?.[2],
 				})),
 			);
@@ -276,12 +284,15 @@ function decodeComboSounds(raw) {
 
 		return normalizeComboSounds(
 			raw.split("!").map((part) => {
-				const [name, file, count] = part.split("~");
-				const url = /^https?:\/\//.test(file || "")
-					? file
-					: COMBO_SOUND_BASE + (file || "");
+				const [name, files, count] = part.split("~");
+				const urls = (files || "")
+					.split("|")
+					.filter(Boolean)
+					.map((file) =>
+						/^https?:\/\//.test(file) ? file : COMBO_SOUND_BASE + file,
+					);
 
-				return { name, url, count };
+				return { name, urls, count };
 			}),
 		);
 	} catch {
@@ -290,7 +301,7 @@ function decodeComboSounds(raw) {
 }
 
 function compileComboSound(rule) {
-	if (!rule.name || !rule.url) {
+	if (!rule.name || !rule.urls.length) {
 		return null;
 	}
 
@@ -305,7 +316,7 @@ async function uploadComboSound(file) {
 	}
 
 	if (file.size > COMBO_SOUND_MAX_BYTES) {
-		throw new Error("File is larger than 5 MB.");
+		throw new Error(`${file.name} is larger than 5 MB.`);
 	}
 
 	const form = new FormData();
@@ -328,7 +339,8 @@ async function uploadComboSound(file) {
 
 function playComboSound(rule) {
 	try {
-		const audio = new Audio(rule.url);
+		const url = rule.urls[Math.floor(Math.random() * rule.urls.length)];
+		const audio = new Audio(url);
 
 		audio.volume = 1;
 
@@ -363,13 +375,15 @@ function createComboSoundEngine(getSettings) {
 
 		if (preload) {
 			for (const { rule } of compiled) {
-				if (!preloaded.has(rule.url)) {
-					preloaded.add(rule.url);
+				for (const url of rule.urls) {
+					if (!preloaded.has(url)) {
+						preloaded.add(url);
 
-					const audio = new Audio();
+						const audio = new Audio();
 
-					audio.preload = "auto";
-					audio.src = rule.url;
+						audio.preload = "auto";
+						audio.src = url;
+					}
 				}
 			}
 		}
@@ -445,16 +459,17 @@ const COMBO_SOUND_CSS = `
 .cb-snd-form .mc-input { padding-top:6px; padding-bottom:6px; min-height:0; }
 .cb-snd-form .mc-button { padding-top:7px; padding-bottom:7px; margin-top:2px; }
 .cb-snd-file { display:flex; align-items:center; gap:8px; }
-.cb-snd-file .mc-button { padding:5px 12px; margin:0; }
-.cb-snd-file-name { font-size:12px; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cb-snd-file .mc-button { padding:5px 12px; margin:0; flex:0 0 auto; }
+.cb-snd-file .mc-sim-btn { flex:0 0 auto; }
+.cb-snd-file-name { flex:1 1 auto; min-width:0; font-size:12px; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cb-snd-status { font-size:12px; min-height:14px; margin:2px 0 0; }
 .cb-snd-status.is-error { color:#ff6b6b; }
 .cb-snd-list { display:flex; flex-direction:column; gap:4px; margin-top:4px; }
 .cb-snd-row { display:flex; align-items:center; gap:8px; padding:5px 10px; border:1px solid rgba(255,255,255,.1); border-radius:8px; }
 .cb-snd-row-name { font-weight:700; flex:0 1 auto; max-width:35%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.cb-snd-row-count { opacity:.75; font-size:12px; }
+.cb-snd-row-count { opacity:.75; font-size:12px; flex:0 0 auto; }
 .cb-snd-row-file { flex:1 1 auto; min-width:0; opacity:.55; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.cb-snd-row button { cursor:pointer; }
+.cb-snd-row button { cursor:pointer; flex:0 0 auto; }
 `;
 
 function ensureComboSoundStyle() {
@@ -567,7 +582,10 @@ function buildComboUrl(settings) {
 
 	if (sounds) {
 		parts.push(
-			`s=${encodeURIComponent(sounds).replace(/%7E/g, "~").replace(/%21/g, "!")}`,
+			`s=${encodeURIComponent(sounds)
+				.replace(/%7E/g, "~")
+				.replace(/%21/g, "!")
+				.replace(/%7C/g, "|")}`,
 		);
 	}
 
@@ -1482,14 +1500,19 @@ function showComboMenu() {
 		const fileInput = document.createElement("input");
 		fileInput.type = "file";
 		fileInput.accept = "audio/*,.mp3,.ogg,.wav,.m4a,.webm";
+		fileInput.multiple = true;
 		fileInput.style.display = "none";
 
 		const fileRow = comboEl("div", "cb-snd-file");
-		const fileButton = comboEl("button", "mc-button", "Upload file");
-		const fileName = comboEl("span", "cb-snd-file-name", "No file chosen");
+		const fileButton = comboEl("button", "mc-button", "Upload files");
+		const fileName = comboEl("span", "cb-snd-file-name", "No files chosen");
+		const clearFiles = comboEl("button", "mc-sim-btn", "Clear");
 
 		fileButton.type = "button";
-		fileRow.append(fileButton, fileName, fileInput);
+		clearFiles.type = "button";
+		clearFiles.title = "Remove chosen files";
+
+		fileRow.append(fileButton, fileName, clearFiles, fileInput);
 
 		const countInput = comboEl("input", "mc-input");
 		countInput.type = "number";
@@ -1512,14 +1535,14 @@ function showComboMenu() {
 
 		form.append(
 			field("Emote Name", nameInput),
-			field("Upload File", fileRow),
+			field(`Upload Files (up to ${COMBO_SOUND_MAX_FILES}, random one plays)`, fileRow),
 			field("Count", countInput),
 			addButton,
 		);
 
 		const list = comboEl("div", "cb-snd-list");
 
-		let uploadedUrl = "";
+		let uploadedFiles = [];
 		let uploading = false;
 
 		const setStatus = (text, isError) => {
@@ -1527,31 +1550,71 @@ function showComboMenu() {
 			status.classList.toggle("is-error", Boolean(isError));
 		};
 
+		const renderFiles = () => {
+			fileName.textContent = uploadedFiles.length
+				? `${uploadedFiles.length}/${COMBO_SOUND_MAX_FILES}: ` +
+					uploadedFiles.map((entry) => entry.name).join(", ")
+				: "No files chosen";
+			fileName.title = fileName.textContent;
+		};
+
 		fileButton.addEventListener("click", () => fileInput.click());
 
-		fileInput.addEventListener("change", async () => {
-			const file = fileInput.files?.[0];
-
-			if (!file) {
+		clearFiles.addEventListener("click", () => {
+			if (uploading) {
 				return;
 			}
 
-			fileName.textContent = file.name;
-			uploadedUrl = "";
+			uploadedFiles = [];
+			renderFiles();
+			setStatus("");
+		});
+
+		fileInput.addEventListener("change", async () => {
+			const files = Array.from(fileInput.files || []);
+
+			fileInput.value = "";
+
+			if (!files.length) {
+				return;
+			}
+
+			const room = COMBO_SOUND_MAX_FILES - uploadedFiles.length;
+
+			if (room <= 0) {
+				setStatus(`Max ${COMBO_SOUND_MAX_FILES} sounds per emote.`, true);
+				return;
+			}
+
+			const picked = files.slice(0, room);
+			let failure = null;
+
 			uploading = true;
 			fileButton.disabled = true;
-			setStatus("Uploading...");
 
-			try {
-				uploadedUrl = await uploadComboSound(file);
+			for (let i = 0; i < picked.length; i++) {
+				setStatus(`Uploading ${i + 1}/${picked.length}...`);
+
+				try {
+					const url = await uploadComboSound(picked[i]);
+
+					uploadedFiles.push({ name: picked[i].name, url });
+					renderFiles();
+				} catch (error) {
+					failure = error;
+					break;
+				}
+			}
+
+			uploading = false;
+			fileButton.disabled = false;
+
+			if (failure) {
+				setStatus(failure.message || "Upload failed.", true);
+			} else if (files.length > room) {
+				setStatus(`Uploaded. Only ${room} fit (max ${COMBO_SOUND_MAX_FILES}).`);
+			} else {
 				setStatus("Uploaded.");
-			} catch (error) {
-				fileName.textContent = "No file chosen";
-				setStatus(error.message || "Upload failed.", true);
-			} finally {
-				uploading = false;
-				fileButton.disabled = false;
-				fileInput.value = "";
 			}
 		});
 
@@ -1562,7 +1625,7 @@ function showComboMenu() {
 			const del = comboEl("button", "mc-sim-btn", "✕");
 
 			test.type = "button";
-			test.title = "Test sound";
+			test.title = "Test sound (random)";
 			del.type = "button";
 			del.title = "Remove";
 
@@ -1576,13 +1639,17 @@ function showComboMenu() {
 				commit();
 			});
 
+			const fileNames = rule.urls.map((url) =>
+				decodeURIComponent(url.split("/").pop() || url),
+			);
+
 			const file = comboEl(
 				"span",
 				"cb-snd-row-file",
-				decodeURIComponent(rule.url.split("/").pop() || rule.url),
+				`${rule.urls.length} sound${rule.urls.length === 1 ? "" : "s"}: ${fileNames.join(", ")}`,
 			);
 
-			file.title = rule.url;
+			file.title = rule.urls.join("\n");
 
 			row.append(
 				comboEl("span", "cb-snd-row-name", rule.name),
@@ -1612,8 +1679,8 @@ function showComboMenu() {
 				return;
 			}
 
-			if (!uploadedUrl) {
-				setStatus("Upload a sound file first.", true);
+			if (!uploadedFiles.length) {
+				setStatus("Upload at least one sound file first.", true);
 				return;
 			}
 
@@ -1624,7 +1691,7 @@ function showComboMenu() {
 
 			const rule = normalizeComboSound({
 				name,
-				url: uploadedUrl,
+				urls: uploadedFiles.map((entry) => entry.url),
 				count: countInput.value,
 			});
 
@@ -1633,8 +1700,8 @@ function showComboMenu() {
 			commit();
 
 			nameInput.value = "";
-			fileName.textContent = "No file chosen";
-			uploadedUrl = "";
+			uploadedFiles = [];
+			renderFiles();
 			setStatus("Added.");
 			nameInput.focus();
 		});
