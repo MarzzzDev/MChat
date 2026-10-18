@@ -1209,6 +1209,83 @@ function renderMessageTextInner(text, tags, username = null) {
 	return container;
 }
 
+const REPLY_ICON_PATH = "M3 24V19a7 7 0 0 1 7-7h24";
+
+function createReplyHeader(replyInfo, tags, platform) {
+	if (!replyInfo?.username) {
+		return null;
+	}
+
+	const header = document.createElement("div");
+
+	header.className = "reply-header";
+
+	const svgNS = "http://www.w3.org/2000/svg";
+	const icon = document.createElementNS(svgNS, "svg");
+
+	icon.setAttribute("viewBox", "0 0 36 24");
+	icon.setAttribute("class", "reply-icon");
+	icon.setAttribute("aria-hidden", "true");
+	icon.setAttribute("fill", "none");
+	icon.setAttribute("stroke", "currentColor");
+	icon.setAttribute("stroke-width", "2.2");
+	icon.setAttribute("stroke-linecap", "round");
+	icon.setAttribute("stroke-linejoin", "round");
+
+	const path = document.createElementNS(svgNS, "path");
+
+	path.setAttribute("d", REPLY_ICON_PATH);
+	icon.appendChild(path);
+
+	const label = document.createElement("span");
+
+	label.className = "reply-label";
+	label.textContent = "Replying to\u00A0";
+
+	const login = String(replyInfo.username).toLowerCase();
+	const known = knownChatters.get(login);
+
+	const target = createMention(
+		{
+			name: replyInfo.username,
+			color: known?.color || tags["reply-parent-color"] || "",
+			userId: tags["reply-parent-user-id"] || known?.userId || null,
+			platform: known?.platform || platform,
+		},
+		"@",
+	);
+
+	target.classList.add("reply-target");
+
+	const colon = document.createElement("span");
+
+	colon.className = "reply-label";
+	colon.textContent = ":";
+
+	header.appendChild(icon);
+	header.appendChild(label);
+	header.appendChild(target);
+	header.appendChild(colon);
+
+	const parentBody = String(tags["reply-parent-msg-body"] || "")
+		.replace(/^\x01?ACTION /, "")
+		.replace(/\x01$/, "")
+		.trim();
+
+	if (parentBody) {
+		const body = renderMessageText(
+			parentBody,
+			{ platform },
+			replyInfo.username,
+		);
+
+		body.className = "reply-body";
+		header.appendChild(body);
+	}
+
+	return header;
+}
+
 function getReplyInfo(tags, msg) {
 	const replyUsername = tags["reply-parent-display-name"] || null;
 
@@ -1860,6 +1937,13 @@ async function onMsg(
 
 	if (colonElement) {
 		authorGroup.appendChild(colonElement);
+	}
+
+	const replyHeader = createReplyHeader(replyInfo, tags, platform);
+
+	if (replyHeader) {
+		message.classList.add("has-reply");
+		message.appendChild(replyHeader);
 	}
 
 	message.appendChild(authorGroup);
