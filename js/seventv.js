@@ -3,6 +3,9 @@ let sevenTVSessionId = null;
 let sevenTVEmoteSetId = null;
 let sevenTVHeartbeatTimeout = null;
 let sevenTVReconnectTimer = null;
+let sevenTVHeartbeatMs = 0;
+let sevenTVHadSession = false;
+const sevenTVSubscriptions = new Set();
 
 const SEVENTV_OPCODES = Object.freeze({
 	DISPATCH: 0,
@@ -173,6 +176,14 @@ function subscribeToSevenTVChannelEmoteSets(channelId, platform = "TWITCH") {
 		return;
 	}
 
+	const subKey = `channel:${platform}:${twitchChannelId}`;
+
+	if (sevenTVSubscriptions.has(subKey)) {
+		return;
+	}
+
+	sevenTVSubscriptions.add(subKey);
+
 	const payload = {
 		op: SEVENTV_OPCODES.SUBSCRIBE,
 
@@ -212,6 +223,11 @@ function connectSevenTVEvents(emoteSetId, url = null) {
 	}
 
 	if (sevenTVEventSocket) {
+		if (sevenTVSessionId) {
+			subscribeToEmoteSetUpdates(sevenTVEmoteSetId);
+			subscribeToSevenTVChannelEmoteSets(TWITCH_USER_ID, "TWITCH");
+		}
+
 		return sevenTVEventSocket;
 	}
 
@@ -244,6 +260,7 @@ function connectSevenTVEvents(emoteSetId, url = null) {
 
 		sevenTVEventSocket = null;
 		sevenTVSessionId = null;
+		sevenTVSubscriptions.clear();
 
 		clearTimeout(sevenTVHeartbeatTimeout);
 		clearTimeout(sevenTVReconnectTimer);
@@ -266,6 +283,8 @@ function handleSevenTVEventMessage(data) {
 
 		console.log("7TV EventAPI session:", sevenTVSessionId);
 
+		sevenTVSubscriptions.clear();
+
 		resetSevenTVHeartbeatWatchdog(data.d?.heartbeat_interval);
 
 		subscribeToEmoteSetUpdates(sevenTVEmoteSetId);
@@ -273,6 +292,12 @@ function handleSevenTVEventMessage(data) {
 
 		subscribeToSevenTVChannelEmoteSets(TWITCH_USER_ID, "TWITCH");
 		subscribeToSevenTVChannelEmoteSets(KICK_USER_ID, "KICK");
+
+		if (sevenTVHadSession && typeof refreshChannelEmotes === "function") {
+			refreshChannelEmotes();
+		}
+
+		sevenTVHadSession = true;
 
 		return;
 	}
@@ -311,9 +336,13 @@ function handleSevenTVEventMessage(data) {
 function resetSevenTVHeartbeatWatchdog(intervalMs) {
 	clearTimeout(sevenTVHeartbeatTimeout);
 
+	intervalMs = Number(intervalMs) || sevenTVHeartbeatMs;
+
 	if (!intervalMs) {
 		return;
 	}
+
+	sevenTVHeartbeatMs = intervalMs;
 
 	sevenTVHeartbeatTimeout = setTimeout(() => {
 		console.warn("7TV EventAPI heartbeat timeout, reconnecting.");
@@ -328,6 +357,14 @@ function subscribeToEmoteSetUpdates(emoteSetId) {
 	if (!sevenTVEventSocket || !emoteSetId) {
 		return;
 	}
+
+	const subKey = `set:${emoteSetId}`;
+
+	if (sevenTVSubscriptions.has(subKey)) {
+		return;
+	}
+
+	sevenTVSubscriptions.add(subKey);
 
 	const payload = {
 		op: SEVENTV_OPCODES.SUBSCRIBE,

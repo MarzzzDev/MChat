@@ -217,6 +217,7 @@ async function startOverlay() {
 	]);
 
 	stopLoadingScreen();
+	startEmoteRefreshLoop();
 	console.log(`Overlay ready in ${Math.round(performance.now() - startedAt)}ms`);
 	Promise.allSettled(startedTasks).then(() =>
 		console.log("Chat emotes and badge data loaded."),

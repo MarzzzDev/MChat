@@ -148,9 +148,14 @@ function add7TVEmote(emote, target = sevenTVEmotes) {
 		return;
 	}
 
-	const file = get7TVEmoteFile(emote);
+	let file = get7TVEmoteFile(emote);
 
-	const host = get7TVHostUrl(emote);
+	let host = get7TVHostUrl(emote);
+
+	if ((!file || !host) && emote.id) {
+		host = `https://cdn.7tv.app/emote/${emote.id}`;
+		file = { name: "4x.webp" };
+	}
 
 	if (!file || !host) {
 		return;
@@ -173,7 +178,9 @@ function add7TVEmote(emote, target = sevenTVEmotes) {
 
 		listed: listed !== false,
 
-		zeroWidth: Boolean(flags & SEVENTV_EMOTE_FLAGS.ZERO_WIDTH),
+		zeroWidth:
+			Boolean(flags & SEVENTV_EMOTE_FLAGS.ZERO_WIDTH) ||
+			Boolean(Number(emote.flags || 0) & 1),
 	});
 }
 
@@ -197,6 +204,8 @@ async function load7TVGlobalEmotes() {
 		console.error("7TV global emote error:", error);
 	}
 }
+
+let sevenTVChannelNames = new Set();
 
 async function load7TVEmotes() {
 	if (!TWITCH_USER_ID) {
@@ -234,9 +243,32 @@ async function load7TVEmotes() {
 			setData = await setResponse.json();
 		}
 
+		const names = new Set();
+
 		for (const emote of setData.emotes || []) {
 			add7TVEmote(emote);
+
+			if (emote?.name) {
+				names.add(emote.name);
+			}
 		}
+
+		for (const name of sevenTVChannelNames) {
+			if (names.has(name)) {
+				continue;
+			}
+
+			const global = sevenTVGlobalEmotes.get(name);
+
+			if (global) {
+				sevenTVEmotes.set(name, global);
+			} else {
+				sevenTVEmotes.delete(name);
+			}
+		}
+
+		sevenTVChannelNames = names;
+
 		connectSevenTVEvents(emoteSetId);
 	} catch (error) {
 		console.error("7TV emote error:", error);
@@ -852,4 +884,42 @@ async function get7TVPaint(userId, platform = "twitch") {
 	const style = await get7TVStyle(userId, platform);
 
 	return style.paint;
+}
+
+const EMOTE_REFRESH_MS = 60 * 1000;
+
+let emoteRefreshTimer = null;
+let emoteRefreshing = false;
+
+async function refreshChannelEmotes() {
+	if (emoteRefreshing) {
+		return;
+	}
+
+	emoteRefreshing = true;
+
+	try {
+		await Promise.allSettled([
+			TWITCH_USER_ID ? load7TVEmotes() : null,
+			CHANNEL ? loadBTTVEmotes() : null,
+			CHANNEL ? loadFFZEmotes() : null,
+			KICK_USER_ID ? load7TVKickEmotes() : null,
+		]);
+	} finally {
+		emoteRefreshing = false;
+	}
+}
+
+function startEmoteRefreshLoop() {
+	if (emoteRefreshTimer) {
+		return;
+	}
+
+	emoteRefreshTimer = setInterval(refreshChannelEmotes, EMOTE_REFRESH_MS);
+
+	document.addEventListener("visibilitychange", () => {
+		if (!document.hidden) {
+			refreshChannelEmotes();
+		}
+	});
 }
