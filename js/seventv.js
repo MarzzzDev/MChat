@@ -293,6 +293,7 @@ function handleSevenTVEventMessage(data) {
 		subscribeToSevenTVChannelEmoteSets(TWITCH_USER_ID, "TWITCH");
 		subscribeToSevenTVChannelEmoteSets(KICK_USER_ID, "KICK");
 
+		// we were disconnected for a while and missed events: resync
 		if (sevenTVHadSession && typeof refreshChannelEmotes === "function") {
 			refreshChannelEmotes();
 		}
@@ -317,6 +318,11 @@ function handleSevenTVEventMessage(data) {
 		return;
 	}
 
+	if (op === SEVENTV_OPCODES.ACK) {
+		console.log("[7TV] subscription ack:", JSON.stringify(data.d));
+		return;
+	}
+
 	if (op === SEVENTV_OPCODES.ERROR) {
 		console.error("7TV EventAPI error:", data.d);
 		return;
@@ -324,6 +330,8 @@ function handleSevenTVEventMessage(data) {
 
 	if (op === SEVENTV_OPCODES.DISPATCH) {
 		const type = data.d?.type;
+
+		console.log("[7TV] dispatch:", type, data.d?.body?.id || "");
 
 		if (type === "emote_set.update") {
 			handleSevenTVEmoteSetUpdate(data.d.body);
@@ -534,7 +542,9 @@ async function load7TVKickEmotes() {
 				sevenTVKickEmoteSetId = emoteSetId;
 			}
 
-			console.log(`Loaded ${sevenTVKickEmotes.size} 7TV Kick channel emotes.`);
+			if (!emoteRefreshing) {
+				console.log(`Loaded ${sevenTVKickEmotes.size} 7TV Kick channel emotes.`);
+			}
 		} else {
 			console.warn(`7TV has no Kick user for ${KICK_USER_ID}: ${userResponse.status}`);
 		}

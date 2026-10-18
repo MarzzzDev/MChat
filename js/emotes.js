@@ -152,6 +152,7 @@ function add7TVEmote(emote, target = sevenTVEmotes) {
 
 	let host = get7TVHostUrl(emote);
 
+	// websocket events don't always include host data, fall back to the CDN
 	if ((!file || !host) && emote.id) {
 		host = `https://cdn.7tv.app/emote/${emote.id}`;
 		file = { name: "4x.webp" };
@@ -376,7 +377,9 @@ async function loadFFZEmotes() {
 			}
 		}
 
-		console.log(`Loaded FFZ emotes.`);
+		if (!emoteRefreshing) {
+			console.log(`Loaded FFZ emotes.`);
+		}
 	} catch (error) {
 		console.error("FFZ emote error:", error);
 	}
@@ -442,7 +445,9 @@ async function loadBTTVEmotes() {
 			}
 		}
 
-		console.log(`Loaded BTTV emotes.`);
+		if (!emoteRefreshing) {
+			console.log(`Loaded BTTV emotes.`);
+		}
 	} catch (error) {
 		console.error("BTTV emote error:", error);
 	}
@@ -886,15 +891,20 @@ async function get7TVPaint(userId, platform = "twitch") {
 	return style.paint;
 }
 
+// ---- periodic resync: safety net for missed websocket events, and the only
+// "live" update path BTTV/FFZ have ----
 const EMOTE_REFRESH_MS = 60 * 1000;
 
 let emoteRefreshTimer = null;
 let emoteRefreshing = false;
+let lastEmoteRefreshAt = 0;
 
 async function refreshChannelEmotes() {
-	if (emoteRefreshing) {
+	if (emoteRefreshing || Date.now() - lastEmoteRefreshAt < 15000) {
 		return;
 	}
+
+	lastEmoteRefreshAt = Date.now();
 
 	emoteRefreshing = true;
 
