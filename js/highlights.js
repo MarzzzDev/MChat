@@ -350,7 +350,7 @@ function addHighlightStyles() {
 				calc(0.5 * var(--hl-rem))
 				calc(1.6 * var(--hl-rem));
 			border-left: calc(0.4 * var(--hl-rem)) solid #00f26b;
-			background-color: hsla(0, 0%, 50%, 0.1);
+			background-color: rgba(24, 24, 27, 0.95);
 			overflow-wrap: anywhere;
 		}
 
