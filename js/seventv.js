@@ -389,6 +389,36 @@ function subscribeToEmoteSetUpdates(emoteSetId) {
 	console.log("Subscribed to 7TV emote_set.update for:", emoteSetId);
 }
 
+function addSevenTVChannelEmote(emote, targets) {
+	for (const target of targets) {
+		add7TVEmote(emote, target);
+
+		if (target === sevenTVEmotes && emote?.name) {
+			sevenTVChannelNames.add(emote.name);
+		}
+	}
+}
+
+function removeSevenTVChannelEmote(name, targets) {
+	if (!name) {
+		return;
+	}
+
+	for (const target of targets) {
+		const global = target === sevenTVEmotes ? sevenTVGlobalEmotes.get(name) : null;
+
+		if (global) {
+			target.set(name, global);
+		} else {
+			target.delete(name);
+		}
+
+		if (target === sevenTVEmotes) {
+			sevenTVChannelNames.delete(name);
+		}
+	}
+}
+
 async function handleSevenTVEmoteSetUpdate(body) {
 	if (!body) {
 		return;
@@ -396,15 +426,18 @@ async function handleSevenTVEmoteSetUpdate(body) {
 
 	const emoteSetId = body.id || body.object_id || null;
 
-	const isKickChannelSet = Boolean(
-		emoteSetId && emoteSetId === sevenTVKickEmoteSetId,
-	);
+	// Twitch and Kick can share the same 7TV set, so update every map that uses it
+	const targets = [];
 
-	const personalEmoteSet = Boolean(
-		emoteSetId && emoteSetId !== sevenTVEmoteSetId && !isKickChannelSet,
-	);
+	if (emoteSetId && emoteSetId === sevenTVEmoteSetId) {
+		targets.push(sevenTVEmotes);
+	}
 
-	const targetEmotes = isKickChannelSet ? sevenTVKickEmotes : sevenTVEmotes;
+	if (emoteSetId && emoteSetId === sevenTVKickEmoteSetId) {
+		targets.push(sevenTVKickEmotes);
+	}
+
+	const personalEmoteSet = Boolean(emoteSetId && !targets.length);
 
 	const emotesUpdated = body.updated || [];
 
@@ -426,11 +459,9 @@ async function handleSevenTVEmoteSetUpdate(body) {
 		}
 
 		if (!personalEmoteSet) {
-			if (oldEmote.name) {
-				targetEmotes.delete(oldEmote.name);
-			}
+			removeSevenTVChannelEmote(oldEmote.name, targets);
 
-			add7TVEmote(newActiveEmote, targetEmotes);
+			addSevenTVChannelEmote(newActiveEmote, targets);
 
 			continue;
 		}
@@ -448,9 +479,7 @@ async function handleSevenTVEmoteSetUpdate(body) {
 
 	for (const emote of emotesRemoved) {
 		if (!personalEmoteSet) {
-			if (emote.name) {
-				targetEmotes.delete(emote.name);
-			}
+			removeSevenTVChannelEmote(emote.name, targets);
 
 			continue;
 		}
@@ -464,7 +493,7 @@ async function handleSevenTVEmoteSetUpdate(body) {
 
 	for (const activeEmote of emotesAdded) {
 		if (!personalEmoteSet) {
-			add7TVEmote(activeEmote, targetEmotes);
+			addSevenTVChannelEmote(activeEmote, targets);
 
 			continue;
 		}
