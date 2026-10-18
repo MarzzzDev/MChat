@@ -15,7 +15,7 @@
 		{ re: /^https:\/\/7tv\.io\/v3\/(users|emote-sets)\//, fresh: 2 * MIN },
 		{ re: /^https:\/\/api\.betterttv\.net\/3\/cached\/users\//, fresh: 2 * MIN },
 		{ re: /^https:\/\/api\.frankerfacez\.com\/v1\/(room|user)\//, fresh: 2 * MIN },
-		{ re: /^https:\/\/api\.7tv\.app\/v4\/gql/, fresh: HOUR, post: true },
+		{ re: /^https:\/\/api\.7tv\.app\/v4\/gql/, fresh: 5 * MIN, maxStale: 10 * MIN, post: true },
 		{ re: /^https:\/\/gql\.twitch\.tv\/gql/, fresh: 6 * HOUR, post: true },
 	];
 
@@ -121,9 +121,9 @@
 	async function cachedFetch(key, rule, input, init) {
 		const entry = await dbGet(key);
 		const age = entry ? Date.now() - entry.t : Infinity;
+		const maxStale = rule.maxStale ?? MAX_STALE_MS;
 
-		if (entry && age < MAX_STALE_MS) {
-
+		if (entry && age < maxStale) {
 			if (age >= rule.fresh) {
 				network(key, input, init).catch(() => {});
 			}
@@ -136,6 +136,7 @@
 
 		return network(key, input, init);
 	}
+
 	window.fetch = function (input, init) {
 		if (typeof input !== "string") {
 			return nativeFetch(input, init);
@@ -156,5 +157,6 @@
 
 		return cachedFetch(`${method} ${input} ${body}`, rule, input, init);
 	};
+
 	openDb();
 })();
