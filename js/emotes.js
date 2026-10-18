@@ -751,6 +751,21 @@ function build7TVStyleQuery(gqlPlatform) {
 	`;
 }
 
+const SEVENTV_STYLE_TTL_MS = 10 * 60 * 1000;
+const SEVENTV_STYLE_EMPTY_TTL_MS = 2 * 60 * 1000;
+
+function isSevenTVStyleFresh(entry) {
+	if (!entry) {
+		return false;
+	}
+
+	const ttl = entry.paint || entry.badge
+		? SEVENTV_STYLE_TTL_MS
+		: SEVENTV_STYLE_EMPTY_TTL_MS;
+
+	return Date.now() - (entry.t || 0) < ttl;
+}
+
 function get7TVStyle(userId, platform = "twitch") {
 	const empty = { paint: null, badge: null };
 
@@ -761,8 +776,10 @@ function get7TVStyle(userId, platform = "twitch") {
 	const id = String(userId);
 	const key = platform === "twitch" ? id : `${platform}:${id}`;
 
-	if (sevenTVStyleCache.has(key)) {
-		return Promise.resolve(sevenTVStyleCache.get(key));
+	const cached = sevenTVStyleCache.get(key);
+
+	if (isSevenTVStyleFresh(cached)) {
+		return Promise.resolve(cached);
 	}
 
 	if (sevenTVStylePending.has(key)) {
@@ -811,6 +828,7 @@ function get7TVStyle(userId, platform = "twitch") {
 			const resolved = {
 				paint,
 				badge: style?.activeBadge || null,
+				t: Date.now(),
 			};
 
 			sevenTVStyleCache.set(key, resolved);
@@ -819,7 +837,7 @@ function get7TVStyle(userId, platform = "twitch") {
 		} catch (error) {
 			console.error("7TV style error:", error);
 
-			return empty;
+			return cached || empty;
 		}
 	})().finally(() => {
 		sevenTVStylePending.delete(key);
