@@ -2536,12 +2536,6 @@ function showOverlaySetupScreen() {
 		applyRoleTypography();
 	});
 
-	const typographyNote = document.createElement("div");
-	typographyNote.className = "mc-muted";
-	typographyNote.textContent =
-		"Settings are included directly in the generated overlay URL.";
-	typographyPanel.appendChild(typographyNote);
-
 	const textScaleInput = document.createElement("input");
 	textScaleInput.type = "number";
 	textScaleInput.className = "mc-input";
