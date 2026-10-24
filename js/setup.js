@@ -57,7 +57,7 @@ function showOverlaySetupScreen() {
 
 	const topLink = document.createElement("a");
 	topLink.className = "mc-top-link";
-	topLink.href = "privacy.html";
+	topLink.href = "/privacy";
 	topLink.textContent = "About & Credits";
 	const topActions = document.createElement("div");
 	topActions.style.cssText = "display:flex;align-items:center;gap:10px;";

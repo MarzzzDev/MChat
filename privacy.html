@@ -4,7 +4,7 @@
     
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>About · MChat</title>
+<title>Info &amp; Privacy · MChat</title>
 <link rel="icon" href="favicon.png" type="image/gif" >
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -169,7 +169,22 @@
 
     .content { max-width: 640px; margin: 0 auto; }
 
-    h1 { margin: 0 0 4px; font-size: 21px; font-weight: 700; line-height: 1.25; }
+    .page-intro {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        min-height: 82px;
+        margin: -4px 0 22px;
+        padding: 12px 16px;
+        border: 1px solid var(--mc-line);
+        border-radius: 5px;
+        background: var(--mc-raised);
+    }
+
+    .page-intro h1 { margin: 0 0 3px; font-size: 19px; font-weight: 700; line-height: 1.25; }
+    .page-intro .updated { margin: 0; }
+    .intro-art { width: 104px; height: 58px; flex: 0 0 auto; color: var(--mc-accent); }
     .updated { margin: 0 0 26px; color: var(--mc-faint); font-size: 11px; }
 
     section { scroll-margin-top: 16px; margin-bottom: 34px; }
@@ -191,6 +206,42 @@
 
     .lead { font-size: 13px; color: var(--mc-text); line-height: 1.7; }
     .note { color: var(--mc-faint); font-size: 10.5px; }
+
+    .faq-item {
+        margin-bottom: 6px;
+        border-radius: 4px;
+        background: var(--mc-raised);
+    }
+
+    .faq-item summary {
+        padding: 11px 12px;
+        color: var(--mc-text);
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after { content: "+"; float: right; color: var(--mc-faint); }
+    .faq-item[open] summary::after { content: "−"; }
+    .faq-answer { padding: 0 12px 10px; }
+    .faq-answer p:last-child { margin-bottom: 0; }
+
+    .command-copy {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--mc-accent);
+        font: inherit;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .command-copy:hover { text-decoration: underline; text-underline-offset: 2px; }
+    .command-copy:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+    .command-usage { color: var(--mc-faint); }
+    .copy-status { min-height: 1.5em; color: var(--mc-accent); font-size: 10.5px; }
 
     .card {
         margin-bottom: 6px;
@@ -215,6 +266,33 @@
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .two-col .card { margin-bottom: 0; }
 
+    h3 { margin: 22px 0 8px; font-size: 12px; font-weight: 700; }
+    code { color: var(--mc-text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10.5px; }
+    .command-list { border-top: 1px solid var(--mc-line); }
+    .command-row { display: grid; grid-template-columns: minmax(210px, 0.9fr) minmax(0, 1.5fr); gap: 14px; padding: 8px 10px; border-bottom: 1px solid var(--mc-line); background: var(--mc-raised); }
+    .command-category {
+        margin-bottom: 5px;
+        border-radius: 4px;
+        background: var(--mc-raised);
+    }
+
+    .command-category summary {
+        padding: 10px 12px;
+        color: var(--mc-text);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .command-category summary::-webkit-details-marker { display: none; }
+    .command-category summary::after { content: "+"; float: right; color: var(--mc-faint); }
+    .command-category[open] summary::after { content: "−"; }
+    .command-category .command-list { padding: 0 8px 8px; }
+    .command-spec { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; min-width: 0; }
+    .command-row .command-spec code { white-space: normal; overflow-wrap: anywhere; }
+    .command-row > span:last-child { color: var(--mc-dim); font-size: 10.5px; line-height: 1.5; }
+
     footer {
         margin-top: 36px;
         padding-top: 14px;
@@ -238,7 +316,10 @@
         .mc-nav { flex-direction: row; overflow-x: auto; }
         #page a.mc-nav-button { width: auto; flex: 0 0 auto; white-space: nowrap; }
         main { padding: 22px 16px 44px; }
+        .page-intro { min-height: 70px; }
+        .intro-art { width: 78px; }
         .two-col { grid-template-columns: 1fr; }
+        .command-row { grid-template-columns: 1fr; gap: 3px; }
         .lead { font-size: 15px; }
         p, li { font-size: 14px; }
         .nav-title, .mc-nav-title { font-size: 13px; }
@@ -266,98 +347,188 @@
     <aside class="mc-sidebar">
         <div class="mc-nav-label">On this page</div>
         <nav class="mc-nav">
-            <a class="mc-nav-button is-active" href="#about"><span class="mc-nav-icon">01</span><span class="mc-nav-copy"><span class="mc-nav-title">About</span></span></a>
-            <a class="mc-nav-button" href="#features"><span class="mc-nav-icon">02</span><span class="mc-nav-copy"><span class="mc-nav-title">Features</span></span></a>
-            <a class="mc-nav-button" href="#services"><span class="mc-nav-icon">03</span><span class="mc-nav-copy"><span class="mc-nav-title">Supported services</span></span></a>
-            <a class="mc-nav-button" href="#setup"><span class="mc-nav-icon">04</span><span class="mc-nav-copy"><span class="mc-nav-title">Get started</span></span></a>
-            <a class="mc-nav-button" href="#privacy"><span class="mc-nav-icon">05</span><span class="mc-nav-copy"><span class="mc-nav-title">Privacy</span></span></a>
-            <a class="mc-nav-button" href="#credits"><span class="mc-nav-icon">06</span><span class="mc-nav-copy"><span class="mc-nav-title">Credits</span></span></a>
-            <a class="mc-nav-button" href="#contact"><span class="mc-nav-icon">07</span><span class="mc-nav-copy"><span class="mc-nav-title">Contact</span></span></a>
+            <a class="mc-nav-button is-active" href="#faq"><span class="mc-nav-icon">01</span><span class="mc-nav-copy"><span class="mc-nav-title">FAQ</span></span></a>
+            <a class="mc-nav-button" href="#commands"><span class="mc-nav-icon">02</span><span class="mc-nav-copy"><span class="mc-nav-title">Chat commands</span></span></a>
+            <a class="mc-nav-button" href="#privacy"><span class="mc-nav-icon">03</span><span class="mc-nav-copy"><span class="mc-nav-title">Privacy</span></span></a>
+            <a class="mc-nav-button" href="#credits"><span class="mc-nav-icon">04</span><span class="mc-nav-copy"><span class="mc-nav-title">Credits</span></span></a>
+            <a class="mc-nav-button" href="#contact"><span class="mc-nav-icon">05</span><span class="mc-nav-copy"><span class="mc-nav-title">Contact</span></span></a>
         </nav>
     </aside>
 
     <main id="main">
     <div class="content">
 
-        <h1>About MChat</h1>
-        <p class="updated">A free Twitch chat overlay for OBS and other streaming software.</p>
-
-        <section id="about">
-            <h2>What is MChat?</h2>
-            <p class="lead">MChat is a highly customizable Twitch chat overlay. It shows your channel's chat on stream with the emotes, badges and name paints your viewers already use on 7TV, FrankerFaceZ, BetterTTV and more.</p>
-            <div class="summary">
-                <p><strong>No login, no install.</strong> Type a channel name, adjust the look with the live preview, copy the link and paste it into a Browser Source. That's the whole setup.</p>
+        <div class="page-intro">
+            <div>
+                <h1>Info &amp; Privacy</h1>
+                <p class="updated">Everything you need to set up and use MChat.</p>
             </div>
-            <p>MChat runs entirely in the browser source. It connects to Twitch chat anonymously, so it never asks for your account or a token, and it keeps up with changes mid-stream, like new 7TV emotes, without a refresh.</p>
+            <svg class="intro-art" viewBox="0 0 104 58" fill="none" aria-hidden="true">
+                <circle cx="52" cy="29" r="22" stroke="#fff" stroke-width="2"/>
+                <g transform="translate(30.2 7.7) scale(1.7)" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8.8 9.2c.1-2.1 1.7-3.4 3.9-3.4 2.5 0 4.1 1.4 4.1 3.6 0 2.3-2 3.1-3.6 4.2-.8.6-1.2 1.2-1.2 2.5"/>
+                    <circle cx="12" cy="18.5" r=".8" fill="#fff" stroke="none"/>
+                </g>
+            </svg>
+        </div>
+
+        <section id="faq">
+            <h2>FAQ</h2>
+            <p class="lead">Setup, commands and privacy in one place.</p>
+
+            <details class="faq-item">
+                <summary>What is MChat?</summary>
+                <div class="faq-answer">
+                    <p>MChat is a browser-source chat overlay for Twitch, Kick and YouTube, with third-party emotes and badges. It is made by marz_dev; the <a href="https://github.com/MarzzzDev/MChat" target="_blank" rel="noopener noreferrer">source is on GitHub</a>.</p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>How do I get my overlay URL?</summary>
+                <div class="faq-answer">
+                    <p>Enter your channels and adjust the preview on the <a href="index.html">setup page</a>, then select <strong>Copy overlay link</strong>. Paste it into an OBS Browser Source. The URL includes your channels and settings.</p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Who made MChat?</summary>
+                <div class="faq-answer">
+                    <p>MChat is an independent hobby project by <strong>marz_dev</strong>, not affiliated with its supported platforms or services.</p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Why do my setup settings stay after I refresh?</summary>
+                <div class="faq-answer">
+                    <p>Your latest overlay link is saved in your browser. Use <strong>Reset settings</strong> to restore defaults; <code>-reset</code> clears chat command overrides.</p>
+                </div>
+            </details>
+
+
         </section>
 
-        <section id="features">
-            <h2>Features</h2>
-            <ul>
-                <li><strong>Emotes:</strong> Twitch, 7TV, FrankerFaceZ and BetterTTV, global and channel. 7TV personal emote sets and zero-width emotes are supported, and 7TV emote changes show up live.</li>
-                <li><strong>Effects:</strong> FFZ and BTTV emote effects such as ffzCursed, ffzSpin, ffzW and more.</li>
-                <li><strong>Badges:</strong> Twitch, FFZ (including custom moderator and VIP badges), 7TV, Chatterino, Homies, BTTV, DankChat and Moltorino. Each platform can be turned on or off on its own.</li>
-                <li><strong>7TV paints:</strong> usernames use the viewer's 7TV paint or color.</li>
-                <li><strong>Chat behavior:</strong> replies, /me actions, GIFs, and live removal of deleted messages, timeouts, bans and chat clears.</li>
-                <li><strong>Bots:</strong> hide known bots and ! commands to keep chat clean.</li>
-            </ul>
-            <p>Customize the look with:</p>
-            <div class="two-col">
-                <div class="card"><strong>Text</strong><span>Font (including any Google Font), text scale, uppercase, text color</span></div>
-                <div class="card"><strong>Stroke and shadow</strong><span>Text stroke thickness and color, drop shadow intensity, size and offset</span></div>
-                <div class="card"><strong>Emotes and GIFs</strong><span>Separate emote scale and GIF scale, unlisted 7TV emotes on or off</span></div>
-                <div class="card"><strong>Background</strong><span>Background color and opacity, or no background at all</span></div>
-                <div class="card"><strong>Layout</strong><span>Message wrapping under the username</span></div>
-                <div class="card"><strong>Timing</strong><span>How long messages stay before fading, or never fade</span></div>
+        <section id="commands">
+            <h2>Chat commands</h2>
+            <p>Broadcasters can always use commands. Moderators can use <code>-refresh</code> and <code>-modcommands</code> anytime; enable <strong>Mod commands</strong> in setup for the rest. Select a command to copy it, then add a value if shown.</p>
+            <p class="copy-status" id="command-copy-status" role="status" aria-live="polite"></p>
+            <p>Commands start with <code>-</code>. Boolean values accept on/off, true/false, yes/no or 1/0; omitting one toggles it. Numeric values use the listed ranges.</p>
+            <details class="command-category"><summary>Overlay actions</summary>
+                <div class="command-list">
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-refresh" aria-label="Copy -refresh"><code>-refresh</code></button></span><span>Reload the overlay and reconnect its sources.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-reset" aria-label="Copy -reset"><code>-reset</code></button></span><span>Clear moderator changes for this overlay URL and reload using its saved URL settings.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-modcommands " aria-label="Copy -modcommands"><code>-modcommands</code></button> <code class="command-usage">&lt;on|off&gt;</code></span><span>Enable or disable moderator commands. Any moderator can turn them off; only the broadcaster can turn them back on.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-show " aria-label="Copy -show"><code>-show</code></button> <code class="command-usage">&lt;url&gt;</code></span><span>Show an image, video or audio link for five seconds. HTTPS links must come from kappa.lol, femboy.beauty, olrite.lol or gachi.gay, including their subdomains.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-skip" aria-label="Copy -skip"><code>-skip</code></button></span><span>Close the media currently shown by <code>-show</code>.</span></div>
             </div>
-        </section>
-
-        <section id="services">
-            <h2>Supported services</h2>
-            <p>MChat pulls from these community services directly in your browser.</p>
-            <div class="card"><strong>Twitch</strong><span>Anonymous chat connection, Twitch emotes and badges, moderation events. twitch.tv</span></div>
-            <div class="card"><strong>7TV</strong><span>Global, channel and personal emotes, zero-width emotes, live emote updates, paints and badges. 7tv.app</span></div>
-            <div class="card"><strong>FrankerFaceZ</strong><span>Emotes, effects, user badges, custom moderator and VIP badges, and the bot list. frankerfacez.com</span></div>
-            <div class="card"><strong>BetterTTV</strong><span>Emotes and badges. betterttv.com</span></div>
-            <div class="card"><strong>Chatterino and Chatterino Homies</strong><span>User badges. chatterino.com, chatterinohomies.com</span></div>
-            <div class="card"><strong>DankChat</strong><span>Supporter badges. dank.chat</span></div>
-            <div class="card"><strong>Moltorino</strong><span>Supporter badges. moltorino.com</span></div>
-            <p class="note">Missing a platform you'd like to see? Let me know.</p>
-        </section>
-
-        <section id="setup">
-            <h2>Get started</h2>
-            <ol>
-                <li>Open the <a href="index.html">setup page</a> and enter your Twitch channel name.</li>
-                <li>Adjust the settings and watch the live preview update.</li>
-                <li>Click <strong>Copy overlay link</strong>.</li>
-                <li>In OBS, add a <strong>Browser Source</strong> and paste the link as the URL.</li>
-                <li>Set the source size to fit your scene. The background is transparent unless you turn it on.</li>
-            </ol>
-            <p>Your settings are stored in the link itself, so keep the link to reuse your setup, or edit the setup page again and copy a new one.</p>
+            </details>
+            <details class="command-category"><summary>Size and spacing</summary>
+                <div class="command-list">
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-scale " aria-label="Copy -scale"><code>-scale</code></button> <code class="command-usage">&lt;0.25–3&gt;</code></span><span>Change overall chat scale.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-usernamesize " aria-label="Copy -usernamesize"><code>-usernamesize</code></button> <code class="command-usage">&lt;8–100&gt;</code></span><span>Set the username font size in pixels.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagesize " aria-label="Copy -messagesize"><code>-messagesize</code></button> <code class="command-usage">&lt;8–100&gt;</code></span><span>Set the message font size in pixels.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-emotescale " aria-label="Copy -emotescale"><code>-emotescale</code></button> <code class="command-usage">&lt;0.25–3&gt;</code></span><span>Change regular emote size.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-bigemotescale " aria-label="Copy -bigemotescale"><code>-bigemotescale</code></button> <code class="command-usage">&lt;1–3&gt;</code></span><span>Change the extra scale for emote-only messages.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-gifscale " aria-label="Copy -gifscale"><code>-gifscale</code></button> <code class="command-usage">&lt;0.25–3&gt;</code></span><span>Change Twitch GIF size.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgescale " aria-label="Copy -badgescale"><code>-badgescale</code></button> <code class="command-usage">&lt;0.25–2&gt;</code></span><span>Change badge size.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgespacing " aria-label="Copy -badgespacing"><code>-badgespacing</code></button> <code class="command-usage">&lt;0–30&gt;</code></span><span>Set spacing between badges in pixels.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagespacing " aria-label="Copy -messagespacing"><code>-messagespacing</code></button> <code class="command-usage">&lt;0–32&gt;</code></span><span>Set spacing between messages in pixels.</span></div>
+            </div>
+            </details>
+            <details class="command-category"><summary>Text and effects</summary>
+                <div class="command-list">
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-font " aria-label="Copy -font"><code>-font</code></button> <code class="command-usage">&lt;opensans|arial|comicsans|roboto|montserrat|minecraft&gt;</code></span><span>Change the chat font.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-bold" aria-label="Copy -bold"><code>-bold</code></button> <code class="command-usage">[on|off]</code></span><span>Toggle bold chat text.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-uppercase" aria-label="Copy -uppercase"><code>-uppercase</code></button> <code class="command-usage">[on|off]</code></span><span>Toggle uppercase usernames and messages.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-textcolor " aria-label="Copy -textcolor"><code>-textcolor</code></button> <code class="command-usage">&lt;#RRGGBB&gt;</code></span><span>Set message text color.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-linkcolor " aria-label="Copy -linkcolor"><code>-linkcolor</code></button> <code class="command-usage">&lt;#RRGGBB&gt;</code></span><span>Set link color.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-strokewidth " aria-label="Copy -strokewidth"><code>-strokewidth</code></button> <code class="command-usage">&lt;0–20&gt;</code></span><span>Set text stroke thickness.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-strokecolor " aria-label="Copy -strokecolor"><code>-strokecolor</code></button> <code class="command-usage">&lt;#RRGGBB&gt;</code></span><span>Set text stroke color.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-shadow" aria-label="Copy -shadow"><code>-shadow</code></button> <code class="command-usage">[on|off]</code></span><span>Toggle text and media drop shadows.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-shadowintensity " aria-label="Copy -shadowintensity"><code>-shadowintensity</code></button> <code class="command-usage">&lt;0–1&gt;</code></span><span>Set drop shadow opacity.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-shadowsize " aria-label="Copy -shadowsize"><code>-shadowsize</code></button> <code class="command-usage">&lt;0–40&gt;</code></span><span>Set drop shadow blur size.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-shadowoffset " aria-label="Copy -shadowoffset"><code>-shadowoffset</code></button> <code class="command-usage">&lt;0–20&gt;</code></span><span>Set drop shadow offset.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-entryanimation " aria-label="Copy -entryanimation"><code>-entryanimation</code></button> <code class="command-usage">&lt;classic|from-left|from-right|smooth-scroll|none&gt;</code></span><span>Choose how new messages enter the overlay.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-align " aria-label="Copy -align"><code>-align</code></button> <code class="command-usage">&lt;left|center|right&gt;</code></span><span>Set message alignment.</span></div>
+            </div>
+            </details>
+            <details class="command-category"><summary>Message cards</summary>
+                <div class="command-list">
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagecards" aria-label="Copy -messagecards"><code>-messagecards</code></button> <code class="command-usage">[on|off]</code></span><span>Toggle individual message cards.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagecardcolor " aria-label="Copy -messagecardcolor"><code>-messagecardcolor</code></button> <code class="command-usage">&lt;#RRGGBB&gt;</code></span><span>Set card background color.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagecardopacity " aria-label="Copy -messagecardopacity"><code>-messagecardopacity</code></button> <code class="command-usage">&lt;0–1&gt;</code></span><span>Set card opacity as a decimal.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagecardradius " aria-label="Copy -messagecardradius"><code>-messagecardradius</code></button> <code class="command-usage">&lt;0–32&gt;</code></span><span>Set card corner radius in pixels.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagecardborderwidth " aria-label="Copy -messagecardborderwidth"><code>-messagecardborderwidth</code></button> <code class="command-usage">&lt;0–8&gt;</code></span><span>Set card border width in pixels.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagecardbordercolor " aria-label="Copy -messagecardbordercolor"><code>-messagecardbordercolor</code></button> <code class="command-usage">&lt;#RRGGBB&gt;</code></span><span>Set card border color.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagecardborderstyle " aria-label="Copy -messagecardborderstyle"><code>-messagecardborderstyle</code></button> <code class="command-usage">&lt;solid|dashed|dotted&gt;</code></span><span>Choose the card border style.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-messagecardpadding " aria-label="Copy -messagecardpadding"><code>-messagecardpadding</code></button> <code class="command-usage">&lt;0–24&gt;</code></span><span>Set extra padding inside cards in pixels.</span></div>
+            </div>
+            </details>
+            <details class="command-category"><summary>Fade and layout</summary>
+                <div class="command-list">
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-fade " aria-label="Copy -fade"><code>-fade</code></button> <code class="command-usage">&lt;seconds|off&gt;</code></span><span>Set how many seconds messages stay visible, or use <code>off</code> to keep them visible.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-newesttop" aria-label="Copy -newesttop"><code>-newesttop</code></button> <code class="command-usage">[on|off]</code></span><span>Put new messages at the top.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-wrap" aria-label="Copy -wrap"><code>-wrap</code></button> <code class="command-usage">[on|off]</code></span><span>Toggle message wrapping beneath the username.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-wrapaftercolon" aria-label="Copy -wrapaftercolon"><code>-wrapaftercolon</code></button> <code class="command-usage">[on|off]</code></span><span>Wrap messages with continuation lines aligned after the username and colon.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-collapse" aria-label="Copy -collapse"><code>-collapse</code></button> <code class="command-usage">[on|off]</code></span><span>Merge repeated messages from the same chatter.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-bigemotes" aria-label="Copy -bigemotes"><code>-bigemotes</code></button> <code class="command-usage">[on|off]</code></span><span>Toggle enlarged emote-only messages.</span></div>
+            </div>
+            </details>
+            <details class="command-category"><summary>Badges and display</summary>
+                <div class="command-list">
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badges" aria-label="Copy -badges"><code>-badges</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgetwitch" aria-label="Copy -badgetwitch"><code>-badgetwitch</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide Twitch badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgeffz" aria-label="Copy -badgeffz"><code>-badgeffz</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide FrankerFaceZ badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgeseventv" aria-label="Copy -badgeseventv"><code>-badgeseventv</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide 7TV badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgechatterino" aria-label="Copy -badgechatterino"><code>-badgechatterino</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide Chatterino badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgehomies" aria-label="Copy -badgehomies"><code>-badgehomies</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide Chatterino Homies badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgebttv" aria-label="Copy -badgebttv"><code>-badgebttv</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide BetterTTV badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgedankchat" aria-label="Copy -badgedankchat"><code>-badgedankchat</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide DankChat badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-badgemoltorino" aria-label="Copy -badgemoltorino"><code>-badgemoltorino</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide Moltorino badges.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-centerbadges" aria-label="Copy -centerbadges"><code>-centerbadges</code></button> <code class="command-usage">[on|off]</code></span><span>Center badges vertically beside usernames.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-pfps" aria-label="Copy -pfps"><code>-pfps</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide profile pictures.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-gifs" aria-label="Copy -gifs"><code>-gifs</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide Twitch GIFs.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-platformindicator" aria-label="Copy -platformindicator"><code>-platformindicator</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide the platform marker on multichat messages.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-unlisted" aria-label="Copy -unlisted"><code>-unlisted</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide unlisted 7TV emotes.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-cheers" aria-label="Copy -cheers"><code>-cheers</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide cheer emotes and bit amounts.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-colonmatchusername" aria-label="Copy -colonmatchusername"><code>-colonmatchusername</code></button> <code class="command-usage">[on|off]</code></span><span>Match the username colon color to the username color.</span></div>
+            </div>
+            </details>
+            <details class="command-category"><summary>Highlights and filters</summary>
+                <div class="command-list">
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-highlights" aria-label="Copy -highlights"><code>-highlights</code></button> <code class="command-usage">[on|off]</code></span><span>Toggle message highlight styling.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-hlfirst" aria-label="Copy -hlfirst"><code>-hlfirst</code></button> <code class="command-usage">[on|off]</code></span><span>Highlight first messages.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-hlredeems" aria-label="Copy -hlredeems"><code>-hlredeems</code></button> <code class="command-usage">[on|off]</code></span><span>Highlight channel point redeems.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-hlgifts" aria-label="Copy -hlgifts"><code>-hlgifts</code></button> <code class="command-usage">[on|off]</code></span><span>Highlight gift subs.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-hlsubs" aria-label="Copy -hlsubs"><code>-hlsubs</code></button> <code class="command-usage">[on|off]</code></span><span>Highlight new subs and resubs.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-hlraids" aria-label="Copy -hlraids"><code>-hlraids</code></button> <code class="command-usage">[on|off]</code></span><span>Highlight incoming raids.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-hlstreaks" aria-label="Copy -hlstreaks"><code>-hlstreaks</code></button> <code class="command-usage">[on|off]</code></span><span>Highlight watch streak messages.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-pins" aria-label="Copy -pins"><code>-pins</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide pinned messages.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-bots" aria-label="Copy -bots"><code>-bots</code></button> <code class="command-usage">[on|off]</code></span><span>Show or hide bot messages and commands.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-hidelinks" aria-label="Copy -hidelinks"><code>-hidelinks</code></button> <code class="command-usage">[on|off]</code></span><span>Replace links in chat messages with a link icon.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-msgfilter " aria-label="Copy -msgfilter"><code>-msgfilter</code></button> <code class="command-usage">&lt;words|clear&gt;</code></span><span>Hide messages containing any listed words. Separate words with commas; use <code>clear</code> to remove the list.</span></div>
+                <div class="command-row"><span class="command-spec"><button class="command-copy" type="button" data-command="-botfilter " aria-label="Copy -botfilter"><code>-botfilter</code></button> <code class="command-usage">&lt;users|clear&gt;</code></span><span>Hide messages from listed usernames. Separate names with commas; use <code>clear</code> to remove the list.</span></div>
+            </div>
+            </details>
+            <p class="note">Commands set temporary overrides for the running overlay. <button class="command-copy" type="button" data-command="-reset" aria-label="Copy -reset"><code>-reset</code></button> clears those overrides; it does not erase the settings encoded in the overlay URL.</p>
         </section>
 
         <section id="privacy">
-            <h2>Privacy</h2>
-            <p>MChat has no accounts, cookies, analytics or database, and it does not collect or store personal data. It is a static site hosted on GitHub Pages. Your channel name and settings live only in the overlay link, so share it only with people you trust.</p>
-            <p>Your browser connects directly to the services listed above, plus jsDelivr (Twemoji images) and Google Fonts, so those services receive your IP address like any website you visit. MChat does not receive or control that data, and their own privacy policies apply. Chat messages are shown in your browser and are never logged, saved or forwarded.</p>
+            <h2>Privacy &amp; security</h2>
+            <p>MChat has no account system and does not request or store Twitch login tokens. Your channel names and settings are in the overlay URL; setup saves that URL in your browser to restore it next time.</p>
+            <p>Chat is processed in your browser and MChat does not keep chat history. Some requests use MChat’s proxy; others connect directly to chat platforms and asset providers. Those services and the site host may receive your IP address and standard request data under their own privacy policies.</p>
+            <p>MChat does not use analytics or session recording. Moderator overrides are stored locally for the matching overlay URL and can be removed with <code>-reset</code>.</p>
         </section>
 
         <section id="credits">
             <h2>Credits</h2>
-            <p>MChat is made by marz_dev. It is not affiliated with or endorsed by Twitch, 7TV, FrankerFaceZ, BetterTTV, Chatterino, Chatterino Homies, DankChat or Moltorino. All names, logos and trademarks belong to their respective owners.</p>
-            <ul>
-                <li><strong>Emoji graphics:</strong> Twemoji, &copy; Twitter, Inc. and other contributors, maintained by <a href="https://github.com/jdecked/twemoji" target="_blank" rel="noopener noreferrer">jdecked/twemoji</a> and licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC-BY 4.0</a>.</li>
-                <li><strong>Emotes, badges and paints:</strong> provided by Twitch, 7TV, FrankerFaceZ, BetterTTV, Chatterino, DankChat and Moltorino. Every emote and badge belongs to its creator.</li>
-                <li><strong>Fonts:</strong> Open Sans, Roboto and Montserrat are licensed under the <a href="https://openfontlicense.org" target="_blank" rel="noopener noreferrer">SIL Open Font License 1.1</a>.</li>
-            </ul>
-            <p class="note">MChat's source code is on <a href="https://github.com/marzzzdev/marz-overlay" target="_blank" rel="noopener noreferrer">GitHub</a> under the license in the repository.</p>
+            <p><strong>Made by:</strong> marz_dev. MChat is an independent hobby project and is not affiliated with its supported platforms or services.</p>
+            <p>Made by marz_dev. MChat uses Twemoji, Open Sans, Roboto, Montserrat and community emotes and badges; their creators retain their respective rights.</p>
+            <p class="note">Source code and license: <a href="https://github.com/MarzzzDev/MChat" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
         </section>
 
         <section id="contact">
             <h2>Contact</h2>
-            <p>MChat is run by marz_dev as a non-commercial hobby project.</p>
-            <p>Questions, or feedback: <a href="mailto:mchat.contact@proton.me">mchat.contact@proton.me</a>, or add me on <a href="https://discord.com/users/1422977056085639309" target="_blank" rel="noopener noreferrer">Discord</a>. I'll reply to privacy requests within 30 days.</p>
+            <p>Questions or feedback: <a href="mailto:mchat.contact@proton.me">mchat.contact@proton.me</a> or <a href="https://discord.com/users/1422977056085639309" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
         </section>
 
         <footer>
@@ -401,6 +572,17 @@
         }
 
         main.addEventListener("scroll", update, { passive: true });
+        document.querySelectorAll(".command-copy").forEach(function (button) {
+            button.addEventListener("click", async function () {
+                var status = document.getElementById("command-copy-status");
+                try {
+                    await navigator.clipboard.writeText(button.dataset.command);
+                    status.textContent = "Copied " + button.dataset.command.trim() + ".";
+                } catch {
+                    status.textContent = "Clipboard access is unavailable. Select and copy the command name.";
+                }
+            });
+        });
         links.forEach(function (a) {
             a.addEventListener("click", function () { setActive(a.getAttribute("href").slice(1)); });
         });

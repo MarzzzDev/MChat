@@ -275,7 +275,7 @@ const OVERLAY_OPTIONS = {
 		},
 	),
 	entryanimation: enumOption(
-		["classic", "from-left", "from-right", "none"],
+		["classic", "from-left", "from-right", "smooth-scroll", "none"],
 		() => entryAnimation,
 		(v) => {
 			entryAnimation = v;
