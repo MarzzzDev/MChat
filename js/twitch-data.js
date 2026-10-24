@@ -3,6 +3,52 @@ const TWITCH_PUBLIC_CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko";
 
 let twitchBadgesReadyPromise = Promise.resolve();
 
+const TWITCH_COMMON_BADGE_FALLBACKS = [
+	["partner", "1", "Twitch Partner", "d12a2e27-16f6-41d0-ab77-b780518f00a3"],
+	["staff", "1", "Twitch Staff", "d97c37bd-a6f5-4c38-8f57-4e4bef88af34"],
+	["admin", "1", "Twitch Admin", "9ef7e029-4cdf-4d4d-a0d5-e2b3fb2583fe"],
+	["broadcaster", "1", "Broadcaster", "5527c58c-fb7d-422d-b71b-f309dcb85cc1"],
+	["moderator", "1", "Moderator", "3267646d-33f0-4b17-b3df-f923a41db1d0"],
+	["vip", "1", "VIP", "b817aba4-fad8-49e2-b88a-7cc744dfa6ec"],
+	["founder", "0", "Founder", "511b78a9-ab37-472f-9569-457753bbe7d3"],
+	["artist-badge", "1", "Artist", "4300a897-03dc-4e83-8c0e-c332fee7057f"],
+	["premium", "1", "Twitch Turbo", "bbbe0db0-a598-423e-86d0-f9fb98ca1933"],
+	["no_audio", "1", "Watching without audio", "aef2cd08-f29b-45a1-8c12-d44d7fd5e6f0"],
+	["no_video", "1", "Watching without video", "199a0dba-58f3-494e-a7fc-1fa0a1001fb8"],
+];
+
+function addCommonTwitchBadges() {
+	for (const [set, version, title, id] of TWITCH_COMMON_BADGE_FALLBACKS) {
+		const key = `${set}/${version}`;
+		if (twitchBadges.has(key)) continue;
+		const base = `https://static-cdn.jtvnw.net/badges/v1/${id}`;
+		twitchBadges.set(key, {
+			title,
+			url_1x: `${base}/1`,
+			url_2x: `${base}/2`,
+			url_4x: `${base}/3`,
+		});
+	}
+}
+
+function cacheTwitchBadgeDisplaySets(sets) {
+	let loaded = 0;
+	for (const [set, data] of Object.entries(sets || {})) {
+		for (const [version, badge] of Object.entries(data?.versions || {})) {
+			const imageUrl = badge.image_url_4x || badge.image_url_2x || badge.image_url_1x;
+			if (!imageUrl) continue;
+			twitchBadges.set(`${set}/${version}`, {
+				title: badge.title || badge.description || set,
+				url_1x: badge.image_url_1x || imageUrl,
+				url_2x: badge.image_url_2x || imageUrl,
+				url_4x: badge.image_url_4x || imageUrl,
+			});
+			loaded++;
+		}
+	}
+	return loaded;
+}
+
 function cacheTwitchGraphQLBadges(badges) {
 	let loaded = 0;
 
@@ -82,7 +128,7 @@ async function loadTwitchBadges() {
 			? String(TWITCH_USER_ID).replace(/\\/g, "\\\\").replace(/"/g, '\\"')
 			: null;
 
-		const [globalResult, channelResult] = await Promise.allSettled([
+		const [globalResult, channelResult, globalDisplayResult, channelDisplayResult] = await Promise.allSettled([
 			twitchGraphQL(
 				`query {
 					badges {
@@ -109,6 +155,16 @@ async function loadTwitchBadges() {
 					}`,
 				)
 				: Promise.resolve(null),
+			fetch("https://badges.twitch.tv/v1/badges/global/display?language=en", { cache: "force-cache" }).then((response) => {
+				if (!response.ok) throw new Error(`Twitch global badge catalog returned ${response.status}`);
+				return response.json();
+			}),
+			channelId
+				? fetch(`https://badges.twitch.tv/v1/badges/channels/${encodeURIComponent(channelId)}/display?language=en`, { cache: "force-cache" }).then((response) => {
+					if (!response.ok) throw new Error(`Twitch channel badge catalog returned ${response.status}`);
+					return response.json();
+				})
+				: Promise.resolve(null),
 		]);
 
 		if (globalResult.status === "fulfilled") {
@@ -124,6 +180,16 @@ async function loadTwitchBadges() {
 		} else {
 			console.warn("Twitch channel badge catalog unavailable:", channelResult.reason);
 		}
+
+		if (globalDisplayResult.status === "fulfilled") {
+			loaded += cacheTwitchBadgeDisplaySets(globalDisplayResult.value?.badge_sets);
+		}
+
+		if (channelDisplayResult.status === "fulfilled" && channelDisplayResult.value) {
+			loaded += cacheTwitchBadgeDisplaySets(channelDisplayResult.value?.badge_sets);
+		}
+
+		addCommonTwitchBadges();
 
 		if (!twitchBadges.has("subscriber/1")) {
 			twitchBadges.set("subscriber/1", {

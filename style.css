@@ -158,7 +158,7 @@ body.pixel-username-font .username {
     overflow: hidden;
     background: var(--chat-bg, transparent);
     color: var(--text-color);
-    font-weight: 900;
+    font-weight: var(--chat-weight, 900);
     word-break: break-word;
     overflow-wrap: anywhere;
     white-space: normal;
@@ -272,7 +272,7 @@ body[data-entry-animation="none"] {
     font-family: var(--username-font, var(--chat-font));
     font-style: normal;
     font-size: var(--username-font-size, 50px);
-    font-weight: 900;
+    font-weight: var(--chat-weight, 900);
     margin-right: 5px;
     display: inline;
     position: relative;
@@ -295,7 +295,7 @@ body[data-entry-animation="none"] {
     font-family: var(--message-font, var(--chat-font));
     font-style: normal;
     font-size: var(--message-font-size, 50px);
-    font-weight: 900;
+    font-weight: var(--chat-weight, 900);
     letter-spacing: 0.2px;
     display: inline;
     line-height: var(--chat-line-height);

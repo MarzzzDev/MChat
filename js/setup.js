@@ -67,6 +67,7 @@ function showOverlaySetupScreen() {
 	comboLink.href = "https://combos.marz.lol";
 	comboLink.textContent = "Emote Combos";
 
+
 	topActions.appendChild(comboLink);
 	topActions.appendChild(topLink);
 	topbar.appendChild(topActions);

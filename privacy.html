@@ -71,32 +71,9 @@
     .mc-brand {
         display: flex;
         align-items: center;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    #page a.mc-brand-link {
-        position: relative;
-        z-index: 0;
-        display: flex;
-        align-items: center;
         gap: 12px;
         min-width: 0;
-        color: inherit;
-        text-decoration: none;
     }
-
-    .mc-brand-link::before {
-        content: "";
-        position: absolute;
-        inset: -6px -10px;
-        z-index: -1;
-        border-radius: 8px;
-        background: transparent;
-        transition: background .15s ease;
-    }
-
-    .mc-brand-link:hover::before { background: var(--mc-raised); }
 
     .mc-brand-mark {
         height: 30px;
@@ -129,6 +106,22 @@
     }
 
     #page a.mc-brand-build:hover { color: var(--mc-text); }
+
+    #page a.mc-top-link {
+        display: inline-flex;
+        align-items: center;
+        height: 32px;
+        padding: 0 14px;
+        border: 1px solid var(--mc-line-strong);
+        border-radius: 4px;
+        color: var(--mc-dim);
+        font-size: 10.5px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color .15s ease, border-color .15s ease;
+    }
+
+    #page a.mc-top-link:hover { border-color: var(--mc-dim); color: var(--mc-text); }
 
     .mc-brand-page {
         color: var(--mc-faint);
@@ -356,15 +349,13 @@
 
     <header class="mc-topbar">
         <div class="mc-brand">
-            <a class="mc-brand-link" href="https://mchat.marz.lol" title="Back to overlay setup" aria-label="MChat, back to overlay setup">
-                <img class="mc-brand-mark" src="https://mchat.marz.lol/waga.gif" alt="Waga" draggable="false">
-                <div class="mc-brand-text">
-                    <div class="mc-brand-name"><span class="mc-brand-m">M</span>Chat</div>
-                    <div class="mc-brand-page">The most up-to-date Multichat Overlay</div>
-                </div>
-            </a>
-            <a class="mc-brand-build" id="privacy-build" href="https://github.com/MarzzzDev/MChat/commits/main" target="_blank" rel="noopener noreferrer">loading build…</a>
+            <img class="mc-brand-mark" src="https://mchat.marz.lol/waga.gif" alt="Waga" draggable="false">
+            <div class="mc-brand-text">
+                <div class="mc-brand-name"><span class="mc-brand-m">M</span>Chat <a class="mc-brand-build" id="privacy-build" href="https://github.com/MarzzzDev/MChat/commits/main" target="_blank" rel="noopener noreferrer">loading build…</a></div>
+                <div class="mc-brand-page">The most up-to-date Multichat Overlay</div>
+            </div>
         </div>
+        <a class="mc-top-link" href="https://mchat.marz.lol">← MChat setup</a>
     </header>
 
     <aside class="mc-sidebar">

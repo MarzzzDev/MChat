@@ -1508,7 +1508,6 @@ function ensureLayoutStyle() {
 			margin-right: 0 !important;
 		}
 
-		   does nothing there; justify each line explicitly. */
 		body.align-center #chat > .message .text {
 			justify-content: center !important;
 		}

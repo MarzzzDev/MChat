@@ -41,6 +41,10 @@ function get7TVPaintLayerUrls(paint, layer) {
 	const layerId = encodeURIComponent(String(layer.id));
 
 	return [
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/4x.gif`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/3x.gif`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/2x.gif`,
+		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/1x.gif`,
 		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/4x`,
 		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/3x`,
 		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/2x`,
