@@ -5,7 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Info &amp; Privacy · MChat</title>
-<link rel="icon" href="favicon.png" type="image/gif" >
+<link rel="canonical" href="https://faq.marz.lol/">
+<link rel="icon" href="https://mchat.marz.lol/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap">
@@ -67,7 +68,14 @@
         background: var(--mc-surface);
     }
 
-    #page a.mc-brand {
+    .mc-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    #page a.mc-brand-link {
         position: relative;
         z-index: 0;
         display: flex;
@@ -78,7 +86,7 @@
         text-decoration: none;
     }
 
-    .mc-brand::before {
+    .mc-brand-link::before {
         content: "";
         position: absolute;
         inset: -6px -10px;
@@ -88,7 +96,7 @@
         transition: background .15s ease;
     }
 
-    .mc-brand:hover::before { background: var(--mc-raised); }
+    .mc-brand-link:hover::before { background: var(--mc-raised); }
 
     .mc-brand-mark {
         height: 30px;
@@ -109,6 +117,18 @@
     }
 
     .mc-brand-m { color: var(--mc-accent); }
+
+    #page a.mc-brand-build {
+        margin-left: 8px;
+        color: var(--mc-faint);
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 9px;
+        font-weight: 500;
+        text-decoration: none;
+        vertical-align: middle;
+    }
+
+    #page a.mc-brand-build:hover { color: var(--mc-text); }
 
     .mc-brand-page {
         color: var(--mc-faint);
@@ -335,13 +355,16 @@
 <div id="page">
 
     <header class="mc-topbar">
-        <a class="mc-brand" href="/home" title="Back to overlay setup" aria-label="MChat, back to overlay setup">
-            <img class="mc-brand-mark" src="waga.gif" alt="Waga" draggable="false">
-            <div class="mc-brand-text">
-                <div class="mc-brand-name"><span class="mc-brand-m">M</span>Chat</div>
-                <div class="mc-brand-page">The most up-to-date Multichat Overlay</div>
-            </div>
-        </a>
+        <div class="mc-brand">
+            <a class="mc-brand-link" href="https://mchat.marz.lol" title="Back to overlay setup" aria-label="MChat, back to overlay setup">
+                <img class="mc-brand-mark" src="https://mchat.marz.lol/waga.gif" alt="Waga" draggable="false">
+                <div class="mc-brand-text">
+                    <div class="mc-brand-name"><span class="mc-brand-m">M</span>Chat</div>
+                    <div class="mc-brand-page">The most up-to-date Multichat Overlay</div>
+                </div>
+            </a>
+            <a class="mc-brand-build" id="privacy-build" href="https://github.com/MarzzzDev/MChat/commits/main" target="_blank" rel="noopener noreferrer">loading build…</a>
+        </div>
     </header>
 
     <aside class="mc-sidebar">
@@ -386,7 +409,7 @@
             <details class="faq-item">
                 <summary>How do I get my overlay URL?</summary>
                 <div class="faq-answer">
-                    <p>Enter your channels and adjust the preview on the <a href="/home">setup page</a>, then select <strong>Copy overlay link</strong>. Paste it into an OBS Browser Source. The URL includes your channels and settings.</p>
+                    <p>Enter your channels and adjust the preview on the <a href="https://mchat.marz.lol">setup page</a>, then select <strong>Copy overlay link</strong>. Paste it into an OBS Browser Source. The URL includes your channels and settings.</p>
                 </div>
             </details>
 
@@ -532,7 +555,7 @@
         </section>
 
         <footer>
-            <a href="/home">&larr; Back to MChat</a> &nbsp;&bull;&nbsp; &copy; 2026 marz_dev
+            <a href="https://mchat.marz.lol">&larr; Back to MChat</a> &nbsp;&bull;&nbsp; &copy; 2026 marz_dev
         </footer>
 
     </div>
@@ -540,8 +563,10 @@
 
 </div>
 
+<script src="https://mchat.marz.lol/js/build-info.js"></script>
 <script>
     (function () {
+        loadCommitInfo(document.getElementById("privacy-build"));
         var main = document.getElementById("main");
         var links = Array.prototype.slice.call(document.querySelectorAll(".mc-nav-button"));
         var sections = links.map(function (a) {

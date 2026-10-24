@@ -131,6 +131,14 @@ function onTwitchRoomReady() {
 loadFFZBotBadgeList();
 
 async function startOverlay() {
+	if (location.hostname === "mchat.marz.lol" && params.get("combo") === "1") {
+		const comboUrl = new URL(location.href);
+		comboUrl.hostname = "combos.marz.lol";
+		comboUrl.pathname = "/";
+		location.replace(comboUrl.href);
+		return;
+	}
+
 	startGithubUpdater();
 	ensureEmoteScaleStyle();
 	addGlobalStyle();
@@ -156,7 +164,19 @@ async function startOverlay() {
 	}
 
 	if (!selectedChannel && !selectedKick && !selectedYouTube) {
+		if (location.hostname === "combos.marz.lol") {
+			document.title = "Emote Combos · MChat";
+			const canonical = document.querySelector('link[rel="canonical"]');
+
+			if (canonical) {
+				canonical.href = "https://combos.marz.lol/";
+			}
+		}
+
 		showOverlaySetupScreen();
+		if (location.hostname === "combos.marz.lol") {
+			showComboMenu();
+		}
 		return;
 	}
 

@@ -57,17 +57,15 @@ function showOverlaySetupScreen() {
 
 	const topLink = document.createElement("a");
 	topLink.className = "mc-top-link";
-	topLink.href = "/privacy";
+	topLink.href = "https://faq.marz.lol";
 	topLink.textContent = "About & Credits";
 	const topActions = document.createElement("div");
 	topActions.style.cssText = "display:flex;align-items:center;gap:10px;";
 
-	const comboLink = document.createElement("button");
-	comboLink.type = "button";
+	const comboLink = document.createElement("a");
 	comboLink.className = "mc-top-link";
+	comboLink.href = "https://combos.marz.lol";
 	comboLink.textContent = "Emote Combos";
-	comboLink.style.cssText = "background:transparent;cursor:pointer;";
-	comboLink.addEventListener("click", () => showComboMenu());
 
 	topActions.appendChild(comboLink);
 	topActions.appendChild(topLink);

@@ -1,4 +1,5 @@
 const COMBO_STORAGE_KEY = "mchat-combo-settings";
+const COMBO_SITE_URL = "https://combos.marz.lol/";
 
 const COMBO_PREVIEW_EMOTE = {
 	key: "twitch:25",
@@ -593,7 +594,7 @@ function saveStoredComboSettings(settings) {
 }
 
 function buildComboUrl(settings) {
-	const base = window.location.origin + window.location.pathname;
+	const base = COMBO_SITE_URL;
 	const parts = ["combo=1"];
 
 	for (const key of Object.keys(COMBO_DEFAULTS)) {
@@ -1353,8 +1354,6 @@ function showComboMenu() {
 
 	screen.dataset.comboOpen = "1";
 
-	const savedNodes = Array.from(screen.childNodes);
-
 	screen.replaceChildren();
 
 	const settings = loadStoredComboSettings();
@@ -1374,6 +1373,12 @@ function showComboMenu() {
 
 	brandName.appendChild(comboEl("span", "mc-brand-m", "M"));
 	brandName.appendChild(document.createTextNode("Chat"));
+	const buildLink = comboEl("a", "mc-brand-build", "loading build…");
+	buildLink.href = "https://github.com/MarzzzDev/MChat/commits/main";
+	buildLink.target = "_blank";
+	buildLink.rel = "noopener noreferrer";
+	brandName.appendChild(buildLink);
+	loadCommitInfo(buildLink);
 
 	brandText.appendChild(brandName);
 	brandText.appendChild(
@@ -1383,9 +1388,8 @@ function showComboMenu() {
 	brand.appendChild(brandMark);
 	brand.appendChild(brandText);
 
-	const backLink = comboEl("button", "mc-top-link", "← Back to setup");
-	backLink.type = "button";
-	backLink.style.cssText = "background:transparent;cursor:pointer;";
+	const backLink = comboEl("a", "mc-top-link", "← MChat setup");
+	backLink.href = "https://mchat.marz.lol";
 
 	topbar.appendChild(brand);
 	topbar.appendChild(backLink);
@@ -2102,14 +2106,6 @@ function showComboMenu() {
 		autoButton.classList.add("is-active");
 		autoRemaining = 12 + Math.floor(Math.random() * 12);
 		autoStep();
-	});
-
-	backLink.addEventListener("click", () => {
-		stopAuto();
-		widget.destroy();
-		showLayer.destroy();
-		screen.replaceChildren(...savedNodes);
-		delete screen.dataset.comboOpen;
 	});
 
 	screen.append(topbar, sidebar, controls, stage);
