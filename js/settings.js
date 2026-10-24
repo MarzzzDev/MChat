@@ -126,7 +126,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.fade = settings.fade === false ? false : Number(settings.fade ?? 15);
 
-	result.entryAnimation = ["classic", "from-left", "from-right", "none"].includes(
+	result.entryAnimation = ["classic", "from-left", "from-right", "smooth-scroll", "none"].includes(
 		settings.entryAnimation,
 	)
 		? settings.entryAnimation
@@ -202,8 +202,11 @@ function normaliseOverlaySettings(settings = {}) {
 	}
 
 	result.emoteScale = Math.max(0.25, Math.min(result.emoteScale, 3));
+	result.emoteSpacing = Number(settings.emoteSpacing ?? 3);
+	if (!Number.isFinite(result.emoteSpacing)) result.emoteSpacing = 3;
+	result.emoteSpacing = Math.max(0, Math.min(result.emoteSpacing, 20));
 
-	result.bigEmotes = settings.bigEmotes === true;
+	result.bigEmotes = settings.bigEmotes !== false;
 
 	result.bigEmoteScale = Number(settings.bigEmoteScale ?? 1.2);
 
@@ -213,8 +216,8 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.bigEmoteScale = Math.max(1, Math.min(result.bigEmoteScale, 3));
 
-	result.badgeScale = Number(settings.badgeScale ?? 1);
-	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1;
+	result.badgeScale = Number(settings.badgeScale ?? 1.1);
+	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1.1;
 	result.badgeScale = Math.max(0.25, Math.min(result.badgeScale, 2));
 
 	result.badgeSpacing = Number(settings.badgeSpacing ?? 3);
@@ -282,9 +285,9 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.uppercase = settings.uppercase === true;
 
-	result.centerBadges = settings.centerBadges === true;
+	result.centerBadges = settings.centerBadges !== false;
 
-	result.centerEmotes = settings.centerEmotes === true;
+	result.centerEmotes = settings.centerEmotes !== false;
 
 	result.customFont = sanitizeFontName(settings.customFont);
 
@@ -460,16 +463,19 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 	if (normalised.emoteScale !== 1) {
 		query.push(["emoteScale", String(normalised.emoteScale)]);
 	}
+	if (normalised.emoteSpacing !== 3) {
+		query.push(["emoteSpacing", String(normalised.emoteSpacing)]);
+	}
 
-	if (normalised.bigEmotes === true) {
-		query.push(["bigEmotes", "1"]);
+	if (normalised.bigEmotes === false) {
+		query.push(["bigEmotes", "0"]);
 	}
 
 	if (normalised.bigEmoteScale !== 1.2) {
 		query.push(["bigEmoteScale", String(normalised.bigEmoteScale)]);
 	}
 
-	if (normalised.badgeScale !== 1) {
+	if (normalised.badgeScale !== 1.1) {
 		query.push(["badgeScale", String(normalised.badgeScale)]);
 	}
 
@@ -606,6 +612,7 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 	if (normalised.messageSpacing !== 3) {
 		query.push(["messageSpacing", String(normalised.messageSpacing)]);
 	}
+
 
 	if (normalised.fade !== 15) {
 		query.push([
@@ -925,7 +932,7 @@ if (fadeParam === null || fadeParam === "") {
 }
 
 let entryAnimation = params.get("entryAnimation");
-if (!["classic", "from-left", "from-right", "none"].includes(entryAnimation)) {
+if (!["classic", "from-left", "from-right", "smooth-scroll", "none"].includes(entryAnimation)) {
 	entryAnimation = "classic";
 }
 
@@ -993,7 +1000,12 @@ if (!Number.isFinite(emoteScale)) {
 
 emoteScale = Math.max(0.25, Math.min(emoteScale, 3));
 
-let bigEmotesEnabled = parseQueryBoolean("bigEmotes", false);
+let emoteSpacing = Number(params.get("emoteSpacing") ?? 3);
+if (!Number.isFinite(emoteSpacing)) emoteSpacing = 3;
+emoteSpacing = Math.max(0, Math.min(emoteSpacing, 20));
+document.documentElement.style.setProperty("--emote-spacing", `${emoteSpacing}px`);
+
+let bigEmotesEnabled = parseQueryBoolean("bigEmotes", true);
 
 let bigEmoteScale = Number(params.get("bigEmoteScale") ?? 1.2);
 
@@ -1012,8 +1024,12 @@ function applyBigEmoteSettings() {
 
 applyBigEmoteSettings();
 
-let badgeScale = Number(params.get("badgeScale") ?? 1);
-if (!Number.isFinite(badgeScale)) badgeScale = 1;
+const badgeScaleParam = params.get("badgeScale");
+let badgeScale = badgeScaleParam === null || badgeScaleParam === ""
+	? 1.1
+	: Number(badgeScaleParam);
+if (!Number.isFinite(badgeScale)) badgeScale = 1.1;
+if (badgeScale > 2) badgeScale /= 100;
 badgeScale = Math.max(0.25, Math.min(badgeScale, 2));
 document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
 
@@ -1345,6 +1361,7 @@ let uppercaseEnabled = parseQueryBoolean("uppercase", false);
 let centerBadgesEnabled = parseQueryBoolean("centerBadges", true);
 
 let centerEmotesEnabled = parseQueryBoolean("centerEmotes", true);
+
 
 let gifScale = Number(params.get("gifScale") ?? 1);
 

@@ -407,8 +407,6 @@ function addHighlightStyles() {
 			font-weight: 600;
 		}
 
-		/* Bordered message cards: keep the highlight (bars, label, tint) but
-		   fit it inside the card border instead of bleeding past it. */
 		.message-cards #chat > .message.has-highlight {
 			margin-left: 0;
 			margin-right: 0;
@@ -436,33 +434,33 @@ addHighlightStyles();
 
 function hlShiftHex(hex, degrees) {
 	const value = String(hex).replace(/^#/, "");
-	const r = parseInt(value.slice(0, 2), 16) / 255;
+	const red = parseInt(value.slice(0, 2), 16) / 255;
 	const g = parseInt(value.slice(2, 4), 16) / 255;
 	const b = parseInt(value.slice(4, 6), 16) / 255;
-	const max = Math.max(r, g, b);
+	const max = Math.max(red, g, b);
 	const min = Math.min(r, g, b);
 	const l = (max + min) / 2;
 	const d = max - min;
 
 	let h = 0;
-	let s = 0;
+	let saturation = 0;
 
 	if (d !== 0) {
-		s = d / (1 - Math.abs(2 * l - 1));
+		saturation = d / (1 - Math.abs(2 * l - 1));
 
-		if (max === r) {
+		if (max === red) {
 			h = ((g - b) / d) % 6;
 		} else if (max === g) {
 			h = (b - r) / d + 2;
 		} else {
-			h = (r - g) / d + 4;
+			h = (red - g) / d + 4;
 		}
 
 		h *= 60;
 	}
 
 	const hue = (((h + degrees) % 360) + 360) % 360;
-	const sat = Math.max(s, 0.55);
+	const sat = Math.max(saturation, 0.55);
 	const light = Math.min(Math.max(l, 0.5), 0.72);
 
 	const c = (1 - Math.abs(2 * light - 1)) * sat;
@@ -749,12 +747,11 @@ function hlShowPin({
 
 	hlHidePin(platform);
 
-	const pinTags = {
-		...tags,
+	const pinTags = Object.assign({}, tags, {
 		platform,
 		"display-name": username,
 		"user-id": userId,
-	};
+	});
 
 	const card = hlEl("div", "hl-pin");
 
@@ -783,7 +780,7 @@ function hlShowPin({
 		header.appendChild(user);
 
 		const fillPinner = (info) => {
-			const resolved = { ...info, platform };
+			const resolved = Object.assign({}, info, { platform });
 
 			if (platform === "twitch") {
 				resolved.badges = hlWithRoleBadge(
@@ -803,9 +800,9 @@ function hlShowPin({
 			user.appendChild(hlNameEl(pinner.name, "hl-pin-name", resolved));
 		};
 
-		fillPinner({ ...pinner });
+		fillPinner(Object.assign({}, pinner));
 
-		const known = hlResolveChatter(pinner.name, { ...pinner, platform });
+		const known = hlResolveChatter(pinner.name, Object.assign({}, pinner, { platform }));
 		const knownChatter = knownChatters.has(String(pinner.name).toLowerCase());
 
 		if (platform === "twitch" && !pinner.color && !knownChatter) {
@@ -814,12 +811,11 @@ function hlShowPin({
 
 			hlLookupTwitchUser(key, byId).then((found) => {
 				if (found && card.isConnected) {
-					fillPinner({
-						...pinner,
+					fillPinner(Object.assign({}, pinner, {
 						color: pinner.color || found.color,
 						userId: pinner.userId || found.userId || known.userId,
 						badges: pinner.badges || found.badges,
-					});
+					}));
 				}
 			});
 		}
@@ -971,7 +967,7 @@ function hlPinEmoteTag(fragments) {
 		offset += text.length;
 	}
 
-	return [...groups].map(([id, ranges]) => `${id}:${ranges.join(",")}`).join("/");
+	return Array.from(groups, ([emoteId, ranges]) => `${emoteId}:${ranges.join(",")}`).join("/");
 }
 
 function hlPinBadgeTag(badges) {
@@ -1179,10 +1175,11 @@ function createSubGiftCard({ gifter, plan, recipient, tier, gifterInfo = {}, rec
 	body.append(
 		hlNameLine(gifter, "hl-bold hl-gift-name", gifterInfo),
 		hlText("Gifted a "),
-		...(tierText ? [hlText(tierText, "hl-bold"), hlText(" ")] : []),
-		hlText("Sub to "),
-		hlNameEl(recipient, "hl-bold", recipientInfo),
 	);
+	if (tierText) {
+		body.append(hlText(tierText, "hl-bold"), hlText(" "));
+	}
+	body.append(hlText("Sub to "), hlNameEl(recipient, "hl-bold", recipientInfo));
 
 	part.append(icon, body);
 	card.appendChild(part);
@@ -1299,7 +1296,10 @@ function createEventCard({ icon, name, info = {}, parts = [], message = "", tags
 
 	const body = hlEl("div", "hl-gift-text");
 
-	body.append(hlNameLine(name, "hl-bold hl-gift-name", info), ...parts);
+	body.append(hlNameLine(name, "hl-bold hl-gift-name", info));
+	for (const part of parts) {
+		body.appendChild(part);
+	}
 
 	const text = String(message || "").trim();
 

@@ -283,11 +283,9 @@ async function findYouTubeLiveVideoId(target) {
 		htmlLength: html.length,
 		title: (html.match(/<title>([^<]*)<\/title>/) || [])[1] || "",
 		canonicalTag: (html.match(/<link[^>]+rel="canonical"[^>]*>/) || [])[0] || null,
-		watchIds: [
-			...new Set(
-				[...html.matchAll(/watch\?v=([\w-]{11})/g)].map((match) => match[1]),
-			),
-		].slice(0, 5),
+		watchIds: Array.from(
+			new Set(Array.from(html.matchAll(/watch\?v=([\w-]{11})/g), (match) => match[1])),
+		).slice(0, 5),
 		flags: {
 			isLive: /"isLive":true/.test(html),
 			isLiveNow: /"isLiveNow":true/.test(html),
@@ -639,4 +637,3 @@ async function startYouTubeChat(input) {
 		await waitMs(delay);
 	}
 }
-

@@ -1,16 +1,5 @@
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./js/sw.js");
 
-const apiHosts = [
-	"https://7tv.io",
-	"https://api.7tv.app",
-	"https://api.frankerfacez.com",
-	"https://api.betterttv.net",
-	"https://api.chatterino.com",
-	"https://api.moltorino.com",
-	"https://gql.twitch.tv",
-	"https://cdn.jsdelivr.net",
-];
-
 const CHANNEL_ID_KEY = "mchat-channel-id:";
 
 function getCachedChannelId(login) {
@@ -98,12 +87,12 @@ function startChannelIdLookup() {
 const TWITCH_READY_TIMEOUT_MS = 3000;
 
 function hideStaticLoadingText() {
-	const el = document.getElementById("loading-text");
+	const loadingText = document.getElementById("loading-text");
 
-	if (!el) return;
+	if (!loadingText) return;
 
 	const box =
-		el.closest("#loading, #loading-screen, .loading, .loading-screen") || el;
+		loadingText.closest("#loading, #loading-screen, .loading, .loading-screen") || loadingText;
 	box.style.display = "none";
 }
 
@@ -114,8 +103,6 @@ function logTaskError(label, error) {
 const startedTasks = [];
 
 function trackTask(label, run) {
-	const startedAt = performance.now();
-
 	const promise = Promise.resolve()
 		.then(run)
 		.catch((error) => logTaskError(label, error))

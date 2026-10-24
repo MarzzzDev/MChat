@@ -757,7 +757,9 @@ function runModCommand(text, isMod, isBroadcaster = false) {
 		.replace(/\x01$/, "")
 		.trim();
 
-	const [name, ...args] = original.toLowerCase().split(/\s+/);
+	const commandParts = original.toLowerCase().split(/\s+/);
+	const name = commandParts.shift();
+	const args = commandParts;
 
 	if (
 		!broadcaster &&
@@ -814,7 +816,7 @@ function removePlatformUserMessages(platform, userId) {
 		return;
 	}
 
-	for (const element of [...set]) {
+	for (const element of Array.from(set)) {
 		removePlatformElement(element);
 	}
 }
@@ -900,7 +902,7 @@ function emitPlatformMessage({
 		.map((segment) => (segment.type === "emote" ? segment.name : segment.text))
 		.join("");
 
-	const tags = {
+	const tags = Object.assign({
 		platform,
 		segments,
 		emotes: "",
@@ -911,8 +913,7 @@ function emitPlatformMessage({
 		"user-id": userId,
 		"is-action": false,
 		"custom-reward-id": "",
-		...extraTags,
-	};
+	}, extraTags);
 
 	Promise.resolve(
 		onMsg(username, text, color, userId, tags, null, messageId),

@@ -385,9 +385,7 @@ function handleTwitchIRCPrivmsg(message) {
 			.join("/");
 	}
 
-	const ircTags = {
-		...tags,
-		...(isAnnouncement ? { "hl-kind": "announcement" } : {}),
+	const messageTags = {
 		emotes: emotes,
 		badges: tags.badges || "",
 		gifs: tags.gifs || "",
@@ -401,9 +399,13 @@ function handleTwitchIRCPrivmsg(message) {
 		"reply-parent-display-name": tags["reply-parent-display-name"] || "",
 		"reply-parent-msg-body": tags["reply-parent-msg-body"] || "",
 	};
+	if (isAnnouncement) {
+		messageTags["hl-kind"] = "announcement";
+	}
+	const ircTags = Object.assign({}, tags, messageTags);
 
 	twitchBadgesReadyPromise
-		.catch(() => { })
+		.catch(() => {})
 		.then(() => {
 			try {
 				onMsg(

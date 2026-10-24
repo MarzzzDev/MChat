@@ -173,36 +173,49 @@ async function getTwitchPfp(user, width = 300) {
 
 let previewManifestPromise;
 function installPreviewFetch() {
-  const orig = window.fetch;
-  previewManifestPromise ??= orig("preview-cache/manifest.json").then((r) => r.json());
+	const originalFetch = window.fetch;
+	previewManifestPromise ??= originalFetch("preview-cache/manifest.json").then(
+		(response) => response.json(),
+	);
 
-  window.fetch = async (input, init = {}) => {
-	const liveUrl = typeof input === "string" ? input : input.url;
+	window.fetch = async (input, init = {}) => {
+		const requestUrl = typeof input === "string" ? input : input.url;
 
-	if (PREVIEW_LIVE_URLS.includes(liveUrl)) {
-	  try {
-		const live = await orig(input, init);
-		if (live.ok) return live;
-	  } catch {}
-	}
+		if (PREVIEW_LIVE_URLS.includes(requestUrl)) {
+			try {
+				const liveResponse = await originalFetch(input, init);
+				if (liveResponse.ok) return liveResponse;
+			} catch {}
+		}
 
-	try {
-	  const m = await previewManifestPromise;
-	  const url = typeof input === "string" ? input : input.url;
-	  const method = (init.method || input.method || "GET").toUpperCase();
-	  const body = typeof init.body === "string" ? init.body : "";
-	  const hit = m.api.find((x) => x.url === url && x.method === method && x.body === body);
-	  if (hit) {
-		const r = await orig("preview-cache/" + hit.file);
-		return new Response(await r.text(), {
-		  status: 200,
-		  headers: { "Content-Type": "application/json" },
-		});
-	  }
-	} catch {}
-	return orig(input, init);
-  };
-  return () => { window.fetch = orig; };
+		try {
+			const manifest = await previewManifestPromise;
+			const requestMethod = (init.method || input.method || "GET").toUpperCase();
+			const requestBody = typeof init.body === "string" ? init.body : "";
+			const cachedRequest = manifest.api.find(
+				(entry) =>
+					entry.url === requestUrl &&
+					entry.method === requestMethod &&
+					entry.body === requestBody,
+			);
+
+			if (cachedRequest) {
+				const cachedResponse = await originalFetch(
+					"preview-cache/" + cachedRequest.file,
+				);
+				return new Response(await cachedResponse.text(), {
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				});
+			}
+		} catch {}
+
+		return originalFetch(input, init);
+	};
+
+	return () => {
+		window.fetch = originalFetch;
+	};
 }
 
 async function loadPreviewEmotes() {

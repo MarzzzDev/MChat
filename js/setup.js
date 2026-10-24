@@ -1,820 +1,9 @@
-const previewMessages = [
-	[
-		"Dodorej",
-		"订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK 订阅层|成为订阅者您现在可以订阅并获得些额外福利包括徽章访问零宽度表情参与即将到来的全球表情抽奖等什么是是全新的表情服务和扩展免费提供自定7TV ffzCursed ffzW ffzSpin 7TV CHECK",
-		"#FF0000",
-		"504585840",
-		{ badges: "vip/1,founder/1,48hgold/1" },
-	],
-	[
-		"marz_dev",
-		"wowie an overlay with support for ffz effects",
-		"#8A2BE2",
-		"1208634685",
-		{ badges: "broadcaster/1,subscriber/1,subtember/1" },
-	],
-	[
-		"NonCre8ive",
-		"hello men",
-		"#00FF7F",
-		"405299735",
-		{ badges: "moderator/1,ewcgold/1", "msg-id": "highlighted-message" },
-	],
-	[
-		"XDR412",
-		"Maybe",
-		"#DAA520",
-		"195845559",
-		{ badges: "moderator/1,subscriber/1,pikachu/1" },
-	],
-	[
-		"Muesli_Cornflake",
-		"[Seal Hey Gif by wtf]",
-		"#94FDFF",
-		"omecash",
-		{
-			badges: "vip/1,omecash/1",
-			gifs: "0-20|hey-seal|hey.gif",
-		},
-	],
-	[
-		"SkibidiDalbajobas44",
-		"Fiddy ffzBounce buh_fish_",
-		"#FF0000",
-		"260019982",
-		{ badges: "moderator/1,founder/1,omecash/1" },
-	],
-	[
-		"buh_official_",
-		"lookUp FiddyWtf wtf did i do ?",
-		"#FF0000",
-		"717566574",
-		{ badges: "vip/1,omecash/1" },
-	],
-	[
-		"paidchatter",
-		"ur a great streamer",
-		"#8A2BE2",
-		"812345670",
-		{ badges: "subtember/1", "first-msg": "1" },
-	],
-	[
-		"JamiMeow",
-		"waga",
-		"#FF69B4",
-		"458139207",
-		{ badges: "vip/1,bot/1,omecash/1" },
-	],
-	[
-		"skibidifan5342",
-		"Cheer100 TAKE MY MONEY!",
-		"#1E90FF",
-		"733445521",
-		{ badges: "subscriber/1,omecash/1", bits: "100" },
-	],
-	[
-		"Underpaid_Actor",
-		"PagMan ffzSpin",
-		"#FF69B4",
-		"406239629",
-		{ badges: "founder/1,noob/1" },
-	],
-];
-let currentPreviewMessage = 0;
-
-const SIMULATE_CLIPS = [
-	"https://media.marz.lol/cs_1.mp4",
-	"https://media.marz.lol/cs_2.mp4",
-	"https://media.marz.lol/cs_3.mp4",
-	"https://media.marz.lol/cs_4.mp4",
-	"https://media.marz.lol/cs_5.mp4",
-	"https://media.marz.lol/cs_6.mp4",
-	"https://media.marz.lol/cs_7.mp4",
-	"https://media.marz.lol/cs_8.mp4",
-	"https://media.marz.lol/cs_9.mp4",
-	"https://media.marz.lol/cs_10.mp4",
-	"https://media.marz.lol/cs_11.mp4",
-	"https://media.marz.lol/cs_12.mp4",
-	"https://media.marz.lol/cs_13.mp4",
-];
-
-const SIM_ORIGIN = "https://media.marz.lol";
-
-function ensureMediaPreconnect() {
-	if (document.querySelector("link[data-mc-preconnect]")) {
-		return;
-	}
-
-	const link = document.createElement("link");
-	link.rel = "preconnect";
-	link.href = SIM_ORIGIN;
-	link.crossOrigin = "anonymous";
-	link.dataset.mcPreconnect = "true";
-	document.head.appendChild(link);
-}
-
-let badgeSources = {
-	twitch: badgeTwitch,
-	ffz: badgeFfz,
-	seventv: badgeSeventv,
-	chatterino: badgeChatterino,
-	homies: badgeHomies,
-	bttv: badgeBttv,
-	dankchat: badgeDankchat,
-	moltorino: badgeMoltorino,
-};
-const PLATFORM_BADGE_SOURCES = [
-	{
-		key: "twitch",
-		label: "Twitch",
-		logo: "logos/twitch.png",
-		color: "#9147ff",
-	},
-	{ key: "ffz", label: "FFZ", logo: "logos/ffz.svg", color: "#755000" },
-	{ key: "seventv", label: "7TV", logo: "logos/7tv.svg", color: "#29b6f6" },
-	{
-		key: "chatterino",
-		label: "Chatterino",
-		logo: "logos/chatterino.svg",
-		color: "#a7efff",
-	},
-	{
-		key: "homies",
-		label: "Homies",
-		logo: "logos/homies.svg",
-		color: "#d400ff",
-	},
-	{ key: "bttv", label: "BTTV", logo: "logos/bttv.svg", color: "#ff0000" },
-	{
-		key: "dankchat",
-		label: "DankChat",
-		logo: "logos/dankchat.png",
-		color: "#efe08a",
-	},
-	{
-		key: "moltorino",
-		label: "Moltorino",
-		logo: "logos/moltorino.png",
-		color: "#ff6a00",
-	},
-];
-
-let backgroundOpacity = (() => {
-	const raw = parseFloat(
-		new URLSearchParams(window.location.search).get("backgroundOpacity"),
-	);
-	return Number.isFinite(raw) ? Math.max(0, Math.min(raw, 1)) : 0;
-})();
-
-function hexToRgba(hex, alpha) {
-	let h = String(hex || "#000000")
-		.replace("#", "")
-		.trim();
-
-	if (h.length === 3) {
-		h = h
-			.split("")
-			.map((c) => c + c)
-			.join("");
-	}
-
-	if (!/^[0-9a-fA-F]{6}$/.test(h)) {
-		h = "000000";
-	}
-
-	const r = parseInt(h.slice(0, 2), 16);
-	const g = parseInt(h.slice(2, 4), 16);
-	const b = parseInt(h.slice(4, 6), 16);
-
-	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function applyChatBackground() {
-	const enabled =
-		typeof backgroundEnabled !== "undefined" ? !!backgroundEnabled : true;
-
-	const color =
-		typeof backgroundColor !== "undefined" && backgroundColor
-			? backgroundColor
-			: "#000000";
-
-	document.documentElement.style.setProperty(
-		"--chat-bg",
-		enabled ? hexToRgba(color, backgroundOpacity) : "transparent",
-	);
-
-	document.body.classList.toggle("has-background", enabled);
-}
-
-document.addEventListener("DOMContentLoaded", applyChatBackground);
-
-let previewTimer = null;
-let previewActive = false;
-let previewIntervalSec = 3.5;
-
-function runPreviewMessage() {
-	if (!previewActive) {
-		return;
-	}
-
-	const message = previewMessages[currentPreviewMessage];
-
-	if (message[0] === "JamiMeow" && !botsEnabled) {
-		currentPreviewMessage =
-			(currentPreviewMessage + 1) % previewMessages.length;
-
-		previewTimer = setTimeout(runPreviewMessage, 0);
-		return;
-	}
-
-	addPreviewMessage(...message);
-
-	currentPreviewMessage = (currentPreviewMessage + 1) % previewMessages.length;
-
-	const jitter = 0.8 + Math.random() * 0.4;
-	const delay = Math.max(20, previewIntervalSec * 1000 * jitter);
-
-	previewTimer = setTimeout(runPreviewMessage, delay);
-}
-async function startPreviewMessages() {
-	previewActive = true;
-
-	try {
-		await loadPreviewEmotes();
-	} catch (error) {
-		console.warn("Preview emotes failed to load:", error);
-	}
-
-	if (!previewActive) {
-		return;
-	}
-
-	previewTimer = setTimeout(runPreviewMessage, 500);
-}
-
-function stopPreviewMessages() {
-	previewActive = false;
-	clearTimeout(previewTimer);
-	previewTimer = null;
-}
-async function loadCommitInfo(target) {
-	if (!target) {
-		return;
-	}
-
-	try {
-		const response = await fetch(
-			"https://api.github.com/repos/MarzzzDev/MChat/commits/main",
-		);
-
-		if (!response.ok) {
-			throw new Error(`GitHub API returned ${response.status}`);
-		}
-
-		const data = await response.json();
-		const shortSha = data.sha.slice(0, 7);
-
-		target.textContent = shortSha;
-		target.href = data.html_url;
-		target.title = data.commit.message.split("\n")[0];
-	} catch (error) {
-		console.warn("Could not load latest commit info:", error);
-
-		target.textContent = "unknown";
-	}
-}
-
-const IMPORT_CHATIS_FONTS = [
-	"Baloo Tammudu",
-	"Segoe UI",
-	"Roboto",
-	"Lato",
-	"Noto Sans",
-	"Source Code Pro",
-	"Impact",
-	"Comfortaa",
-	"Dancing Script",
-	"Indie Flower",
-	"Open Sans",
-	"Alsina Ultrajada",
-];
-
-const IMPORT_CHATIS_SIZES = {
-	1: { font: 20, badge: 16, emote: 25 },
-	2: { font: 34, badge: 28, emote: 42 },
-	3: { font: 48, badge: 40, emote: 60 },
-};
-
-const IMPORT_CHATIS_SHADOW_BLUR = [0, 3.2, 5.6, 8];
-
-const IMPORT_UCHAT_KEYS = [
-	"msgBold",
-	"msgCaps",
-	"smoothScroll",
-	"fontColor",
-	"fontSize",
-	"firstMsg",
-	"fontStroke",
-	"fontShadow",
-	"emoteSize",
-	"gifSize",
-	"ffzEffects",
-	"fadeOut",
-	"badgesTTV",
-	"redeem",
-	"userBL",
-	"prefixBL",
-	"modAction",
-	"mentionColor",
-	"paints",
-	"paintShadows",
-	"lastMsg",
-	"clearLive",
-	"track",
-];
-
-const IMPORT_UCHAT_BADGE_BITS = {
-	badgeTwitch: 1,
-	badgeSeventv: 3,
-	badgeBttv: 4,
-	badgeFfz: 5,
-	badgeChatterino: 6,
-	badgeHomies: 7,
-};
-
-function importClamp(value, min, max) {
-	return Math.max(min, Math.min(max, value));
-}
-
-function importRound(value, digits = 2) {
-	const factor = 10 ** digits;
-
-	return Math.round(value * factor) / factor;
-}
-
-function importNumber(value, fallback) {
-	if (value === null || value === undefined || String(value).trim() === "") {
-		return fallback;
-	}
-
-	const number = Number(value);
-
-	return Number.isFinite(number) ? number : fallback;
-}
-
-function importBool(value, fallback) {
-	if (value === null || value === undefined) {
-		return fallback;
-	}
-
-	const text = String(value).trim().toLowerCase();
-
-	if (["1", "true", "yes", "on"].includes(text)) {
-		return true;
-	}
-
-	if (["0", "false", "no", "off"].includes(text)) {
-		return false;
-	}
-
-	return fallback;
-}
-
-function importColor(value, fallback) {
-	let text = String(value || "")
-		.trim()
-		.replace(/^#/, "")
-		.toLowerCase();
-
-	if (/^[0-9a-f]{3}$/.test(text)) {
-		text = text
-			.split("")
-			.map((char) => char + char)
-			.join("");
-	}
-
-	return /^[0-9a-f]{6}$/.test(text) ? `#${text}` : fallback;
-}
-
-function importList(value, stripAt = false) {
-	return String(value || "")
-		.split(/[,\s]+/)
-		.map((item) => item.trim().toLowerCase())
-		.map((item) => (stripAt ? item.replace(/^@/, "") : item))
-		.filter(Boolean)
-		.join(",");
-}
-
-function importResolveFont(name) {
-	const clean = sanitizeFontName(name);
-	const key = clean.toLowerCase().replace(/\s+/g, "");
-
-	const known = {
-		opensans: "'Open Sans', sans-serif",
-		arial: "Arial, sans-serif",
-		comicsans: "'Comic Sans MS', sans-serif",
-		comicsansms: "'Comic Sans MS', sans-serif",
-		roboto: "'Roboto', sans-serif",
-		montserrat: "'Montserrat', sans-serif",
-		minecraft: "'Minecraft', sans-serif",
-	};
-
-	if (known[key]) {
-		return { font: known[key], customFont: "" };
-	}
-
-	if (!clean) {
-		return { font: "'Open Sans', sans-serif", customFont: "" };
-	}
-
-	return { font: "custom", customFont: clean };
-}
-
-function importLayout(fontPx, badgePx, emotePx) {
-	const scale = importClamp(importRound(fontPx / 50, 2), 0.25, 3);
-
-	return {
-		scale,
-		badgeScale: importClamp(importRound(badgePx / (45 * scale), 3), 0.25, 2),
-		emoteScale: importClamp(importRound(emotePx / (65 * scale), 3), 0.25, 3),
-	};
-}
-
-function importShadow(offset, blur, intensity, scale) {
-	if (!(intensity > 0)) {
-		return {
-			shadow: false,
-			shadowIntensity: 0.9,
-			shadowSize: 6,
-			shadowOffset: 3,
-		};
-	}
-
-	return {
-		shadow: true,
-		shadowIntensity: importClamp(importRound(intensity, 2), 0, 1),
-		shadowSize: importClamp(importRound(blur / scale, 1), 0, 40),
-		shadowOffset: importClamp(importRound(offset / scale, 1), 0, 20),
-	};
-}
-
-function importFromChatis(p) {
-	const sizeValue = Number(p.get("size"));
-	const size = [1, 2, 3].includes(sizeValue) ? sizeValue : 1;
-	const base = IMPORT_CHATIS_SIZES[size];
-
-	let emoteMultiplier = importNumber(p.get("emoteScale"), 1);
-
-	if (!(emoteMultiplier > 0)) {
-		emoteMultiplier = 1;
-	}
-
-	emoteMultiplier = Math.min(emoteMultiplier, 3);
-
-	const layout = importLayout(base.font, base.badge, base.emote * emoteMultiplier);
-
-	const fontIndex = importNumber(p.get("font"), 11);
-
-	let fontName = "Open Sans";
-
-	if (fontIndex >= 1 && fontIndex <= 12) {
-		fontName = IMPORT_CHATIS_FONTS[Math.round(fontIndex) - 1];
-	} else if (fontIndex === 0 && p.get("fontCustom")) {
-		fontName = p.get("fontCustom");
-	}
-
-	const font = importResolveFont(fontName);
-
-	const strokeLevel = importClamp(Math.round(importNumber(p.get("stroke"), 0)), 0, 4);
-
-	const shadowLevel = importClamp(Math.round(importNumber(p.get("shadow"), 0)), 0, 3);
-
-	const fadeSeconds = Math.round(importNumber(p.get("fade"), 0));
-
-	const hideSpecial = importBool(p.get("hide_special_badges"), false);
-
-	const showHomies = importBool(p.get("show_homies"), false);
-
-	return {
-		source: "ChatIS",
-		channel: String(p.get("channel") || "")
-			.trim()
-			.replace(/^#/, "")
-			.toLowerCase(),
-		kick: "",
-		youtube: "",
-		twitchId: "",
-		settings: {
-			scale: layout.scale,
-			badgeScale: layout.badgeScale,
-			emoteScale: layout.emoteScale,
-			separateTypography: false,
-			font: font.font,
-			customFont: font.customFont,
-			textColor: "#ffffff",
-			bold: true,
-			uppercase: importBool(p.get("small_caps"), false),
-			wrapAfterColon: importBool(p.get("nl_after_name"), false),
-			strokeWidth:
-				strokeLevel > 0
-					? importClamp(importRound(strokeLevel / 2 / layout.scale, 1), 0, 20)
-					: 0,
-			strokeColor: "#000000",
-			...(shadowLevel > 0
-				? importShadow(2, IMPORT_CHATIS_SHADOW_BLUR[shadowLevel], 1, layout.scale)
-				: importShadow(0, 0, 0, layout.scale)),
-			fade: fadeSeconds > 0 ? importClamp(fadeSeconds, 1, 300) : false,
-			entryAnimation: importBool(p.get("animate"), false) ? "classic" : "none",
-			bots: importBool(p.get("bots"), false),
-			botFilter: importList(p.get("botNames"), true),
-			badges: true,
-			badgeTwitch: true,
-			badgeFfz: !hideSpecial,
-			badgeSeventv: !hideSpecial,
-			badgeBttv: !hideSpecial,
-			badgeChatterino: !hideSpecial,
-			badgeHomies: !hideSpecial && showHomies,
-			badgeDankchat: false,
-			badgeMoltorino: false,
-		},
-		skipped: ["hide_names", "markdown"],
-	};
-}
-
-function importFromUchat(p) {
-	const defaultBadges = 2047 - (1 << 7);
-
-	const fontSize = importClamp(importNumber(p.get("fontSize"), 20), 1, 500);
-	const emoteSize = importClamp(importNumber(p.get("emoteSize"), 25), 1, 500);
-	const gifSize = importClamp(importNumber(p.get("gifSize"), 100), 1, 2000);
-
-	const layout = importLayout(fontSize, fontSize, emoteSize);
-
-	const font = importResolveFont(p.get("font") || "Geist");
-
-	const shadowValue = importClamp(importNumber(p.get("fontShadow"), 10), 0, 10);
-
-	const bitmap = importNumber(p.get("badges"), defaultBadges);
-
-	const fadeSeconds = Math.round(importNumber(p.get("fadeOut"), 0));
-
-	const settings = {
-		scale: layout.scale,
-		badgeScale: layout.badgeScale,
-		emoteScale: layout.emoteScale,
-		gifScale: importClamp(importRound(gifSize / (480 * layout.scale), 3), 0.25, 3),
-		separateTypography: false,
-		font: font.font,
-		customFont: font.customFont,
-		textColor: importColor(p.get("fontColor"), "#ffffff"),
-		bold: importBool(p.get("msgBold"), true),
-		uppercase: importBool(p.get("msgCaps"), false),
-		strokeWidth: importBool(p.get("fontStroke"), false)
-			? importClamp(importRound(1 / layout.scale, 1), 0, 20)
-			: 0,
-		strokeColor: "#000000",
-		...importShadow(2, 3, shadowValue / 10, layout.scale),
-		fade: fadeSeconds > 0 ? importClamp(fadeSeconds, 1, 300) : false,
-		entryAnimation: importBool(p.get("smoothScroll"), true) ? "classic" : "none",
-		gifs: importBool(p.get("gifs"), false),
-		bots: importBool(p.get("bots"), true),
-		botFilter: importList(p.get("userBL"), true),
-		msgFilter: importList(p.get("prefixBL")),
-		highlights: importBool(p.get("mentionColor"), false),
-		hlFirst: importBool(p.get("firstMsg"), false),
-		hlRedeems: importBool(p.get("redeem"), true),
-		badges: bitmap !== 0,
-		badgeDankchat: false,
-		badgeMoltorino: false,
-	};
-
-	for (const [key, bit] of Object.entries(IMPORT_UCHAT_BADGE_BITS)) {
-		settings[key] = (bitmap & (1 << bit)) !== 0;
-	}
-
-	return {
-		source: "UChat",
-		channel: String(p.get("channel") || "")
-			.trim()
-			.replace(/^#/, "")
-			.toLowerCase(),
-		kick: String(p.get("kick") || "").trim(),
-		youtube: String(p.get("youtube") || "").trim(),
-		twitchId: String(p.get("id") || "").trim(),
-		settings,
-		skipped: ["ffzEffects", "modAction", "paints", "paintShadows"],
-	};
-}
-
-function convertForeignOverlayLink(raw) {
-	let text = String(raw || "").trim();
-
-	if (!/^https?:\/\//i.test(text)) {
-		text = `https://${text}`;
-	}
-
-	let url;
-
-	try {
-		url = new URL(text);
-	} catch {
-		throw new Error("That doesn't look like a valid link.");
-	}
-
-	const p = url.searchParams;
-	const host = url.hostname.toLowerCase();
-
-	const looksUchat =
-		host.includes("unii.dev") ||
-		host.includes("uchat") ||
-		IMPORT_UCHAT_KEYS.some((key) => p.has(key)) ||
-		p.has("kick") ||
-		p.has("youtube") ||
-		p.has("id");
-
-	const looksChatis =
-		host.includes("chatis") ||
-		["size", "animate", "small_caps", "nl_after_name", "hide_special_badges", "show_homies", "botNames", "hide_names"].some(
-			(key) => p.has(key),
-		);
-
-	if (looksChatis && !host.includes("unii.dev")) {
-		return importFromChatis(p);
-	}
-
-	if (looksUchat) {
-		return importFromUchat(p);
-	}
-
-	throw new Error("Unrecognised link. Paste a ChatIS or UChat overlay link.");
-}
-
-function safeDecodeURIComponent(value) {
-	try {
-		return decodeURIComponent(String(value || ""));
-	} catch {
-		return String(value || "");
-	}
-}
-
-function importFromMChat(p) {
-	const fadeParam = p.get("fade");
-	let fade;
-
-	if (fadeParam === null || fadeParam === "") {
-		fade = 15;
-	} else if (/^(?:off|false|0)$/i.test(String(fadeParam).trim())) {
-		fade = false;
-	} else {
-		fade = importNumber(fadeParam, 15);
-
-		if (fade < 1) {
-			fade = 15;
-		}
-	}
-
-	let messageCardBorderStyle = p.get("messageCardBorderStyle");
-
-	if (!["solid", "dashed", "dotted"].includes(messageCardBorderStyle)) {
-		messageCardBorderStyle = "solid";
-	}
-
-	let entryAnimation = p.get("entryAnimation");
-
-	if (!["classic", "from-left", "from-right", "none"].includes(entryAnimation)) {
-		entryAnimation = "classic";
-	}
-
-	const usernameFontMode = cleanFontMode(p.get("usernameFont"));
-	const messageFontMode = cleanFontMode(p.get("messageFont"));
-	const usernameFontName = sanitizeFontName(p.get("usernameFontName"));
-	const messageFontName = sanitizeFontName(p.get("messageFontName"));
-	const usernameSize = importClamp(importNumber(p.get("usernameSize"), 50), 8, 100);
-	const messageSize = importClamp(importNumber(p.get("messageSize"), 50), 8, 100);
-
-	const backgroundOpacityRaw = parseFloat(p.get("backgroundOpacity"));
-
-	const settings = {
-		background: importBool(p.get("background"), false),
-		backgroundColor: importColor(p.get("backgroundColor"), "#000000"),
-		backgroundOpacity: Number.isFinite(backgroundOpacityRaw)
-			? importClamp(backgroundOpacityRaw, 0, 1)
-			: 0,
-		textColor: importColor(p.get("textColor"), "#ffffff"),
-		linkColor: importColor(p.get("linkColor"), "#4da3ff"),
-		messageCards: importBool(p.get("messageCards"), false),
-		messageCardColor: importColor(p.get("messageCardColor"), "#141414"),
-		messageCardOpacity: importClamp(importNumber(p.get("messageCardOpacity"), 0.72), 0, 1),
-		messageCardRadius: importClamp(importNumber(p.get("messageCardRadius"), 10), 0, 32),
-		messageCardBorderWidth: importClamp(importNumber(p.get("messageCardBorderWidth"), 0), 0, 8),
-		messageCardBorderColor: importColor(p.get("messageCardBorderColor"), "#3a3a3a"),
-		messageCardBorderStyle,
-		messageCardPadding: importClamp(importNumber(p.get("messageCardPadding"), 0), 0, 24),
-		messageSpacing: importClamp(importNumber(p.get("messageSpacing"), 3), 0, 32),
-		fade,
-		badges: importBool(p.get("badges"), true),
-		badgeTwitch: importBool(p.get("badgeTwitch"), true),
-		badgeFfz: importBool(p.get("badgeFfz"), true),
-		badgeSeventv: importBool(p.get("badgeSeventv"), true),
-		badgeChatterino: importBool(p.get("badgeChatterino"), true),
-		badgeHomies: importBool(p.get("badgeHomies"), true),
-		badgeBttv: importBool(p.get("badgeBttv"), true),
-		badgeDankchat: importBool(p.get("badgeDankchat"), true),
-		badgeMoltorino: importBool(p.get("badgeMoltorino"), true),
-		gifs: importBool(p.get("gifs"), true),
-		bots: importBool(p.get("bots"), true),
-		hideLinks: importBool(p.get("hideLinks"), false),
-		platformIndicator: importBool(p.get("platformIndicator"), true),
-		colonMatchUsername: importBool(p.get("colonMatchUsername"), true),
-		highlights: importBool(p.get("highlights"), false),
-		hlFirst: importBool(p.get("hlFirst"), true),
-		hlRedeems: importBool(p.get("hlRedeems"), true),
-		hlGifts: importBool(p.get("hlGifts"), true),
-		hlSubs: importBool(p.get("hlSubs"), true),
-		hlRaids: importBool(p.get("hlRaids"), true),
-		hlStreaks: importBool(p.get("hlStreaks"), true),
-		pins: importBool(p.get("pins"), false),
-		cheers: importBool(p.get("cheers"), true),
-		collapse: importBool(p.get("collapse"), false),
-		newestTop: importBool(p.get("newestTop"), false),
-		align: cleanAlign(p.get("align")),
-		msgFilter: safeDecodeURIComponent(p.get("msgFilter") || ""),
-		botFilter: safeDecodeURIComponent(p.get("botFilter") || ""),
-		scale: importClamp(importNumber(p.get("scale"), 0.5), 0.25, 3),
-		emoteScale: importClamp(importNumber(p.get("emoteScale"), 1), 0.25, 3),
-		bigEmotes: importBool(p.get("bigEmotes"), false),
-		bigEmoteScale: importClamp(importNumber(p.get("bigEmoteScale"), 1.2), 1, 3),
-		badgeScale: importClamp(importNumber(p.get("badgeScale"), 1), 0.25, 2),
-		badgeSpacing: importClamp(importNumber(p.get("badgeSpacing"), 3), 0, 30),
-		wrap: importBool(p.get("wrap"), false),
-		wrapAfterColon: importBool(p.get("wrapAfterColon"), false),
-		unlisted: importBool(p.get("unlisted"), true),
-		font: fontQueryKeyToValue(p.get("font")),
-		entryAnimation,
-		customFont: sanitizeFontName(safeDecodeURIComponent(p.get("customFont") || "")),
-		usernameFont: usernameFontMode,
-		separateTypography: importBool(
-			p.get("separateTypography"),
-			usernameFontMode !== "chat" ||
-				messageFontMode !== "chat" ||
-				usernameSize !== 50 ||
-				messageSize !== 50,
-		),
-		usernameFontName,
-		messageFont: messageFontMode,
-		messageFontName,
-		usernameSize,
-		messageSize,
-		uppercase: importBool(p.get("uppercase"), false),
-		bold: importBool(p.get("bold"), true),
-		centerBadges: importBool(p.get("centerBadges"), false),
-		centerEmotes: importBool(p.get("centerEmotes"), false),
-		gifScale: importClamp(importNumber(p.get("gifScale"), 1), 0.25, 3),
-		strokeWidth: importClamp(importNumber(p.get("strokeWidth"), 0), 0, 20),
-		strokeColor: importColor(p.get("strokeColor"), "#000000"),
-		shadow: importBool(p.get("shadow"), true),
-		shadowIntensity: importClamp(importNumber(p.get("shadowIntensity"), 0.9), 0, 1),
-		shadowSize: importClamp(importNumber(p.get("shadowSize"), 6), 0, 40),
-		shadowOffset: importClamp(importNumber(p.get("shadowOffset"), 3), 0, 20),
-	};
-
-	return {
-		source: "MChat",
-		channel: normalizeTwitchChannel(p.get("channel")),
-		kick: cleanKickInput(p.get("kick") || ""),
-		youtube: cleanYouTubeInput(p.get("youtube") || ""),
-		twitchId: null,
-		settings,
-		skipped: [],
-	};
-}
-
-function convertMChatOverlayLink(raw) {
-	let text = String(raw || "").trim();
-
-	if (!/^https?:\/\//i.test(text)) {
-		text = `https://${text}`;
-	}
-
-	let url;
-
-	try {
-		url = new URL(text);
-	} catch {
-		throw new Error("That doesn't look like a valid link.");
-	}
-
-	const result = importFromMChat(url.searchParams);
-
-	if (!result.channel && !result.kick && !result.youtube) {
-		throw new Error("That link doesn't have a Twitch, Kick, or YouTube channel in it.");
-	}
-
-	return result;
-}
-
 function showOverlaySetupScreen() {
 	ensureEmoteScaleStyle();
+	let applyingImportedSettings = false;
+	function requestPreviewRender() {
+		if (!applyingImportedSettings) rerenderPreviewChat();
+	}
 
 	let screen = document.getElementById("overlay-setup-screen");
 
@@ -841,22 +30,25 @@ function showOverlaySetupScreen() {
 
 	const brandText = document.createElement("div");
 	brandText.className = "mc-brand-text";
-
 	const brandName = document.createElement("div");
 	brandName.className = "mc-brand-name";
-
 	const brandM = document.createElement("span");
 	brandM.className = "mc-brand-m";
 	brandM.textContent = "M";
-
 	brandName.appendChild(brandM);
 	brandName.appendChild(document.createTextNode("Chat"));
 
+	const brandBuild = document.createElement("a");
+	brandBuild.className = "mc-brand-build";
+	brandBuild.href = "https://github.com/MarzzzDev/MChat/commits/main";
+	brandBuild.target = "_blank";
+	brandBuild.rel = "noopener noreferrer";
+	brandBuild.textContent = "loading build…";
+	brandName.appendChild(brandBuild);
+	brandText.appendChild(brandName);
 	const brandPage = document.createElement("div");
 	brandPage.className = "mc-brand-page";
-	brandPage.textContent = "The most up-to-date Twitch chat Overlay";
-
-	brandText.appendChild(brandName);
+	brandPage.textContent = "The most up-to-date Multichat Overlay";
 	brandText.appendChild(brandPage);
 	brand.appendChild(brandMark);
 	brand.appendChild(brandText);
@@ -991,30 +183,17 @@ function showOverlaySetupScreen() {
 	attributionGithub.rel = "noopener noreferrer";
 	attributionGithub.textContent = "GitHub";
 
-	const attributionSeparator3 = document.createElement("span");
-	attributionSeparator3.className = "mc-attribution-separator";
-	attributionSeparator3.textContent = "•";
-
-	const attributionCommit = document.createElement("a");
-	attributionCommit.className = "mc-attribution-commit";
-	attributionCommit.href = "https://github.com/MarzzzDev/MChat/commits/main";
-	attributionCommit.target = "_blank";
-	attributionCommit.rel = "noopener noreferrer";
-	attributionCommit.textContent = "loading commit…";
-
 	attribution.appendChild(attributionBrand);
 	attribution.appendChild(attributionSeparator);
 	attribution.appendChild(attributionDisclaimer);
 	attribution.appendChild(attributionSeparator2);
 	attribution.appendChild(attributionGithub);
-	attribution.appendChild(attributionSeparator3);
-	attribution.appendChild(attributionCommit);
 
 	setupFooter.appendChild(feedback);
 	setupFooter.appendChild(attribution);
 	controls.appendChild(setupFooter);
 
-	loadCommitInfo(attributionCommit);
+	loadCommitInfo(brandBuild);
 
 	const stage = document.createElement("section");
 	stage.className = "mc-stage";
@@ -1328,8 +507,8 @@ function showOverlaySetupScreen() {
 		return { x: previewFrame.clientWidth / 2, y: previewFrame.clientHeight / 2 };
 	}
 
-	/*simZoomIn.addEventListener("click", () => zoomViewAt(1.3, frameCenter()));
-	simZoomOut.addEventListener("click", () => zoomViewAt(1 / 1.3, frameCenter()));*/
+	simZoomIn.addEventListener("click", () => zoomViewAt(1.3, frameCenter()));
+	simZoomOut.addEventListener("click", () => zoomViewAt(1 / 1.3, frameCenter()));
 	simZoomReset.addEventListener("click", resetView);
 	simBackgroundSelect.addEventListener("change", () =>
 		setSimulationBackground(simBackgroundSelect.value),
@@ -1418,11 +597,7 @@ function showOverlaySetupScreen() {
 		applyView();
 	});
 
-	previewFrame.addEventListener("pointerup", (event) => {
-		if (pan && !pan.moved) {
-			/*zoomViewAt(1.5, framePoint(event));*/
-		}
-
+	previewFrame.addEventListener("pointerup", () => {
 		pan = null;
 	});
 
@@ -1436,7 +611,6 @@ function showOverlaySetupScreen() {
 		}
 
 		event.preventDefault();
-		/*zoomViewAt(1 / 1.5, framePoint(event));*/
 	});
 
 	function framePoint(event) {
@@ -1933,12 +1107,6 @@ function showOverlaySetupScreen() {
 
 		simBox.addEventListener("pointerup", endDrag);
 		simBox.addEventListener("pointercancel", endDrag);
-		simBox.addEventListener("click", (event) => {
-			if (event.target === simBox) {
-				/*zoomViewAt(1.5, framePoint(event));*/
-			}
-		});
-
 		simBox.addEventListener(
 			"wheel",
 			(event) => {
@@ -2264,7 +1432,7 @@ function showOverlaySetupScreen() {
 					onToggle(item.key, state[item.key]);
 				}
 
-				rerenderPreviewChat();
+				requestPreviewRender();
 			});
 		}
 
@@ -2434,17 +1602,17 @@ function showOverlaySetupScreen() {
 		"",
 		"Customize",
 	);
-	const textPanel = createPanel(
-		"text",
-		"Text",
-		"Font, size, color, shadow and outline for usernames and messages.",
-		"",
-		"Customize",
-	);
 	const emotesPanel = createPanel(
 		"emotes",
 		"Emotes & Badges",
 		"Which badges and emotes show, and how big they are.",
+		"",
+		"Customize",
+	);
+	const textPanel = createPanel(
+		"text",
+		"Text",
+		"Font, size, color, shadow and outline for usernames and messages.",
 		"",
 		"Customize",
 	);
@@ -2786,6 +1954,7 @@ function showOverlaySetupScreen() {
 	messageStyleGroup.appendChild(messageStyleGrid);
 	appearancePanel.appendChild(messageStyleGroup);
 
+
 	const messageCardsCheckbox = addToggle(
 		messageStyleGrid,
 		"Message cards",
@@ -2805,7 +1974,7 @@ function showOverlaySetupScreen() {
 		messageCardColorInput,
 	);
 
-	function createMessageCardRange(labelText, min, max, value, suffix) {
+	function createMessageCardRange(labelText, min, max, value, suffix, targetGrid = messageStyleGrid) {
 		const field = document.createElement("div");
 		field.className = "mc-field";
 		const label = document.createElement("label");
@@ -2825,7 +1994,7 @@ function showOverlaySetupScreen() {
 		output.textContent = `${value}${suffix}`;
 		line.append(input, output);
 		field.append(label, line);
-		messageStyleGrid.appendChild(field);
+		targetGrid.appendChild(field);
 		return { field, input, output };
 	}
 
@@ -3175,6 +2344,7 @@ function showOverlaySetupScreen() {
 		["classic", "Classic"],
 		["from-right", "From right"],
 		["from-left", "From left"],
+		["smooth-scroll", "Smooth scroll"],
 		["none", "None"],
 	]) {
 		const option = document.createElement("option");
@@ -3394,6 +2564,35 @@ function showOverlaySetupScreen() {
 	subhead(emotesPanel, "Sizes & alignment");
 	addField(typographyPanel, "Emote scale", emoteScaleInput);
 
+	const emoteSpacingField = document.createElement("div");
+	emoteSpacingField.className = "mc-field";
+	const emoteSpacingLabel = document.createElement("label");
+	emoteSpacingLabel.className = "mc-label";
+	emoteSpacingLabel.textContent = "Emote spacing";
+	const emoteSpacingLine = document.createElement("div");
+	emoteSpacingLine.className = "mc-range-line";
+	const emoteSpacingInput = document.createElement("input");
+	emoteSpacingInput.type = "range";
+	emoteSpacingInput.className = "mc-range";
+	emoteSpacingInput.min = "0";
+	emoteSpacingInput.max = "20";
+	emoteSpacingInput.step = "1";
+	emoteSpacingInput.value = String(emoteSpacing);
+	emoteSpacingInput.setAttribute("aria-label", "Emote spacing");
+	const emoteSpacingOutput = document.createElement("span");
+	emoteSpacingOutput.className = "mc-percent";
+	emoteSpacingOutput.textContent = `${emoteSpacing}px`;
+	emoteSpacingLine.append(emoteSpacingInput, emoteSpacingOutput);
+	emoteSpacingField.append(emoteSpacingLabel, emoteSpacingLine);
+	typographyPanel.appendChild(emoteSpacingField);
+
+	emoteSpacingInput.addEventListener("input", () => {
+		emoteSpacing = Number(emoteSpacingInput.value);
+		emoteSpacingOutput.textContent = `${emoteSpacing}px`;
+		document.documentElement.style.setProperty("--emote-spacing", `${emoteSpacing}px`);
+		requestPreviewRender();
+	});
+
 	const bigEmotesCheckbox = addToggle(
 		typographyPanel,
 		"Big emote-only messages",
@@ -3416,27 +2615,23 @@ function showOverlaySetupScreen() {
 	badgeScaleField.className = "mc-field";
 	const badgeScaleLabel = document.createElement("label");
 	badgeScaleLabel.className = "mc-label";
-	badgeScaleLabel.textContent = "Badge size";
+	badgeScaleLabel.textContent = "Badge scale";
 	const badgeScaleLine = document.createElement("div");
-	badgeScaleLine.className = "mc-range-line";
 	const badgeScaleInput = document.createElement("input");
-	badgeScaleInput.type = "range";
-	badgeScaleInput.className = "mc-range";
-	badgeScaleInput.min = "25";
-	badgeScaleInput.max = "200";
-	badgeScaleInput.step = "5";
-	badgeScaleInput.value = String(Math.round(badgeScale * 100));
-	badgeScaleInput.setAttribute("aria-label", "Badge size");
-	const badgeScaleOutput = document.createElement("span");
-	badgeScaleOutput.className = "mc-percent";
-	badgeScaleOutput.textContent = `${Math.round(badgeScale * 100)}%`;
-	badgeScaleLine.append(badgeScaleInput, badgeScaleOutput);
-	badgeScaleField.append(badgeScaleLabel, badgeScaleLine);
+	badgeScaleInput.type = "number";
+	badgeScaleInput.className = "mc-input";
+	badgeScaleInput.min = "0.25";
+	badgeScaleInput.max = "2";
+	badgeScaleInput.step = "0.05";
+	badgeScaleInput.value = String(badgeScale);
+	badgeScaleInput.setAttribute("aria-label", "Badge scale");
+	badgeScaleField.append(badgeScaleLabel, badgeScaleInput);
 	typographyPanel.appendChild(badgeScaleField);
 
 	badgeScaleInput.addEventListener("input", () => {
-		badgeScale = Number(badgeScaleInput.value) / 100;
-		badgeScaleOutput.textContent = `${badgeScaleInput.value}%`;
+		const value = Number(badgeScaleInput.value);
+		if (!Number.isFinite(value)) return;
+		badgeScale = Math.max(0.25, Math.min(value, 2));
 		document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
 	});
 
@@ -3499,7 +2694,7 @@ function showOverlaySetupScreen() {
 	const centerBadgesCheckbox = addToggle(
 		typographyPanel,
 		"Center badges",
-		"Slightly lower position of badges on the text instead of the default centered look.",
+		"Align badges with the vertical center of the username text.",
 		"centerBadges",
 		centerBadgesEnabled,
 	);
@@ -3507,7 +2702,7 @@ function showOverlaySetupScreen() {
 	const centerEmotesCheckbox = addToggle(
 		typographyPanel,
 		"Center emotes",
-		"Slightly lower position of emotes on the text instead of the default centered look.",
+		"Align emotes with the vertical center of the message text.",
 		"centerEmotes",
 		centerEmotesEnabled,
 	);
@@ -3612,7 +2807,7 @@ function showOverlaySetupScreen() {
 		"You can choose from a variety of fonts for the chat.",
 		"You can enable highlighting of usernames with the 7TV Paint/Color.",
 		"You can scale the text and emotes independently.",
-		"You can set a fade time for messages or disable fading.",
+		"You can set a fade time for messages, disable fading, or smoothly move older messages up as new ones arrive.",
 		"You can choose a background color and opacity for the whole chat, or disable the background.",
 		"Cheermotes, message and user filters, newest-on-top, alignment and repeated-message collapsing are all available.",
 		"Once adjusted to your liking, you may copy the link.",
@@ -3668,7 +2863,6 @@ function showOverlaySetupScreen() {
 	fadeField.appendChild(fadeLine);
 
 	timingTwoCol.appendChild(fadeField);
-	timingPanel.appendChild(timingTwoCol);
 
 	const noFade = addToggle(
 		timingPanel,
@@ -3689,11 +2883,30 @@ function showOverlaySetupScreen() {
 
 	actions.appendChild(copyButton);
 
+	const resetSettingsButton = document.createElement("button");
+	resetSettingsButton.type = "button";
+	resetSettingsButton.className = "mc-button mc-button-full";
+	resetSettingsButton.textContent = "Reset settings";
+	resetSettingsButton.title = "Restore the default overlay settings";
+	actions.appendChild(resetSettingsButton);
+
 	const error = document.createElement("div");
 	error.className = "mc-error";
 
 	sideActions.appendChild(actions);
 	sideActions.appendChild(error);
+
+	resetSettingsButton.addEventListener("click", () => {
+		restoringSettings = true;
+		clearTimeout(saveTimer);
+		try {
+			localStorage.removeItem(SETUP_STORAGE_KEY);
+		} catch {}
+		applyImportedSettings(importFromMChat(new URLSearchParams()));
+		clearTimeout(saveTimer);
+		restoringSettings = false;
+		saveSetupSettings();
+	});
 
 	copyButton.addEventListener("click", async () => {
 		const url = getOverlayUrl();
@@ -3814,7 +3027,7 @@ function showOverlaySetupScreen() {
 	badgesCheckbox.addEventListener("change", () => {
 		badgesEnabled = badgesCheckbox.checked;
 		syncPlatformState();
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	wrapCheckbox.addEventListener("change", () => {
@@ -3824,7 +3037,7 @@ function showOverlaySetupScreen() {
 			wrapAfterColonEnabled = false;
 		}
 		applyLayoutSettings();
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	wrapAfterColonCheckbox.addEventListener("change", () => {
@@ -3834,74 +3047,74 @@ function showOverlaySetupScreen() {
 			wrapEnabled = false;
 		}
 		applyLayoutSettings();
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	pfpsCheckbox.addEventListener("change", () => {
 		pfpsEnabled = pfpsCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 	gifsCheckbox.addEventListener("change", () => {
 		gifsEnabled = gifsCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 	botsCheckbox.addEventListener("change", () => {
 		botsEnabled = botsCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 	modCommandsCheckbox.addEventListener("change", () => {
 		modCommandsEnabled = modCommandsCheckbox.checked;
 	});
 	hideLinksCheckbox.addEventListener("change", () => {
 		hideLinksEnabled = hideLinksCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 	platformIndicatorCheckbox.addEventListener("change", () => {
 		platformIndicatorEnabled = platformIndicatorCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 	colonMatchUsernameCheckbox.addEventListener("change", () => {
 		colonMatchUsernameEnabled = colonMatchUsernameCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 	highlightsCheckbox.addEventListener("change", () => {
 		highlightsEnabled = highlightsCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	unlistedCheckbox.addEventListener("change", () => {
 		showUnlisted7TV = unlistedCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	hlFirstCheckbox.addEventListener("change", () => {
 		hlFirstEnabled = hlFirstCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	hlRedeemsCheckbox.addEventListener("change", () => {
 		hlRedeemsEnabled = hlRedeemsCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	hlGiftsCheckbox.addEventListener("change", () => {
 		hlGiftsEnabled = hlGiftsCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	hlSubsCheckbox.addEventListener("change", () => {
 		hlSubsEnabled = hlSubsCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	hlRaidsCheckbox.addEventListener("change", () => {
 		hlRaidsEnabled = hlRaidsCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	hlStreaksCheckbox.addEventListener("change", () => {
 		hlStreaksEnabled = hlStreaksCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	pinsCheckbox.addEventListener("change", () => {
@@ -3910,18 +3123,18 @@ function showOverlaySetupScreen() {
 
 	cheersCheckbox.addEventListener("change", () => {
 		cheersEnabled = cheersCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	collapseCheckbox.addEventListener("change", () => {
 		collapseEnabled = collapseCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	newestTopCheckbox.addEventListener("change", () => {
 		newestTopEnabled = newestTopCheckbox.checked;
 		applyLayoutSettings();
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	alignSelect.addEventListener("change", () => {
@@ -3933,11 +3146,16 @@ function showOverlaySetupScreen() {
 
 	function applyFilterChange() {
 		clearTimeout(filterApplyTimer);
+		if (applyingImportedSettings) {
+			messageFilters = parseQueryList(msgFilterInput.value);
+			botFilterUsers = parseQueryList(botFilterInput.value, { stripAt: true });
+			return;
+		}
 
 		filterApplyTimer = setTimeout(() => {
 			messageFilters = parseQueryList(msgFilterInput.value);
 			botFilterUsers = parseQueryList(botFilterInput.value, { stripAt: true });
-			rerenderPreviewChat();
+			requestPreviewRender();
 		}, 400);
 	}
 
@@ -4087,6 +3305,7 @@ function showOverlaySetupScreen() {
 		syncFadeState();
 		applyFadeChange();
 	});
+
 	textScaleInput.addEventListener("input", () => {
 		const newScale = Number(textScaleInput.value);
 		if (!Number.isFinite(newScale)) {
@@ -4098,7 +3317,7 @@ function showOverlaySetupScreen() {
 
 	bigEmotesCheckbox.addEventListener("change", () => {
 		bigEmotesEnabled = bigEmotesCheckbox.checked;
-		rerenderPreviewChat();
+		requestPreviewRender();
 	});
 
 	bigEmoteScaleInput.addEventListener("input", () => {
@@ -4276,6 +3495,8 @@ function showOverlaySetupScreen() {
 				Math.min(Number(emoteScaleInput.value) || 1, 3),
 			),
 
+			emoteSpacing: Number(emoteSpacingInput.value),
+
 			bigEmotes: bigEmotesCheckbox.checked,
 
 			bigEmoteScale: Math.max(
@@ -4283,7 +3504,7 @@ function showOverlaySetupScreen() {
 				Math.min(Number(bigEmoteScaleInput.value) || 1.2, 3),
 			),
 
-			badgeScale: Number(badgeScaleInput.value) / 100,
+			badgeScale: Number(badgeScaleInput.value),
 
 			badgeSpacing: Number(badgeSpacingInput.value),
 
@@ -4321,6 +3542,7 @@ function showOverlaySetupScreen() {
 
 			centerEmotes: centerEmotesCheckbox.checked,
 
+
 			gifScale: Math.max(0.25, Math.min(Number(gifScaleInput.value) || 1, 3)),
 
 			strokeWidth: Math.max(
@@ -4353,12 +3575,13 @@ function showOverlaySetupScreen() {
 			kick: kickChannel,
 			youtube: youtubeChannel,
 		});
-		url.searchParams.set(
-			"backgroundOpacity",
-			String(
-				Math.max(0, Math.min(Number(backgroundOpacityInput.value) / 100, 1)),
-			),
+		const opacity = Math.max(
+			0,
+			Math.min(Number(backgroundOpacityInput.value) / 100, 1),
 		);
+		if (opacity !== 0) {
+			url.searchParams.set("backgroundOpacity", String(opacity));
+		}
 
 		return url.toString();
 	}
@@ -4619,6 +3842,16 @@ function showOverlaySetupScreen() {
 	}
 
 	function applyImportedSettings(result) {
+		applyingImportedSettings = true;
+		try {
+			applyImportedSettingsValues(result);
+		} finally {
+			applyingImportedSettings = false;
+			rerenderPreviewChat();
+		}
+	}
+
+	function applyImportedSettingsValues(result) {
 		const s = result.settings;
 
 		if (result.channel) {
@@ -4662,6 +3895,15 @@ function showOverlaySetupScreen() {
 
 		importSet(textScaleInput, s.scale);
 		importSet(emoteScaleInput, s.emoteScale);
+		if (s.emoteSpacing !== undefined) {
+			emoteSpacing = s.emoteSpacing;
+			importSet(emoteSpacingInput, s.emoteSpacing);
+			emoteSpacingOutput.textContent = `${s.emoteSpacing}px`;
+			document.documentElement.style.setProperty(
+				"--emote-spacing",
+				`${s.emoteSpacing}px`,
+			);
+		}
 
 		if (s.bigEmotes !== undefined) {
 			importSet(bigEmotesCheckbox, s.bigEmotes);
@@ -4671,8 +3913,8 @@ function showOverlaySetupScreen() {
 			importSet(bigEmoteScaleInput, s.bigEmoteScale);
 		}
 
-		badgeScaleInput.step = "1";
-		importSet(badgeScaleInput, Math.round(s.badgeScale * 100));
+		badgeScaleInput.step = "0.05";
+		importSet(badgeScaleInput, s.badgeScale);
 
 		if (s.pfps !== undefined) {
 			importSet(pfpsCheckbox, s.pfps);
@@ -4695,6 +3937,7 @@ function showOverlaySetupScreen() {
 		importSet(shadowOffsetInput, s.shadowOffset);
 
 		importSet(entryAnimationSelect, s.entryAnimation);
+
 
 		if (s.fade === false) {
 			importSet(noFade, true);
@@ -4787,8 +4030,8 @@ function showOverlaySetupScreen() {
 		}
 
 		if (s.badgeScale !== undefined) {
-			badgeScaleInput.step = "1";
-			importSet(badgeScaleInput, Math.round(s.badgeScale * 100));
+			badgeScaleInput.step = "0.05";
+			importSet(badgeScaleInput, s.badgeScale);
 		}
 
 		if (s.badgeSpacing !== undefined) {
@@ -4906,7 +4149,6 @@ function showOverlaySetupScreen() {
 		}
 
 		syncPlatformState();
-		rerenderPreviewChat();
 
 		console.info(`[import] ${result.source} link imported. Not supported:`, result.skipped);
 	}
@@ -4959,7 +4201,7 @@ function showOverlaySetupScreen() {
 	let saveTimer = null;
 
 	function saveSetupSettings() {
-		if (restoringSettings) {
+		if (restoringSettings || screen.dataset.comboOpen === "1") {
 			return;
 		}
 
@@ -4975,6 +4217,10 @@ function showOverlaySetupScreen() {
 	}
 
 	function scheduleSaveSetupSettings() {
+		if (screen.dataset.comboOpen === "1") {
+			return;
+		}
+
 		clearTimeout(saveTimer);
 		saveTimer = setTimeout(saveSetupSettings, 300);
 	}

@@ -86,7 +86,7 @@ async function hardRefreshOverlay() {
 
 		await Promise.race([
 			Promise.allSettled(
-				["", ...files].map((file) =>
+				[""].concat(files).map((file) =>
 					fetch(base + encodeURI(file), { cache: "reload" }),
 				),
 			),

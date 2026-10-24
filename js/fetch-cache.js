@@ -125,7 +125,7 @@
 
 		if (entry && age < maxStale && rule.live && window.mchatLiveRefresh) {
 			try {
-				const response = await network(key, input, { cache: "no-cache", ...init });
+				const response = await network(key, input, Object.assign({ cache: "no-cache" }, init));
 
 				if (response.ok) {
 					return response;

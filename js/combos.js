@@ -1998,6 +1998,7 @@ function showComboMenu() {
 
 	const resetButton = comboEl("button", "mc-button mc-button-full", "Reset settings");
 	resetButton.type = "button";
+	resetButton.title = "Restore the default combo settings";
 
 	actions.append(copyButton, resetButton);
 
@@ -2052,9 +2053,7 @@ function showComboMenu() {
 	});
 
 	resetButton.addEventListener("click", () => {
-		const channel = settings.channel;
-
-		Object.assign(settings, COMBO_DEFAULTS, { channel });
+		Object.assign(settings, COMBO_DEFAULTS, { sounds: [] });
 
 		for (const sync of syncers) {
 			sync();

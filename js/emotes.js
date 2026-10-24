@@ -422,10 +422,9 @@ async function loadBTTVEmotes() {
 		if (userResponse?.ok) {
 			const userData = await userResponse.json();
 
-			const emotes = [
-				...(userData.channelEmotes || []),
-				...(userData.sharedEmotes || []),
-			];
+			const emotes = (userData.channelEmotes || []).concat(
+				userData.sharedEmotes || [],
+			);
 
 			for (const emote of emotes) {
 				if (!emote.code || !emote.id) {
