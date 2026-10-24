@@ -29,9 +29,9 @@ function ensureEmoteScaleStyle() {
 					) !important;
 			}
 
-			body.center-emotes .message.big-emote-message .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
-			body.center-emotes .message.big-emote-message .text .twemoji,
-			body.center-emotes .message.big-emote-message .text .emote-overlay-target {
+			.message.big-emote-message .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
+			.message.big-emote-message .text .twemoji,
+			.message.big-emote-message .text .emote-overlay-target {
 				vertical-align:
 					calc(
 						0.37em -

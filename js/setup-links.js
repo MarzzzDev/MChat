@@ -485,8 +485,7 @@ function importFromMChat(p) {
 		messageSize,
 		uppercase: importBool(p.get("uppercase"), false),
 		bold: importBool(p.get("bold"), true),
-		centerBadges: importBool(p.get("centerBadges"), true),
-		centerEmotes: importBool(p.get("centerEmotes"), true),
+		centerBadges: importBool(p.get("centerBadges"), false),
 
 		gifScale: importClamp(importNumber(p.get("gifScale"), 1), 0.25, 3),
 		strokeWidth: importClamp(importNumber(p.get("strokeWidth"), 0), 0, 20),

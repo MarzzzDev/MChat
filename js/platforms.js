@@ -310,7 +310,6 @@ const OVERLAY_OPTIONS = {
 	bold: simpleBool(() => boldEnabled, (v) => (boldEnabled = v), () => applyTextStyleSettings()),
 	uppercase: simpleBool(() => uppercaseEnabled, (v) => (uppercaseEnabled = v), () => applyTextStyleSettings()),
 	centerbadges: simpleBool(() => centerBadgesEnabled, (v) => (centerBadgesEnabled = v), () => applyTextStyleSettings()),
-	centeremotes: simpleBool(() => centerEmotesEnabled, (v) => (centerEmotesEnabled = v), () => applyTextStyleSettings()),
 	shadow: simpleBool(() => shadowEnabled, (v) => (shadowEnabled = v), () => applyShadowSettings()),
 	messagecards: simpleBool(() => messageCardsEnabled, (v) => (messageCardsEnabled = v), () => applyMessageCardSettings()),
 	newesttop: simpleBool(() => newestTopEnabled, (v) => (newestTopEnabled = v), () => applyLayoutSettings()),

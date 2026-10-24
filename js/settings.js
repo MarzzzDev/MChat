@@ -285,9 +285,8 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.uppercase = settings.uppercase === true;
 
-	result.centerBadges = settings.centerBadges !== false;
 
-	result.centerEmotes = settings.centerEmotes !== false;
+	result.centerBadges = settings.centerBadges === true;
 
 	result.customFont = sanitizeFontName(settings.customFont);
 
@@ -525,12 +524,8 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["uppercase", "1"]);
 	}
 
-	if (normalised.centerBadges === false) {
-		query.push(["centerBadges", "0"]);
-	}
-
-	if (normalised.centerEmotes === false) {
-		query.push(["centerEmotes", "0"]);
+	if (normalised.centerBadges === true) {
+		query.push(["centerBadges", "1"]);
 	}
 
 	if (normalised.gifScale !== 1) {
@@ -1358,9 +1353,7 @@ let boldEnabled = parseQueryBoolean("bold", true);
 
 let uppercaseEnabled = parseQueryBoolean("uppercase", false);
 
-let centerBadgesEnabled = parseQueryBoolean("centerBadges", true);
-
-let centerEmotesEnabled = parseQueryBoolean("centerEmotes", true);
+let centerBadgesEnabled = parseQueryBoolean("centerBadges", false);
 
 
 let gifScale = Number(params.get("gifScale") ?? 1);
@@ -1429,7 +1422,6 @@ function applyTextStyleSettings() {
 
 	document.body.classList.toggle("uppercase", uppercaseEnabled);
 	document.body.classList.toggle("center-badges", centerBadgesEnabled);
-	document.body.classList.toggle("center-emotes", centerEmotesEnabled);
 }
 
 applyTextStyleSettings();

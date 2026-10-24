@@ -99,13 +99,8 @@ body {
 .message-badges {
     display: inline-flex;
     align-items: center;
-    vertical-align: middle;
+    vertical-align: text-bottom;
     white-space: nowrap;
-}
-
-body:not(.center-badges) .message-badges {
-    align-items: baseline;
-    vertical-align: baseline;
 }
 
 .message > .text {
@@ -240,7 +235,7 @@ body[data-entry-animation="none"] {
 .badges {
     display: inline-flex;
     align-items: center;
-    vertical-align: middle;
+    vertical-align: text-bottom;
     gap: var(--badge-spacing, 3px);
     margin-right: 6px;
     position: relative;
@@ -469,21 +464,14 @@ body.center-badges .message-badges {
     );
 }
 
-body.center-emotes .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
-body.center-emotes .text .twemoji,
-body.center-emotes .text .emote-overlay-target {
+.text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
+.text .twemoji,
+.text .emote-overlay-target {
     vertical-align: calc(
         0.37em - (32.5px * var(--emote-scale, 1)) + var(--emote-offset, 0px)
     ) !important;
 }
 
-body:not(.center-emotes) .message .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
-body:not(.center-emotes) .message .text .twemoji,
-body:not(.center-emotes) .message .text .emote-overlay-target {
-    vertical-align: baseline !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-}
 
 .badges {
     margin-right: calc(var(--badge-spacing, 3px) + 3px);

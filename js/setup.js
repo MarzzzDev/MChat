@@ -2685,20 +2685,13 @@ function showOverlaySetupScreen() {
 	);
 
 	typographyPanel.to(emotesPanel);
+
 	const centerBadgesCheckbox = addToggle(
 		typographyPanel,
 		"Center badges",
 		"Align badges with the vertical center of the username text.",
 		"centerBadges",
 		centerBadgesEnabled,
-	);
-
-	const centerEmotesCheckbox = addToggle(
-		typographyPanel,
-		"Center emotes",
-		"Align emotes with the vertical center of the message text.",
-		"centerEmotes",
-		centerEmotesEnabled,
 	);
 
 	typographyPanel.to(effectsStage);
@@ -3242,13 +3235,9 @@ function showOverlaySetupScreen() {
 		applyTextStyleSettings();
 	});
 
+
 	centerBadgesCheckbox.addEventListener("change", () => {
 		centerBadgesEnabled = centerBadgesCheckbox.checked;
-		applyTextStyleSettings();
-	});
-
-	centerEmotesCheckbox.addEventListener("change", () => {
-		centerEmotesEnabled = centerEmotesCheckbox.checked;
 		applyTextStyleSettings();
 	});
 
@@ -3532,9 +3521,8 @@ function showOverlaySetupScreen() {
 
 			bold: boldCheckbox.checked,
 
-			centerBadges: centerBadgesCheckbox.checked,
 
-			centerEmotes: centerEmotesCheckbox.checked,
+			centerBadges: centerBadgesCheckbox.checked,
 
 
 			gifScale: Math.max(0.25, Math.min(Number(gifScaleInput.value) || 1, 3)),
@@ -4080,12 +4068,9 @@ function showOverlaySetupScreen() {
 			importSet(unlistedCheckbox, s.unlisted);
 		}
 
+
 		if (s.centerBadges !== undefined) {
 			importSet(centerBadgesCheckbox, s.centerBadges);
-		}
-
-		if (s.centerEmotes !== undefined) {
-			importSet(centerEmotesCheckbox, s.centerEmotes);
 		}
 
 		if (s.usernameFont !== undefined) {
