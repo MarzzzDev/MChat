@@ -3,6 +3,10 @@
     {
       "source": "/privacy",
       "destination": "/privacy.html"
+    },
+    {
+      "source": "/home",
+      "destination": "/index.html"
     }
   ]
 }
