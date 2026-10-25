@@ -349,6 +349,11 @@ const OVERLAY_OPTIONS = {
 	),
 	bigemotes: simpleBool(() => bigEmotesEnabled, (v) => (bigEmotesEnabled = v)),
 	badges: simpleBool(() => badgesEnabled, (v) => (badgesEnabled = v)),
+	timestamps: simpleBool(
+		() => timestampsEnabled,
+		(v) => (timestampsEnabled = v),
+		() => window.refreshMessageTimestamps?.(),
+	),
 	badgetwitch: simpleBool(() => badgeTwitch, (v) => (badgeTwitch = v)),
 	badgeffz: simpleBool(() => badgeFfz, (v) => (badgeFfz = v)),
 	badgeseventv: simpleBool(() => badgeSeventv, (v) => (badgeSeventv = v)),

@@ -86,8 +86,21 @@
 		}
 
 		try {
-			db.transaction(STORE, "readwrite").objectStore(STORE).put(value, key);
+			const transaction = db.transaction(STORE, "readwrite");
+			transaction.objectStore(STORE).put(value, key);
+			await new Promise((resolve) => {
+				transaction.oncomplete = resolve;
+				transaction.onerror = resolve;
+				transaction.onabort = resolve;
+			});
 		} catch {}
+	}
+
+	function cachedResponse(entry) {
+		return new Response(entry.text, {
+			status: 200,
+			headers: { "Content-Type": entry.type },
+		});
 	}
 
 	const inflight = new Map();
@@ -97,15 +110,19 @@
 
 		if (!promise) {
 			promise = nativeFetch(input, init)
-				.then(async (response) => {
+				.then((response) => {
 					if (response.ok) {
-						const text = await response.clone().text();
-
-						dbSet(key, {
-							t: Date.now(),
-							text,
-							type: response.headers.get("Content-Type") || "application/json",
-						});
+						response
+							.clone()
+							.text()
+							.then((text) =>
+								dbSet(key, {
+									t: Date.now(),
+									text,
+									type: response.headers.get("Content-Type") || "application/json",
+								}),
+							)
+							.catch(() => {});
 					}
 
 					return response;
@@ -132,10 +149,7 @@
 				}
 			} catch {}
 
-			return new Response(entry.text, {
-				status: 200,
-				headers: { "Content-Type": entry.type },
-			});
+			return cachedResponse(entry);
 		}
 
 		if (entry && age < maxStale) {
@@ -143,17 +157,14 @@
 				network(key, input, init).catch(() => {});
 			}
 
-			return new Response(entry.text, {
-				status: 200,
-				headers: { "Content-Type": entry.type },
-			});
+			return cachedResponse(entry);
 		}
 
 		return network(key, input, init);
 	}
 
 	window.fetch = function (input, init) {
-		if (typeof input !== "string") {
+		if (typeof input !== "string" || input instanceof Request) {
 			return nativeFetch(input, init);
 		}
 
@@ -166,7 +177,7 @@
 		const method = String(init?.method || "GET").toUpperCase();
 		const body = typeof init?.body === "string" ? init.body : "";
 
-		if (method === "POST" ? !rule.post || !body : method !== "GET") {
+		if (method === "POST" ? !rule.post || !body || typeof init?.body !== "string" : method !== "GET") {
 			return nativeFetch(input, init);
 		}
 

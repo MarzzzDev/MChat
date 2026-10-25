@@ -358,12 +358,14 @@ function animateChatPush(previous) {
 }
 
 function trimChatToLimit(chat) {
-	while (chat.querySelectorAll(":scope > .message").length > 100) {
+	let messageCount = chat.querySelectorAll(":scope > .message").length;
+	while (messageCount > 100) {
 		const oldest = newestTopEnabled
 			? chat.lastElementChild
 			: chat.firstElementChild;
 
 		if (!oldest) break;
+		if (oldest.matches?.(".message")) messageCount--;
 		clearTimeout(oldest._fadeTimer);
 		clearTimeout(oldest._removeTimer);
 		removePlatformElement(oldest);
@@ -409,6 +411,40 @@ function unregisterMessageIds(message) {
 function scrollPreviewToLatest(previewChat) {
 	previewChat.scrollTop = newestTopEnabled ? 0 : previewChat.scrollHeight;
 }
+
+function createMessageTimestamp(timestamp) {
+	const numericTimestamp = Number(timestamp);
+	const date = new Date(
+		Number.isFinite(numericTimestamp)
+			? numericTimestamp < 1e12
+				? numericTimestamp * 1000
+				: numericTimestamp
+			: Date.now(),
+	);
+	const element = document.createElement("span");
+	element.className = "message-timestamp";
+	element.textContent = new Intl.DateTimeFormat("en-GB", {
+		hour: "2-digit",
+		minute: "2-digit",
+		hourCycle: "h23",
+	}).format(date);
+	return element;
+}
+
+function refreshMessageTimestamps() {
+	for (const message of document.querySelectorAll("#chat > .message")) {
+		const author = message.querySelector(":scope > .message-author");
+		if (!author) continue;
+		author.querySelector(":scope > .message-timestamp")?.remove();
+		if (!timestampsEnabled) continue;
+		const timestamp = createMessageTimestamp(message.dataset.sentTimestamp || Date.now());
+		const firstBadge = author.querySelector(":scope > .message-badges");
+		const username = author.querySelector(":scope > .username");
+		author.insertBefore(timestamp, firstBadge || username || null);
+	}
+}
+
+window.refreshMessageTimestamps = refreshMessageTimestamps;
 
 	function scheduleMessageFade(message, userKey) {
 	clearTimeout(message._fadeTimer);
@@ -667,6 +703,7 @@ async function onMsg(
 	const message = document.createElement("div");
 	message.className = "message";
 	message.dataset.platform = platform;
+	message.dataset.sentTimestamp = String(tags["tmi-sent-ts"] || tags.timestamp || Date.now());
 
 	if (wrapEnabled) {
 		message.classList.add("wrap-message");
@@ -698,6 +735,7 @@ async function onMsg(
 
 	const authorGroup = document.createElement("span");
 	authorGroup.className = "message-author";
+	if (badges.childElementCount > 0) authorGroup.classList.add("has-badges");
 
 	const usernameElement = document.createElement("span");
 	usernameElement.className = "username";
@@ -756,6 +794,11 @@ async function onMsg(
 	}
 
 	authorGroup.appendChild(badges);
+	let timestampElement = null;
+	if (timestampsEnabled) {
+		timestampElement = createMessageTimestamp(message.dataset.sentTimestamp);
+		authorGroup.insertBefore(timestampElement, badges);
+	}
 	authorGroup.appendChild(usernameElement);
 
 	if (colonElement) {
@@ -805,6 +848,7 @@ async function onMsg(
 			createExternalBadges(userId, tags).then((externalBadges) => {
 				if (externalBadges.children.length > 0) {
 					externalBadges.classList.add("message-badges");
+					authorGroup.classList.add("has-badges");
 					authorGroup.insertBefore(externalBadges, usernameElement);
 				}
 			});
@@ -814,6 +858,7 @@ async function onMsg(
 			create7TVBadges(userId, "kick").then((sevenTVBadgeContainer) => {
 				if (sevenTVBadgeContainer.children.length > 0) {
 					sevenTVBadgeContainer.classList.add("message-badges");
+					authorGroup.classList.add("has-badges");
 					authorGroup.insertBefore(sevenTVBadgeContainer, usernameElement);
 				}
 			});

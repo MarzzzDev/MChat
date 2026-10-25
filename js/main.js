@@ -120,7 +120,7 @@ function onTwitchRoomReady() {
 	}
 
 	channelDataPromise = trackTask("7TV channel emotes", load7TVEmotes);
-	channelDataPromise.then(resolveChannelData);
+	channelDataPromise.then(resolveChannelData, resolveChannelData);
 
 	trackTask("Twitch badges", loadTwitchBadges);
 	trackTask("BTTV emotes", loadBTTVEmotes);
@@ -215,7 +215,7 @@ async function startOverlay() {
 	}
 
 	if (CHANNEL) {
-		required.push(channelDataReady);
+		required.push(channelDataReady, ircReady);
 	}
 
 	await Promise.race([

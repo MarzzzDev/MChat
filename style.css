@@ -94,6 +94,25 @@ body {
     font-family: var(--username-font, var(--chat-font));
     font-size: var(--username-font-size, 50px);
     line-height: var(--chat-line-height);
+    margin-right: var(--author-message-spacing, 3px);
+}
+
+.message-author > .message-badges {
+	margin-right: 0;
+}
+
+.message-author.has-badges > .message-badges:has(+ .username) {
+	margin-right: var(--badge-name-spacing, 3px);
+}
+
+.message-timestamp {
+    color: color-mix(in srgb, var(--text-color) 65%, transparent);
+    font-size: 0.7em;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+    margin-right: 0.45em;
 }
 
 .message-badges {

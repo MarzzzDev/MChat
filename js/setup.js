@@ -1232,6 +1232,27 @@ function showOverlaySetupScreen() {
 	let lastNavGroup = null;
 	const TAB_STORAGE_KEY = "mchat-setup-tab";
 
+	function setActivePanel(id, persist = true) {
+		const entry = panelRegistry.find((item) => item.id === id);
+		if (!entry) return;
+		for (const item of panelRegistry) {
+			const active = item === entry;
+			item.navButton.classList.toggle("is-active", active);
+			item.navButton.setAttribute("aria-selected", active ? "true" : "false");
+			item.navButton.tabIndex = active ? 0 : -1;
+			item.panel.classList.toggle("is-active", active);
+		}
+		controlTitle.textContent = entry.title;
+		controlSubtitle.textContent = entry.navDesc;
+		panelStack.scrollTop = 0;
+		entry.navButton.scrollIntoView({ block: "nearest", inline: "nearest" });
+		if (persist) {
+			try {
+				sessionStorage.setItem(TAB_STORAGE_KEY, id);
+			} catch {}
+		}
+	}
+
 	function createPanel(id, navTitle, navDesc, icon, group) {
 		const panel = document.createElement("section");
 		panel.className = "mc-panel";
@@ -1270,28 +1291,10 @@ function showOverlaySetupScreen() {
 		navButton.appendChild(navCopy);
 		nav.appendChild(navButton);
 		panelStack.appendChild(panel);
-		panelRegistry.push({ id, title: navTitle, panel, navButton });
+		panelRegistry.push({ id, title: navTitle, navDesc, panel, navButton });
 
 		navButton.addEventListener("click", () => {
-			for (const button of nav.querySelectorAll(".mc-nav-button")) {
-				const active = button === navButton;
-				button.classList.toggle("is-active", active);
-				button.setAttribute("aria-selected", active ? "true" : "false");
-				button.tabIndex = active ? 0 : -1;
-			}
-
-			for (const otherPanel of panelStack.querySelectorAll(".mc-panel")) {
-				otherPanel.classList.toggle("is-active", otherPanel === panel);
-			}
-
-			controlTitle.textContent = navTitle;
-			controlSubtitle.textContent = navDesc;
-			panelStack.scrollTop = 0;
-			navButton.scrollIntoView({ block: "nearest", inline: "nearest" });
-
-			try {
-				sessionStorage.setItem(TAB_STORAGE_KEY, id);
-			} catch { }
+			setActivePanel(id);
 		});
 
 		return panel;
@@ -1601,17 +1604,17 @@ function showOverlaySetupScreen() {
 		"",
 		"Customize",
 	);
-	const emotesPanel = createPanel(
-		"emotes",
-		"Emotes & Badges",
-		"Which badges and emotes show, and how big they are.",
-		"",
-		"Customize",
-	);
 	const textPanel = createPanel(
 		"text",
 		"Text",
 		"Font, size, color, shadow and outline for usernames and messages.",
+		"",
+		"Customize",
+	);
+	const emotesPanel = createPanel(
+		"emotes",
+		"Emotes & Badges",
+		"Which badges and emotes show, and how big they are.",
 		"",
 		"Customize",
 	);
@@ -1775,6 +1778,43 @@ function showOverlaySetupScreen() {
 		"wrapAfterColon",
 		wrapAfterColonEnabled,
 	);
+	function addSpacingControl(labelText, value, onChange, ariaLabel) {
+		const field = document.createElement("div");
+		field.className = "mc-field";
+		const label = document.createElement("label");
+		label.className = "mc-label";
+		label.textContent = labelText;
+		const line = document.createElement("div");
+		line.className = "mc-range-line";
+		const input = document.createElement("input");
+		input.type = "range";
+		input.className = "mc-range";
+		input.min = "0";
+		input.max = "30";
+		input.step = "1";
+		input.value = String(value);
+		input.setAttribute("aria-label", ariaLabel);
+		const output = document.createElement("span");
+		output.className = "mc-percent";
+		output.textContent = `${value}px`;
+		input.addEventListener("input", () => {
+			const next = Number(input.value);
+			output.textContent = `${next}px`;
+			onChange(next);
+		});
+		line.append(input, output);
+		field.append(label, line);
+		appearancePanel.appendChild(field);
+		return input;
+	}
+	const badgeNameSpacingInput = addSpacingControl("Badge to username spacing", badgeNameSpacing, (value) => {
+		badgeNameSpacing = value;
+		document.documentElement.style.setProperty("--badge-name-spacing", `${value}px`);
+	}, "Badge to username spacing");
+	const authorMessageSpacingInput = addSpacingControl("Username and colon to message spacing", authorMessageSpacing, (value) => {
+		authorMessageSpacing = value;
+		document.documentElement.style.setProperty("--author-message-spacing", `${value}px`);
+	}, "Username and colon to message spacing");
 	appearancePanel.to(emotesPanel);
 	subhead(emotesPanel, "Badges & profile pictures");
 	const badgesCheckbox = addToggle(
@@ -1783,6 +1823,13 @@ function showOverlaySetupScreen() {
 		"Show Twitch, 7TV, FFZ and other supported badges.",
 		"badges",
 		badgesEnabled,
+	);
+	const timestampsCheckbox = addToggle(
+		appearancePanel,
+		"Timestamps",
+		"Show the message time beside the badges.",
+		"timestamps",
+		timestampsEnabled,
 	);
 
 	const platformGrid = addPlatformToggles(
@@ -1826,6 +1873,7 @@ function showOverlaySetupScreen() {
 		"Show Twitch PFPs in chat messages.",
 		"pfps",
 		pfpsEnabled,
+		"Profile pictures aren't shown in the setup preview.",
 	);
 
 	const gifsCheckbox = addToggle(
@@ -1850,6 +1898,7 @@ function showOverlaySetupScreen() {
 		"Let moderators change overlay options from chat with commands like -bots or -reset.",
 		"modCommands",
 		modCommandsEnabled,
+		"The setup preview doesn't simulate moderator chat commands.",
 	);
 	const hideLinksCheckbox = addToggle(
 		appearancePanel,
@@ -1857,6 +1906,7 @@ function showOverlaySetupScreen() {
 		"Replace links in messages with a \u{1F517} emoji.",
 		"hideLinks",
 		hideLinksEnabled,
+		"The setup preview has no links to replace.",
 	);
 	appearancePanel.to(connectionPanel);
 	const platformIndicatorCheckbox = addToggle(
@@ -1881,7 +1931,7 @@ function showOverlaySetupScreen() {
 		"Highlight usernames with their 7TV Paint/Color.",
 		"highlights",
 		highlightsEnabled,
-		true
+		"The preview contains only selected sample highlight events.",
 	);
 	appearancePanel.to(emotesPanel);
 	subhead(emotesPanel, "Emotes");
@@ -1890,7 +1940,7 @@ function showOverlaySetupScreen() {
 		"Unlisted 7TV emotes",
 		"Render unlisted 7TV emotes.",
 		"unlisted",
-		showUnlisted7TV
+		showUnlisted7TV,
 	);
 
 	const cheersCheckbox = addToggle(
@@ -2585,7 +2635,6 @@ function showOverlaySetupScreen() {
 		document.documentElement.style.setProperty("--emote-spacing", `${emoteSpacing}px`);
 		requestPreviewRender();
 	});
-
 	const bigEmotesCheckbox = addToggle(
 		typographyPanel,
 		"Big emote-only messages",
@@ -2876,9 +2925,79 @@ function showOverlaySetupScreen() {
 	resetSettingsButton.title = "Restore the default overlay settings";
 	actions.appendChild(resetSettingsButton);
 
+	const exportSettingsButton = document.createElement("button");
+	exportSettingsButton.type = "button";
+	exportSettingsButton.className = "mc-button mc-button-full";
+	exportSettingsButton.textContent = "Export .mc";
+	actions.appendChild(exportSettingsButton);
+
+	const exportDialog = document.createElement("div");
+	exportDialog.className = "mc-export-overlay";
+	exportDialog.hidden = true;
+	exportDialog.setAttribute("role", "presentation");
+	const exportDialogCard = document.createElement("section");
+	exportDialogCard.className = "mc-export-dialog";
+	exportDialogCard.setAttribute("role", "dialog");
+	exportDialogCard.setAttribute("aria-modal", "true");
+	exportDialogCard.setAttribute("aria-labelledby", "mc-export-title");
+	const exportDialogTitle = document.createElement("h2");
+	exportDialogTitle.id = "mc-export-title";
+	exportDialogTitle.className = "mc-export-title";
+	exportDialogTitle.textContent = "Export settings";
+	const exportDialogDescription = document.createElement("p");
+	exportDialogDescription.className = "mc-export-description";
+	exportDialogDescription.textContent = "Choose a name and whether to include your channel names.";
+	const exportNameLabel = document.createElement("label");
+	exportNameLabel.className = "mc-export-label";
+	exportNameLabel.textContent = "Preset name";
+	const exportNameInput = document.createElement("input");
+	exportNameInput.type = "text";
+	exportNameInput.className = "mc-input";
+	exportNameInput.placeholder = "My chat setup";
+	exportNameInput.maxLength = 80;
+	exportNameInput.setAttribute("aria-label", "Preset name");
+	exportNameLabel.appendChild(exportNameInput);
+	const includeChannelsLabel = document.createElement("label");
+	includeChannelsLabel.className = "mc-export-channel-option";
+	const includeChannelsCheckbox = document.createElement("input");
+	includeChannelsCheckbox.type = "checkbox";
+	includeChannelsCheckbox.checked = true;
+	includeChannelsLabel.append(includeChannelsCheckbox, document.createTextNode("Include channel names"));
+	const exportDialogActions = document.createElement("div");
+	exportDialogActions.className = "mc-export-actions";
+	const confirmExportButton = document.createElement("button");
+	confirmExportButton.type = "button";
+	confirmExportButton.className = "mc-button";
+	confirmExportButton.textContent = "Export .mc";
+	const cancelExportButton = document.createElement("button");
+	cancelExportButton.type = "button";
+	cancelExportButton.className = "mc-button";
+	cancelExportButton.textContent = "Cancel";
+	exportDialogActions.append(confirmExportButton, cancelExportButton);
+	exportDialogCard.append(exportDialogTitle, exportDialogDescription, exportNameLabel, includeChannelsLabel, exportDialogActions);
+	exportDialog.appendChild(exportDialogCard);
+	screen.appendChild(exportDialog);
+
+	const settingsFileInput = document.createElement("input");
+	settingsFileInput.type = "file";
+	settingsFileInput.accept = ".mc,application/json,.json";
+	settingsFileInput.hidden = true;
+	settingsFileInput.setAttribute("aria-label", "Choose an MChat settings file");
+
+	const settingsFileDropHint = document.createElement("div");
+	settingsFileDropHint.className = "mc-file-drop-hint";
+	settingsFileDropHint.textContent = "Drop a .mc settings file to import";
+	settingsFileDropHint.hidden = true;
+
+	const settingsFileStatus = document.createElement("div");
+	settingsFileStatus.className = "mc-import-status";
+	settingsFileStatus.setAttribute("role", "status");
+
 	const error = document.createElement("div");
 	error.className = "mc-error";
 
+	sideActions.appendChild(settingsFileInput);
+	sideActions.appendChild(settingsFileStatus);
 	sideActions.appendChild(actions);
 	sideActions.appendChild(error);
 
@@ -2931,6 +3050,152 @@ function showOverlaySetupScreen() {
 		copyButton._t = setTimeout(() => {
 			copyButton.textContent = "Copy overlay link";
 		}, 1500);
+	});
+
+	function showSettingsFileStatus(text, ok) {
+		settingsFileStatus.textContent = text;
+		settingsFileStatus.classList.toggle("is-ok", ok);
+		settingsFileStatus.classList.toggle("is-bad", !ok);
+		clearTimeout(settingsFileStatus._clearTimer);
+		settingsFileStatus._clearTimer = setTimeout(() => {
+			settingsFileStatus.textContent = "";
+			settingsFileStatus.classList.remove("is-ok", "is-bad");
+		}, 5000);
+	}
+
+	screen.appendChild(settingsFileDropHint);
+
+	exportSettingsButton.addEventListener("click", () => {
+		exportDialog.hidden = false;
+		screen.classList.add("is-exporting");
+		exportNameInput.focus();
+	});
+
+	function closeExportDialog() {
+		exportDialog.hidden = true;
+		screen.classList.remove("is-exporting");
+		exportSettingsButton.focus();
+	}
+
+	cancelExportButton.addEventListener("click", closeExportDialog);
+	exportDialog.addEventListener("click", (event) => {
+		if (event.target === exportDialog) closeExportDialog();
+	});
+	exportNameInput.addEventListener("keydown", (event) => {
+		if (event.key === "Enter") confirmExportButton.click();
+		if (event.key === "Escape") closeExportDialog();
+	});
+	confirmExportButton.addEventListener("click", () => {
+		const overlayUrl = getOverlayUrl({ silent: true });
+		if (!overlayUrl) {
+			showSettingsFileStatus("Add a channel before exporting settings.", false);
+			closeExportDialog();
+			return;
+		}
+
+		const presetName = exportNameInput.value.trim().slice(0, 80);
+		const linkUrl = new URL(overlayUrl);
+		const channelNamesIncluded = includeChannelsCheckbox.checked;
+		const fileData = {
+			format: "mchat-settings",
+			version: 1,
+			name: presetName,
+			createdAt: new Date().toISOString(),
+			channels: channelNamesIncluded ? {
+				twitch: linkUrl.searchParams.get("channel") || "",
+				kick: decodeURIComponent(linkUrl.searchParams.get("kick") || ""),
+				youtube: decodeURIComponent(linkUrl.searchParams.get("youtube") || ""),
+			} : {},
+			settings: Object.fromEntries(
+				[...linkUrl.searchParams.entries()].filter(([key]) => !["channel", "kick", "youtube"].includes(key)),
+			),
+		};
+		const blob = new Blob([JSON.stringify(fileData, null, 2)], { type: "application/json" });
+		const objectUrl = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		const safeName = (presetName || "mchat-settings")
+			.normalize("NFKD")
+			.replace(/[^a-zA-Z0-9_-]+/g, "-")
+			.replace(/^-+|-+$/g, "") || "mchat-settings";
+		link.href = objectUrl;
+		link.download = `${safeName}.mc`;
+		link.click();
+		setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+		showSettingsFileStatus(`Exported ${link.download}.`, true);
+		closeExportDialog();
+	});
+
+	settingsFileInput.addEventListener("change", async () => {
+		const file = settingsFileInput.files?.[0];
+		if (!file) return;
+		try {
+			if (file.size > 1024 * 1024) throw new Error("Settings file is too large.");
+			const data = JSON.parse(await file.text());
+			if (!data || data.format !== "mchat-settings" || data.version !== 1 || !data.settings || typeof data.settings !== "object") {
+				throw new Error("That isn't a supported .mc settings file.");
+			}
+			const encoded = new URLSearchParams();
+			const rawSettings = data.settings;
+			const fileChannels = data.channels && typeof data.channels === "object" ? data.channels : {};
+			const channels = {
+				channel: typeof data.channel === "string" ? data.channel : String(fileChannels.twitch ?? rawSettings.channel ?? ""),
+				kick: typeof data.kick === "string" ? data.kick : String(fileChannels.kick ?? rawSettings.kick ?? ""),
+				youtube: typeof data.youtube === "string" ? data.youtube : String(fileChannels.youtube ?? rawSettings.youtube ?? ""),
+			};
+			const settings = rawSettings.settings && typeof rawSettings.settings === "object"
+				? rawSettings.settings
+				: rawSettings;
+			appendFlatOverlaySettings(encoded, channels.channel, settings, {
+				kick: channels.kick,
+				youtube: channels.youtube,
+			});
+			const result = importFromMChat(encoded);
+			if (!result.channel && !result.kick && !result.youtube) {
+				result.channel = channelInput.value.trim();
+				result.kick = cleanKickInput(kickInput.value);
+				result.youtube = cleanYouTubeInput(youtubeInput.value);
+			}
+			applyImportedSettings(result);
+			showSettingsFileStatus(`Imported ${data.name ? `“${data.name}”` : "settings"}.`, true);
+		} catch (error) {
+			showSettingsFileStatus(error.message || "Couldn't read that settings file.", false);
+		} finally {
+			settingsFileInput.value = "";
+		}
+	});
+
+	let fileDragDepth = 0;
+	screen.addEventListener("dragenter", (event) => {
+		if (!Array.from(event.dataTransfer?.items || []).some((item) => item.kind === "file")) return;
+		fileDragDepth++;
+		settingsFileDropHint.hidden = false;
+		screen.classList.add("is-file-dragging");
+	});
+	screen.addEventListener("dragover", (event) => {
+		if (Array.from(event.dataTransfer?.items || []).some((item) => item.kind === "file")) {
+			event.preventDefault();
+			event.dataTransfer.dropEffect = "copy";
+		}
+	});
+	screen.addEventListener("dragleave", (event) => {
+		if (!Array.from(event.dataTransfer?.items || []).some((item) => item.kind === "file")) return;
+		fileDragDepth = Math.max(0, fileDragDepth - 1);
+		if (fileDragDepth === 0) {
+			settingsFileDropHint.hidden = true;
+			screen.classList.remove("is-file-dragging");
+		}
+	});
+	screen.addEventListener("drop", (event) => {
+		const file = Array.from(event.dataTransfer?.files || []).find((item) => /\.mc$/i.test(item.name));
+		if (!file) return;
+		event.preventDefault();
+		fileDragDepth = 0;
+		settingsFileDropHint.hidden = true;
+		screen.classList.remove("is-file-dragging");
+		const transfer = new DataTransfer();
+		transfer.items.add(file);
+		settingsFileInput.files = transfer.files;
+		settingsFileInput.dispatchEvent(new Event("change"));
 	});
 
 	function activatePanel(id) {
@@ -3013,6 +3278,10 @@ function showOverlaySetupScreen() {
 	badgesCheckbox.addEventListener("change", () => {
 		badgesEnabled = badgesCheckbox.checked;
 		syncPlatformState();
+		requestPreviewRender();
+	});
+	timestampsCheckbox.addEventListener("change", () => {
+		timestampsEnabled = timestampsCheckbox.checked;
 		requestPreviewRender();
 	});
 
@@ -3412,6 +3681,7 @@ function showOverlaySetupScreen() {
 			fade: noFade.checked ? false : Math.max(1, Number(fadeInput.value) || 15),
 
 			badges: badgesCheckbox.checked,
+			timestamps: timestampsCheckbox.checked,
 
 			badgeTwitch: badgeSources.twitch,
 
@@ -3493,6 +3763,8 @@ function showOverlaySetupScreen() {
 			wrap: wrapCheckbox.checked,
 
 			wrapAfterColon: wrapAfterColonCheckbox.checked,
+			badgeNameSpacing: Number(badgeNameSpacingInput.value),
+			authorMessageSpacing: Number(authorMessageSpacingInput.value),
 
 			unlisted: unlistedCheckbox.checked,
 
@@ -3745,34 +4017,6 @@ function showOverlaySetupScreen() {
 	(function finalizeTabs() {
 		textPanel.append(...colorsStage.childNodes, ...effectsStage.childNodes);
 
-		panelRegistry.forEach((entry, index) => {
-			const pager = document.createElement("div");
-			pager.className = "mc-panel-pager";
-
-			const prev = panelRegistry[index - 1];
-			const next = panelRegistry[index + 1];
-
-			if (prev) {
-				const button = document.createElement("button");
-				button.type = "button";
-				button.className = "mc-pager-button";
-				button.textContent = `\u2190 ${prev.title}`;
-				button.addEventListener("click", () => activatePanel(prev.id));
-				pager.appendChild(button);
-			}
-
-			if (next) {
-				const button = document.createElement("button");
-				button.type = "button";
-				button.className = "mc-pager-button is-next";
-				button.textContent = `${next.title} \u2192`;
-				button.addEventListener("click", () => activatePanel(next.id));
-				pager.appendChild(button);
-			}
-
-			entry.panel.appendChild(pager);
-		});
-
 		nav.addEventListener("keydown", (event) => {
 			const keys = ["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Home", "End"];
 
@@ -3958,6 +4202,8 @@ function showOverlaySetupScreen() {
 		}
 
 		importSet(badgesCheckbox, s.badges);
+		if (s.timestamps !== undefined) importSet(timestampsCheckbox, s.timestamps);
+		timestampsEnabled = timestampsCheckbox.checked;
 		if (s.colonMatchUsername !== undefined) {
 			importSet(colonMatchUsernameCheckbox, s.colonMatchUsername);
 		}
@@ -4017,6 +4263,16 @@ function showOverlaySetupScreen() {
 
 		if (s.badgeSpacing !== undefined) {
 			importSet(badgeSpacingInput, s.badgeSpacing);
+		}
+		if (s.badgeNameSpacing !== undefined) {
+			importSet(badgeNameSpacingInput, s.badgeNameSpacing);
+			badgeNameSpacing = Number(badgeNameSpacingInput.value);
+			document.documentElement.style.setProperty("--badge-name-spacing", `${badgeNameSpacing}px`);
+		}
+		if (s.authorMessageSpacing !== undefined) {
+			importSet(authorMessageSpacingInput, s.authorMessageSpacing);
+			authorMessageSpacing = Number(authorMessageSpacingInput.value);
+			document.documentElement.style.setProperty("--author-message-spacing", `${authorMessageSpacing}px`);
 		}
 
 		if (s.platformIndicator !== undefined) {
@@ -4341,5 +4597,4 @@ function hideOverlaySetupScreen() {
 
 	document.addEventListener("DOMContentLoaded", apply);
 	window.addEventListener("resize", apply);
-	window.setInterval(apply, 500);
 })();

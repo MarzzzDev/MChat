@@ -140,6 +140,8 @@ function normaliseOverlaySettings(settings = {}) {
 	}
 
 	result.badges = settings.badges !== false;
+	result.timestamps = settings.timestamps === true;
+	result.emoteOverlap = false;
 
 	result.badgeTwitch = settings.badgeTwitch !== false;
 
@@ -223,6 +225,8 @@ function normaliseOverlaySettings(settings = {}) {
 	result.badgeSpacing = Number(settings.badgeSpacing ?? 3);
 	if (!Number.isFinite(result.badgeSpacing)) result.badgeSpacing = 3;
 	result.badgeSpacing = Math.max(0, Math.min(result.badgeSpacing, 30));
+	result.badgeNameSpacing = Math.max(0, Math.min(Number(settings.badgeNameSpacing ?? 3) || 0, 30));
+	result.authorMessageSpacing = Math.max(0, Math.min(Number(settings.authorMessageSpacing ?? 3) || 0, 30));
 
 	result.wrap = settings.wrap === true;
 
@@ -481,6 +485,8 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 	if (normalised.badgeSpacing !== 3) {
 		query.push(["badgeSpacing", String(normalised.badgeSpacing)]);
 	}
+	if (normalised.badgeNameSpacing !== 3) query.push(["badgeNameSpacing", String(normalised.badgeNameSpacing)]);
+	if (normalised.authorMessageSpacing !== 3) query.push(["authorMessageSpacing", String(normalised.authorMessageSpacing)]);
 
 	const fontKey = fontValueToQueryKey(normalised.font);
 
@@ -623,6 +629,7 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 	if (normalised.badges !== true) {
 		query.push(["badges", normalised.badges ? "1" : "0"]);
 	}
+	if (normalised.timestamps) query.push(["timestamps", "1"]);
 
 	if (normalised.badgeTwitch !== true) {
 		query.push(["badgeTwitch", normalised.badgeTwitch ? "1" : "0"]);
@@ -938,6 +945,7 @@ function applyEntryAnimation() {
 applyEntryAnimation();
 
 let badgesEnabled = parseQueryBoolean("badges", true);
+let timestampsEnabled = parseQueryBoolean("timestamps", false);
 
 let badgeTwitch = parseQueryBoolean("badgeTwitch", true);
 
@@ -999,6 +1007,7 @@ let emoteSpacing = Number(params.get("emoteSpacing") ?? 3);
 if (!Number.isFinite(emoteSpacing)) emoteSpacing = 3;
 emoteSpacing = Math.max(0, Math.min(emoteSpacing, 20));
 document.documentElement.style.setProperty("--emote-spacing", `${emoteSpacing}px`);
+let emoteOverlapEnabled = false;
 
 let bigEmotesEnabled = parseQueryBoolean("bigEmotes", true);
 
@@ -1032,6 +1041,10 @@ let badgeSpacing = Number(params.get("badgeSpacing") ?? 3);
 if (!Number.isFinite(badgeSpacing)) badgeSpacing = 3;
 badgeSpacing = Math.max(0, Math.min(badgeSpacing, 30));
 document.documentElement.style.setProperty("--badge-spacing", `${badgeSpacing}px`);
+let badgeNameSpacing = Math.max(0, Math.min(Number(params.get("badgeNameSpacing") ?? 3) || 0, 30));
+let authorMessageSpacing = Math.max(0, Math.min(Number(params.get("authorMessageSpacing") ?? 3) || 0, 30));
+document.documentElement.style.setProperty("--badge-name-spacing", `${badgeNameSpacing}px`);
+document.documentElement.style.setProperty("--author-message-spacing", `${authorMessageSpacing}px`);
 
 let shadowEnabled = parseQueryBoolean("shadow", true);
 

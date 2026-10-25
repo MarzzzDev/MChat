@@ -427,6 +427,7 @@ function importFromMChat(p) {
 		messageSpacing: importClamp(importNumber(p.get("messageSpacing"), 3), 0, 32),
 		fade,
 		badges: importBool(p.get("badges"), true),
+		timestamps: importBool(p.get("timestamps"), false),
 		badgeTwitch: importBool(p.get("badgeTwitch"), true),
 		badgeFfz: importBool(p.get("badgeFfz"), true),
 		badgeSeventv: importBool(p.get("badgeSeventv"), true),
@@ -464,6 +465,8 @@ function importFromMChat(p) {
 			return importClamp(value > 2 ? value / 100 : value, 0.25, 2);
 		})(),
 		badgeSpacing: importClamp(importNumber(p.get("badgeSpacing"), 3), 0, 30),
+		badgeNameSpacing: importClamp(importNumber(p.get("badgeNameSpacing"), 3), 0, 30),
+		authorMessageSpacing: importClamp(importNumber(p.get("authorMessageSpacing"), 3), 0, 30),
 		wrap: importBool(p.get("wrap"), false),
 		wrapAfterColon: importBool(p.get("wrapAfterColon"), false),
 		unlisted: importBool(p.get("unlisted"), true),
