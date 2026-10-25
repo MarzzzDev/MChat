@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="waga.gif" alt="Waga" width="240">
-
-# MChat
+<h1><img src="waga.gif" alt="Waga" height="128" align="middle"> MChat</h1>
 
 ### One chat overlay for Twitch, Kick, YouTube Live, and TikTok LIVE.
 
@@ -19,7 +17,7 @@
 
 ---
 
-MChat brings messages from your live chats into one clean, configurable browser overlay. Set it up in the browser, preview the look, then add the generated link to OBS or another app that supports browser sources.
+MChat brings your live chats into one customizable browser overlay. Set it up in your browser, preview it, then add the link to OBS or another app that supports browser sources.
 
 <div align="center">
 
@@ -49,7 +47,7 @@ MChat brings messages from your live chats into one clean, configurable browser 
 4. Copy the generated overlay URL.
 5. In OBS, add a **Browser** source, paste the URL, and set the source size to fit your scene.
 
-That’s it—no account or Twitch login is needed for normal setup. The same browser-source URL workflow works in other streaming software with browser sources.
+No account or Twitch login is needed for normal setup. The overlay also works in other streaming software with browser sources.
 
 ### YouTube tip
 
@@ -74,7 +72,7 @@ Overlay links include your selected channels and settings. Reopen a generated li
 
 MChat includes reconnect handling for Twitch and Kick, retries for YouTube chat, and backoff for TikTok event polling. Moderator commands can reconnect platform connections or refresh the overlay. The overlay also checks for repository updates and can refresh when a new version is detected.
 
-These features help recover from interruptions; they cannot guarantee uninterrupted service. Platform access, the TikTok event service, and external emote/badge providers can affect availability.
+These features help recover from interruptions, but they cannot guarantee uninterrupted service. Platform access, the TikTok event service, and external emote and badge providers can affect availability.
 
 ## 🧑‍💻 Self-hosting
 
@@ -94,6 +92,6 @@ MChat is released under the [MIT License](LICENSE).
 
 <div align="center">
 
-Made with 🤍. · Not affiliated with Twitch, Kick, YouTube, or TikTok.
+Made with 🤍. Not affiliated with Twitch, Kick, YouTube, or TikTok.
 
 </div>
