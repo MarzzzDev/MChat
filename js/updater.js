@@ -45,10 +45,56 @@ async function checkForGithubCommit() {
 	}
 }
 
-function hardRefreshOverlay() {
+async function listRepoFiles() {
+	const ref = lastKnownCommitSha || GITHUB_BRANCH;
+
+	try {
+		const response = await fetch(
+			`https://api.github.com/repos/${GITHUB_REPO}/git/trees/${ref}?recursive=1`,
+			{
+				headers: { Accept: "application/vnd.github+json" },
+				cache: "no-cache",
+			},
+		);
+
+		if (!response.ok) {
+			throw new Error(`GitHub API returned ${response.status}`);
+		}
+
+		const tree = (await response.json())?.tree;
+
+		return (Array.isArray(tree) ? tree : [])
+			.filter((entry) => entry.type === "blob")
+			.map((entry) => entry.path);
+	} catch (error) {
+		console.warn("[updater] File list unavailable:", error);
+		return [];
+	}
+}
+
+async function hardRefreshOverlay() {
 	if (refreshing) return;
 	refreshing = true;
-	location.reload();
+
+	const base = location.href.split(/[?#]/)[0].replace(/[^/]*$/, "");
+
+	try {
+		const files = await Promise.race([
+			listRepoFiles(),
+			new Promise((resolve) => setTimeout(() => resolve([]), 3000)),
+		]);
+
+		await Promise.race([
+			Promise.allSettled(
+				[""].concat(files).map((file) =>
+					fetch(base + encodeURI(file), { cache: "reload" }),
+				),
+			),
+			new Promise((resolve) => setTimeout(resolve, 5000)),
+		]);
+	} finally {
+		location.reload();
+	}
 }
 
 function startGithubUpdater() {

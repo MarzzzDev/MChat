@@ -9,13 +9,13 @@
 	const RULES = [
 		{ re: /^https:\/\/7tv\.io\/v3\/emote-sets\/global/, fresh: 6 * HOUR },
 		{ re: /^https:\/\/api\.betterttv\.net\/3\/cached\/(emotes\/global|badges)/, fresh: 6 * HOUR },
-		{ re: /^https:\/\/api\.frankerfacez\.com\/v1\/(set\/global|badge\/bot)/, fresh: 6 * HOUR },
+		{ re: /^https:\/\/api\.frankerfacez\.com\/v1\/(?:_?badges(?:\/ids)?|set\/global|badge\/bot)/, fresh: 6 * HOUR },
 		{ re: /^https:\/\/api\.(chatterino|moltorino)\.com\//, fresh: 6 * HOUR },
 		{ re: /^https:\/\/(chatterinohomies\.com|itzalex\.github\.io|flxrs\.com|dank-chat-badges\.marseceva\.workers\.dev)/, fresh: 6 * HOUR },
 		{ re: /^https:\/\/7tv\.io\/v3\/(users|emote-sets)\//, fresh: 2 * MIN, live: true },
 		{ re: /^https:\/\/api\.betterttv\.net\/3\/cached\/users\//, fresh: 2 * MIN, live: true },
 		{ re: /^https:\/\/api\.frankerfacez\.com\/v1\/(room|user)\//, fresh: 2 * MIN, live: true },
-		{ re: /^https:\/\/api\.7tv\.app\/v4\/gql/, fresh: 5 * MIN, maxStale: 10 * MIN, post: true },
+		{ re: /^https:\/\/api\.7tv\.app\/v4\/gql/, fresh: 10 * MIN, maxStale: 30 * 24 * HOUR, post: true },
 		{ re: /^https:\/\/gql\.twitch\.tv\/gql/, fresh: 6 * HOUR, post: true },
 	];
 

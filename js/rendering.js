@@ -93,7 +93,7 @@ function getReplyInfo(tags, msg) {
 	let cleanMessage = msg.trim();
 	const escapedUsername = replyUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 	const replyPrefix = new RegExp(
-		`^\\x01?ACTION\\s+@${escapedUsername}\\s*`,
+		`^\\x01?(?:ACTION\\s+)?@${escapedUsername}(?:\\s+|$)`,
 		"i",
 	);
 
@@ -478,6 +478,10 @@ function removePreviewEntry(entry) {
 function schedulePreviewFade(entry) {
 	clearTimeout(entry.fadeTimer);
 	clearTimeout(entry.removeTimer);
+	if (entry.tags?.["creator-preview"]) {
+		if (entry.element) entry.element.style.animation = "none";
+		return;
+	}
 
 	const element = entry.element;
 
@@ -585,7 +589,7 @@ function rerenderPreviewChat() {
 	const now = Date.now();
 
 	for (const entry of Array.from(previewMessageCache)) {
-		if (fade !== false && now - entry.createdAt >= fade * 1000) {
+		if (!entry.tags?.["creator-preview"] && fade !== false && now - entry.createdAt >= fade * 1000) {
 			removePreviewEntry(entry);
 			continue;
 		}
