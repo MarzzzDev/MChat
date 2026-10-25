@@ -460,7 +460,7 @@ function importFromMChat(p) {
 		bigEmotes: importBool(p.get("bigEmotes"), true),
 		bigEmoteScale: importClamp(importNumber(p.get("bigEmoteScale"), 1.2), 1, 3),
 		badgeScale: (() => {
-			const value = importNumber(p.get("badgeScale"), 1.1);
+			const value = importNumber(p.get("badgeScale"), 1);
 			return importClamp(value > 2 ? value / 100 : value, 0.25, 2);
 		})(),
 		badgeSpacing: importClamp(importNumber(p.get("badgeSpacing"), 3), 0, 30),
@@ -485,7 +485,7 @@ function importFromMChat(p) {
 		messageSize,
 		uppercase: importBool(p.get("uppercase"), false),
 		bold: importBool(p.get("bold"), true),
-		centerBadges: importBool(p.get("centerBadges"), false),
+		centerBadges: importBool(p.get("centerBadges"), true),
 
 		gifScale: importClamp(importNumber(p.get("gifScale"), 1), 0.25, 3),
 		strokeWidth: importClamp(importNumber(p.get("strokeWidth"), 0), 0, 20),

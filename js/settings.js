@@ -216,8 +216,8 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.bigEmoteScale = Math.max(1, Math.min(result.bigEmoteScale, 3));
 
-	result.badgeScale = Number(settings.badgeScale ?? 1.1);
-	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1.1;
+	result.badgeScale = Number(settings.badgeScale ?? 1);
+	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1;
 	result.badgeScale = Math.max(0.25, Math.min(result.badgeScale, 2));
 
 	result.badgeSpacing = Number(settings.badgeSpacing ?? 3);
@@ -286,7 +286,7 @@ function normaliseOverlaySettings(settings = {}) {
 	result.uppercase = settings.uppercase === true;
 
 
-	result.centerBadges = settings.centerBadges === true;
+	result.centerBadges = settings.centerBadges !== false;
 
 	result.customFont = sanitizeFontName(settings.customFont);
 
@@ -474,7 +474,7 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["bigEmoteScale", String(normalised.bigEmoteScale)]);
 	}
 
-	if (normalised.badgeScale !== 1.1) {
+	if (normalised.badgeScale !== 1) {
 		query.push(["badgeScale", String(normalised.badgeScale)]);
 	}
 
@@ -524,8 +524,8 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["uppercase", "1"]);
 	}
 
-	if (normalised.centerBadges === true) {
-		query.push(["centerBadges", "1"]);
+	if (normalised.centerBadges === false) {
+		query.push(["centerBadges", "0"]);
 	}
 
 	if (normalised.gifScale !== 1) {
@@ -1021,9 +1021,9 @@ applyBigEmoteSettings();
 
 const badgeScaleParam = params.get("badgeScale");
 let badgeScale = badgeScaleParam === null || badgeScaleParam === ""
-	? 1.1
+	? 1
 	: Number(badgeScaleParam);
-if (!Number.isFinite(badgeScale)) badgeScale = 1.1;
+if (!Number.isFinite(badgeScale)) badgeScale = 1;
 if (badgeScale > 2) badgeScale /= 100;
 badgeScale = Math.max(0.25, Math.min(badgeScale, 2));
 document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
@@ -1353,7 +1353,7 @@ let boldEnabled = parseQueryBoolean("bold", true);
 
 let uppercaseEnabled = parseQueryBoolean("uppercase", false);
 
-let centerBadgesEnabled = parseQueryBoolean("centerBadges", false);
+let centerBadgesEnabled = parseQueryBoolean("centerBadges", true);
 
 
 let gifScale = Number(params.get("gifScale") ?? 1);

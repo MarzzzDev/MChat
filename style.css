@@ -17,7 +17,7 @@ body {
     --message-font: var(--chat-font);
     --username-font-size: 50px;
     --message-font-size: 50px;
-    --badge-scale: 1.1;
+    --badge-scale: 1;
     --badge-spacing: 3px;
     --shadow-offset-x: 2px;
     --shadow-offset-y: 2px;
