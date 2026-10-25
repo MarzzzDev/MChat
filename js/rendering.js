@@ -635,6 +635,7 @@ async function onMsg(
 	applyStrokeMode();
 
 	const platform = tags.platform || "twitch";
+	msg = String(msg ?? "").replace(/\s{2,}/g, " ");
 	const userKey =
 		userId == null ? null : platform === "twitch" ? userId : `${platform}:${userId}`;
 
