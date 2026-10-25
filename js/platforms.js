@@ -862,12 +862,62 @@ function createPlatformBadges(tags) {
 	const container = document.createElement("span");
 
 	container.className = "badges platform-badges";
+	if (tags.platform === "tiktok" && pfpsEnabled && tags["profile-picture"]) {
+		const pfp = createBadge(tags["profile-picture"], `${tags["display-name"] || "TikTok user"} profile picture`);
+		if (pfp) {
+			pfp.classList.add("tiktok-pfp-badge");
+			pfp.style.objectFit = "cover";
+			pfp.style.borderRadius = "50%";
+			container.appendChild(pfp);
+		}
+	}
 
 	for (const badge of tags["platform-badges"] || []) {
 		const img = createBadge(badge.url, badge.title);
 
 		if (img) {
 			img.alt = badge.title || "";
+			if (tags.platform === "tiktok" && badge.combined) {
+				const item = document.createElement("span");
+				item.className = "tiktok-combined-badge";
+				item.style.display = "inline-flex";
+				item.style.alignItems = "center";
+				item.style.verticalAlign = "middle";
+				item.style.position = "relative";
+				item.style.overflow = "hidden";
+				item.style.borderRadius = "5px";
+				const dark = badge.darkBackgroundColor || badge.backgroundColor;
+				if (dark) item.style.backgroundColor = dark;
+				const background = badge.darkBackgroundUrl || badge.backgroundUrl;
+				if (background) {
+					const backgroundImage = document.createElement("img");
+					backgroundImage.className = "tiktok-badge-background";
+					backgroundImage.src = background;
+					backgroundImage.alt = "";
+					backgroundImage.draggable = false;
+					item.appendChild(backgroundImage);
+				}
+				img.classList.add("tiktok-badge-icon");
+				img.alt = "";
+				img.style.marginRight = "0";
+				img.style.position = "relative";
+				img.style.zIndex = "1";
+				item.appendChild(img);
+				if (badge.text) {
+					const label = document.createElement("span");
+					label.className = "tiktok-combined-badge-text";
+					label.textContent = badge.text;
+					label.style.color = badge.textColor || "#ffffff";
+					label.title = badge.title || "TikTok badge";
+					label.style.position = "relative";
+					label.style.zIndex = "1";
+					item.appendChild(label);
+				}
+				container.appendChild(item);
+			} else {
+				if (tags.platform === "tiktok") img.classList.add("tiktok-badge-icon");
+				container.appendChild(img);
+			}
 
 			if (badge.fallback) {
 				img.addEventListener(
@@ -879,7 +929,6 @@ function createPlatformBadges(tags) {
 				);
 			}
 
-			container.appendChild(img);
 		}
 	}
 
@@ -938,7 +987,7 @@ const PLATFORM_INDICATOR_TITLES = {
 
 function isMultiChat() {
 	return (
-		[selectedChannel, selectedKick, selectedYouTube].filter(Boolean).length > 1
+		[selectedChannel, selectedKick, selectedYouTube, selectedTikTok].filter(Boolean).length > 1
 	);
 }
 

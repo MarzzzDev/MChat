@@ -964,7 +964,7 @@ body:has(#overlay-setup-screen)::-webkit-scrollbar {
 }
 
 #overlay-setup-screen .mc-channel-manager.is-open {
-	max-height: 140px;
+	max-height: 190px;
 	margin-top: 8px;
 	opacity: 1;
 	transform: translateY(0);
@@ -975,6 +975,10 @@ body:has(#overlay-setup-screen)::-webkit-scrollbar {
 	grid-template-columns: 28px minmax(0, 1fr);
 	gap: 10px;
 	align-items: center;
+}
+
+#overlay-setup-screen .mc-channel-row.tiktok-channel-row {
+	grid-template-columns: 28px minmax(0, 1fr);
 }
 
 #overlay-setup-screen .mc-channel-logo {

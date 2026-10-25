@@ -217,6 +217,7 @@ function importFromChatis(p) {
 			.toLowerCase(),
 		kick: "",
 		youtube: "",
+		tiktok: "",
 		twitchId: "",
 		settings: {
 			scale: layout.scale,
@@ -314,6 +315,7 @@ function importFromUchat(p) {
 			.toLowerCase(),
 		kick: String(p.get("kick") || "").trim(),
 		youtube: String(p.get("youtube") || "").trim(),
+		tiktok: cleanTikTokInput(p.get("tiktok") || ""),
 		twitchId: String(p.get("id") || "").trim(),
 		settings,
 		skipped: ["ffzEffects", "modAction", "paints", "paintShadows"],
@@ -504,6 +506,7 @@ function importFromMChat(p) {
 		channel: normalizeTwitchChannel(p.get("channel")),
 		kick: cleanKickInput(p.get("kick") || ""),
 		youtube: cleanYouTubeInput(p.get("youtube") || ""),
+		tiktok: cleanTikTokInput(p.get("tiktok") || ""),
 		twitchId: null,
 		settings,
 		skipped: [],
@@ -527,8 +530,8 @@ function convertMChatOverlayLink(raw) {
 
 	const result = importFromMChat(url.searchParams);
 
-	if (!result.channel && !result.kick && !result.youtube) {
-		throw new Error("That link doesn't have a Twitch, Kick, or YouTube channel in it.");
+	if (!result.channel && !result.kick && !result.youtube && !result.tiktok) {
+		throw new Error("That link doesn't have a supported channel in it.");
 	}
 
 	return result;

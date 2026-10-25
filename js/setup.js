@@ -1530,8 +1530,26 @@ function showOverlaySetupScreen() {
 	youtubeRow.appendChild(youtubeLogo);
 	youtubeRow.appendChild(youtubeInput);
 
+	const tiktokRow = document.createElement("div");
+	tiktokRow.className = "mc-channel-row";
+	const tiktokLogo = document.createElement("img");
+	tiktokLogo.className = "mc-channel-logo";
+	tiktokLogo.src = "logos/tiktok.svg";
+	tiktokLogo.alt = "";
+	tiktokLogo.draggable = false;
+	const tiktokInput = document.createElement("input");
+	tiktokInput.type = "text";
+	tiktokInput.className = "mc-channel-input";
+	tiktokInput.placeholder = "TikTok LIVE username";
+	tiktokInput.title = "Enter a TikTok LIVE username.";
+	tiktokInput.autocomplete = "off";
+	tiktokInput.spellcheck = false;
+	tiktokRow.classList.add("tiktok-channel-row");
+	tiktokRow.append(tiktokLogo, tiktokInput);
+
 	kickInput.value = selectedKick || "";
 	youtubeInput.value = selectedYouTube || "";
+	tiktokInput.value = selectedTikTok || "";
 
 	channelInline = document.createElement("div");
 	channelInline.appendChild(channelInputWrap);
@@ -1554,6 +1572,7 @@ function showOverlaySetupScreen() {
 			twitchRow.appendChild(channelInput);
 			channelManager.appendChild(kickRow);
 			channelManager.appendChild(youtubeRow);
+			channelManager.appendChild(tiktokRow);
 
 			channelInputWrap.classList.add("is-hidden");
 
@@ -1577,7 +1596,7 @@ function showOverlaySetupScreen() {
 		}, 220);
 	});
 
-	if (selectedKick || selectedYouTube) {
+	if (selectedKick || selectedYouTube || selectedTikTok) {
 		channelToggle.click();
 	}
 
@@ -3105,9 +3124,10 @@ function showOverlaySetupScreen() {
 				twitch: linkUrl.searchParams.get("channel") || "",
 				kick: decodeURIComponent(linkUrl.searchParams.get("kick") || ""),
 				youtube: decodeURIComponent(linkUrl.searchParams.get("youtube") || ""),
+				tiktok: decodeURIComponent(linkUrl.searchParams.get("tiktok") || ""),
 			} : {},
 			settings: Object.fromEntries(
-				[...linkUrl.searchParams.entries()].filter(([key]) => !["channel", "kick", "youtube"].includes(key)),
+				[...linkUrl.searchParams.entries()].filter(([key]) => !["channel", "kick", "youtube", "tiktok"].includes(key)),
 			),
 		};
 		const blob = new Blob([JSON.stringify(fileData, null, 2)], { type: "application/json" });
@@ -3141,6 +3161,7 @@ function showOverlaySetupScreen() {
 				channel: typeof data.channel === "string" ? data.channel : String(fileChannels.twitch ?? rawSettings.channel ?? ""),
 				kick: typeof data.kick === "string" ? data.kick : String(fileChannels.kick ?? rawSettings.kick ?? ""),
 				youtube: typeof data.youtube === "string" ? data.youtube : String(fileChannels.youtube ?? rawSettings.youtube ?? ""),
+				tiktok: typeof data.tiktok === "string" ? data.tiktok : String(fileChannels.tiktok ?? rawSettings.tiktok ?? ""),
 			};
 			const settings = rawSettings.settings && typeof rawSettings.settings === "object"
 				? rawSettings.settings
@@ -3148,12 +3169,14 @@ function showOverlaySetupScreen() {
 			appendFlatOverlaySettings(encoded, channels.channel, settings, {
 				kick: channels.kick,
 				youtube: channels.youtube,
+				tiktok: channels.tiktok,
 			});
 			const result = importFromMChat(encoded);
-			if (!result.channel && !result.kick && !result.youtube) {
+			if (!result.channel && !result.kick && !result.youtube && !result.tiktok) {
 				result.channel = channelInput.value.trim();
 				result.kick = cleanKickInput(kickInput.value);
 				result.youtube = cleanYouTubeInput(youtubeInput.value);
+				result.tiktok = cleanTikTokInput(tiktokInput.value);
 			}
 			applyImportedSettings(result);
 			showSettingsFileStatus(`Imported ${data.name ? `“${data.name}”` : "settings"}.`, true);
@@ -3594,7 +3617,7 @@ function showOverlaySetupScreen() {
 		document.documentElement.style.setProperty("--emote-scale", emoteScale);
 	});
 
-	for (const input of [channelInput, kickInput, youtubeInput]) {
+	for (const input of [channelInput, kickInput, youtubeInput, tiktokInput]) {
 		input.addEventListener("input", () => {
 			error.style.display = "none";
 		});
@@ -3619,8 +3642,9 @@ function showOverlaySetupScreen() {
 		const channel = normalizeTwitchChannel(rawChannel);
 		const kickChannel = cleanKickInput(kickInput.value);
 		const youtubeChannel = cleanYouTubeInput(youtubeInput.value);
+		const tiktokChannel = cleanTikTokInput(tiktokInput.value);
 
-		if (silent && ((rawChannel && !channel) || (!channel && !kickChannel && !youtubeChannel))) {
+		if (silent && ((rawChannel && !channel) || (!channel && !kickChannel && !youtubeChannel && !tiktokChannel))) {
 			return null;
 		}
 
@@ -3635,9 +3659,9 @@ function showOverlaySetupScreen() {
 			return null;
 		}
 
-		if (!channel && !kickChannel && !youtubeChannel) {
+		if (!channel && !kickChannel && !youtubeChannel && !tiktokChannel) {
 			error.textContent =
-				"Enter a Twitch, Kick or YouTube channel before generating the overlay link.";
+				"Enter a Twitch, Kick, YouTube or TikTok channel before generating the overlay link.";
 
 			error.style.display = "block";
 
@@ -3827,6 +3851,7 @@ function showOverlaySetupScreen() {
 		appendFlatOverlaySettings(url, channel, overlaySettings, {
 			kick: kickChannel,
 			youtube: youtubeChannel,
+			tiktok: tiktokChannel,
 		});
 		const opacity = Math.max(
 			0,
@@ -4090,6 +4115,8 @@ function showOverlaySetupScreen() {
 		if (result.youtube) {
 			importSet(youtubeInput, cleanYouTubeInput(result.youtube));
 		}
+
+		if (result.tiktok) importSet(tiktokInput, cleanTikTokInput(result.tiktok));
 
 		if (!result.channel && result.twitchId) {
 			fetch(

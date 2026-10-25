@@ -393,7 +393,7 @@ function findGlobalThirdPartyEmote(word) {
 }
 
 function findThirdPartyEmote(word, username = null, platform = "twitch") {
-	if (platform === "youtube") {
+	if (platform === "youtube" || platform === "tiktok") {
 		return null;
 	}
 

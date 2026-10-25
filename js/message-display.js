@@ -35,7 +35,7 @@ function renderExternalText(container, value, username = null, platform = "twitc
 			continue;
 		}
 
-		if (platform !== "youtube" && BTTV_MODIFIERS.has(part)) {
+		if (platform !== "youtube" && platform !== "tiktok" && BTTV_MODIFIERS.has(part)) {
 			pendingModifiers.push(part);
 			pendingNodes.push(document.createTextNode(part));
 			continue;
@@ -52,7 +52,7 @@ function renderExternalText(container, value, username = null, platform = "twitc
 			flushPending();
 		}
 
-		if (platform !== "youtube" && ffzEffects.has(part)) {
+		if (platform !== "youtube" && platform !== "tiktok" && ffzEffects.has(part)) {
 			const applied = applyFFZEffectToPrevious(container, part);
 
 			if (!applied) {

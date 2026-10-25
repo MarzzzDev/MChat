@@ -163,7 +163,7 @@ async function startOverlay() {
 		return;
 	}
 
-	if (!selectedChannel && !selectedKick && !selectedYouTube) {
+	if (!selectedChannel && !selectedKick && !selectedYouTube && !selectedTikTok) {
 		if (location.hostname === "combos.marz.lol") {
 			document.title = "Emote Combos · MChat";
 			const canonical = document.querySelector('link[rel="canonical"]');
@@ -214,6 +214,8 @@ async function startOverlay() {
 		);
 	}
 
+	if (selectedTikTok) startTikTokChat();
+
 	if (CHANNEL) {
 		required.push(channelDataReady, ircReady);
 	}
@@ -236,6 +238,7 @@ async function startOverlay() {
 
 	if (selectedKick) console.log("Overlay Kick channel:", selectedKick);
 	if (selectedYouTube) console.log("Overlay YouTube channel:", selectedYouTube);
+	if (selectedTikTok) console.log("Overlay TikTok channel:", selectedTikTok);
 }
 
 startOverlay().catch((error) => {

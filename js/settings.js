@@ -437,6 +437,10 @@ function cleanYouTubeInput(value) {
 	return String(value || "").trim();
 }
 
+function cleanTikTokInput(value) {
+	return String(value || "").trim().replace(/^https?:\/\/(?:www\.)?tiktok\.com\//i, "").replace(/^@/, "").split(/[/?#\s]/)[0];
+}
+
 function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 	const normalised = normaliseOverlaySettings(settings);
 
@@ -459,6 +463,9 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["youtube", encodeURIComponent(cleanYouTubeInput(extra.youtube))]);
 	}
 
+	if (extra.tiktok) {
+		query.push(["tiktok", encodeURIComponent(cleanTikTokInput(extra.tiktok))]);
+	}
 	if (normalised.scale !== 0.5) {
 		query.push(["scale", String(normalised.scale)]);
 	}
@@ -828,6 +835,8 @@ const selectedChannel = normalizeTwitchChannel(params.get("channel"));
 const selectedKick = cleanKickInput(params.get("kick"));
 
 const selectedYouTube = cleanYouTubeInput(params.get("youtube"));
+
+const selectedTikTok = cleanTikTokInput(params.get("tiktok"));
 
 let backgroundEnabled = parseQueryBoolean("background", false);
 
