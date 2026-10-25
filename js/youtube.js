@@ -6,6 +6,7 @@ const YOUTUBE_BACKLOG_GRACE_MS = 15 * 1000;
 let youtubeInnertube = null;
 let youtubeChat = null;
 let youtubeRunning = false;
+let youtubeRunId = 0;
 
 const youtubeSeenMessages = new Set();
 
@@ -85,6 +86,9 @@ async function getYouTubeInnertube() {
 
 function parseYouTubeInput(raw) {
 	const value = String(raw || "").trim();
+	if (/^[\w-]{11}$/.test(value)) {
+		return { videoId: value };
+	}
 
 	const videoMatch =
 		value.match(/[?&]v=([\w-]{11})/) ||
@@ -611,10 +615,11 @@ async function startYouTubeChat(input) {
 	}
 
 	youtubeRunning = true;
+	const runId = ++youtubeRunId;
 
 	const target = parseYouTubeInput(input);
 
-	while (youtubeRunning) {
+	while (youtubeRunning && runId === youtubeRunId) {
 		let delay = YOUTUBE_RETRY_ERROR_MS;
 
 		try {
@@ -628,12 +633,22 @@ async function startYouTubeChat(input) {
 		} catch (error) {
 			console.error("YouTube chat error:", error);
 
-			if (!getPlatformProxy()) {
-				youtubeRunning = false;
-				return;
-			}
 		}
 
 		await waitMs(delay);
+	}
+}
+
+async function reconnectYouTubeChat() {
+	const input = selectedYouTube;
+	youtubeRunning = false;
+	youtubeRunId += 1;
+	try {
+		youtubeChat?.stop();
+	} catch {}
+	youtubeChat = null;
+	if (input) {
+		await waitMs(250);
+		startYouTubeChat(input);
 	}
 }

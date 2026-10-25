@@ -521,6 +521,36 @@ for (const [name, option] of Object.entries(OVERLAY_OPTIONS)) {
 
 MOD_COMMANDS.set("-reset", resetOptionOverrides);
 
+MOD_COMMANDS.set("-reconnect", (args) => {
+	const platform = String(args[0] || "all").toLowerCase();
+	const reconnectors = {
+		twitch: () => reconnectTwitchChat(),
+		kick: () => reconnectKickChat(),
+		youtube: () => reconnectYouTubeChat(),
+		tiktok: () => reconnectTikTokChat(),
+	};
+	const selected = platform === "all" ? Object.keys(reconnectors) : [platform];
+	const jobs = selected.filter((name) => reconnectors[name] && (name !== "twitch" || CHANNEL) && (name !== "kick" || selectedKick) && (name !== "youtube" || selectedYouTube) && (name !== "tiktok" || selectedTikTok));
+	if (!jobs.length) {
+		console.warn(`[mchat] No active platform matched -reconnect ${platform}`);
+		return;
+	}
+	for (const name of jobs) {
+		Promise.resolve(reconnectors[name]()).catch((error) => console.error(`[mchat] ${name} reconnect failed:`, error));
+	}
+	console.info(`[mchat] Reconnecting: ${jobs.join(", ")}`);
+});
+
+MOD_COMMANDS.set("-connections", () => {
+	const status = {
+		twitch: twitchIRCSocket?.readyState === WebSocket.OPEN ? "connected" : CHANNEL ? "reconnecting" : "off",
+		kick: kickSocket?.readyState === WebSocket.OPEN ? "connected" : selectedKick ? "reconnecting" : "off",
+		youtube: youtubeChat ? "connected" : selectedYouTube ? "reconnecting" : "off",
+		tiktok: tikTokPollController ? "connected" : selectedTikTok ? "reconnecting" : "off",
+	};
+	console.info("[mchat] Platform connections:", status);
+});
+
 const SHOW_TRUSTED_HOSTS = ["kappa.lol", "femboy.beauty", "olrite.lol", "gachi.gay"];
 const SHOW_DURATION_MS = 5000;
 const SHOW_IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"]);
@@ -737,6 +767,10 @@ MOD_COMMANDS.set("-skip", () => {
 });
 
 MOD_COMMANDS.set("-modcommands", (args, rawArgs, isBroadcaster) => {
+	if (!args.length) {
+		console.info("[mchat] Commands: -reconnect [twitch|kick|youtube|tiktok|all], -connections, -refresh, -modcommands on|off");
+		return;
+	}
 	const value = OPTION_BOOL_WORDS[String(args[0] || "").toLowerCase()];
 
 	if (value === undefined) {

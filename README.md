@@ -1,38 +1,60 @@
 # MChat
 
-A feature-packed chat overlay built with customization in mind, bringing effects, badges, and more to your stream.
-This README Isn't frequently updated, so check out the site at https://mchat.marz.lol !
+MChat is a free, customizable chat overlay for Twitch, Kick, YouTube Live, and TikTok LIVE. Configure the overlay at [mchat.marz.lol](https://mchat.marz.lol), preview it, then add its generated URL as a Browser Source in OBS or other streaming software that supports browser sources.
 
-### Features
+## Quick start
 
-* 🌫️ **Features missing in any other overlay**
-* 🏅 **Twitch, 7TV, FFZ and Chatterino badges**
-* ✨ **FFZ effects**
-* 😀 **Twitch, 7TV, FFZ and BTTV emotes**
-* 🎨 7TV Paints
-* 🎞️ Twitch GIF support (can be disabled)
-* 🤖 Hide bots and commands
-* 🔤 Multiple fonts to choose from
-* ⚙️ Customize text and emote sizes separately
-* 🔗 Generate an overlay link with your settings
+1. Open [MChat](https://mchat.marz.lol/) and enter the channel name for each platform you want to show.
+2. Customize the appearance and behavior. The preview updates as you change settings.
+3. Copy the generated overlay link.
+4. In OBS, add a **Browser** source and paste the link. Set the source dimensions to fit your scene. Other software with browser-source support should work similarly.
 
-### Current Parameters
+MChat is free to use. Normal setup does not require an account or a Twitch login.
 
-| Parameter | Description |
-| ------------ | ---------------------------------------------------------------- |
-| `background` | Enable/disable the background (default = false) |
-| `fade` | Configure fade effects (default = 15; false = no fade) |
-| `badges` | Display supported badges (default = true) |
-| `scale` | Change scale of chat messages (default = 0.5) |
-| `emoteScale` | Change the size of emotes separately (default = 1) |
-| `wrap` | Wrap messages down after the username (default = false) |
-| `unlisted` | Show/hide unlisted 7TV emotes (default = true) |
-| `gifs` | Enable/disable Twitch GIFs (default = true) |
-| `bots` | Show/hide bot messages and commands (default = true) |
-| `font` | Change the chat font (default = Open Sans) |
+## Platforms and rendering
 
-> **MChat** aims to provide a highly customizable chat experience with features you won't find in any other chat overlays.
+- **Twitch:** anonymous read-only IRC chat, Twitch badges and emotes, channel GIFs, and Twitch chat events supported by the overlay.
+- **Kick:** chat and platform badges, with Kick emotes and supported third-party emote integrations.
+- **YouTube Live:** live chat, custom emoji, platform badges, and supported membership, Super Chat, and moderation events.
+- **TikTok LIVE:** chat, supported event messages, TikTok emotes/media, and badges. TikTok connection uses MChat's separate events service.
+- **Third-party emotes and badges:** integrations include 7TV, BetterTTV (BTTV), FrankerFaceZ (FFZ), and community badge sources such as Chatterino and Homies. Availability depends on the platform and provider data.
 
-> **Features coming soon:** Multi-platform chatting & more..
+The exact message, badge, and emote details vary by platform. MChat is an overlay for displaying chat; it does not send chat messages or replace a platform's moderation tools.
 
-> If there are any issues or features missing, dm me on discord (**marz_dev**)
+For YouTube, enter a channel handle to discover its current live stream, or paste a live/video URL or 11-character video ID to connect directly.
+
+## Customization
+
+The setup page includes a live preview and controls for appearance and message behavior, including:
+
+- Fonts, text sizes, colors, shadows, strokes, and separate emote sizing
+- Backgrounds and message cards
+- Layout, spacing, alignment, and timestamps
+- Message animations, fading, and emote effects
+- Platform and third-party badge visibility and sizing
+- Bot, command, and message filters
+- Twitch GIFs, profile pictures, highlights, and other optional display features
+
+Generated links contain the selected channels and overlay settings. You can copy a link for OBS, reopen it in the setup page to continue editing, and export or import settings as `.mc` files. The setup page also supports importing compatible ChatIS and UChat links.
+
+## Reliability and updates
+
+MChat reconnects to Twitch and Kick chat after connection drops, retries YouTube chat, and retries TikTok event polling with backoff. The overlay has moderator commands for actions such as reconnecting platform connections and refreshing the overlay. MChat also checks for repository updates and can refresh an overlay when a new version is detected.
+
+These mechanisms help recover from interruptions, but they do not guarantee uninterrupted service. TikTok depends on MChat's separate event service, and chat access and third-party emote or badge data can be affected by platform or provider availability.
+
+## Self-hosting
+
+MChat is a static browser application. Serve the repository over HTTP(S) and open `index.html`; its relative assets and scripts should remain in their existing paths. The hosted version uses external platform, emote, badge, and TikTok services, so self-hosting the frontend does not remove those dependencies.
+
+The source is licensed under the [MIT License](LICENSE).
+
+## Links
+
+- [Open MChat](https://mchat.marz.lol/)
+- [Source repository](https://github.com/MarzzzDev/MChat)
+- [About and credits](https://faq.marz.lol)
+- [Emote Combos](https://combos.marz.lol)
+- [Feedback and support](https://discord.com/users/marz_dev)
+
+MChat is not affiliated with Twitch, Kick, YouTube, or TikTok.

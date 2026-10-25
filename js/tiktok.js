@@ -197,6 +197,16 @@ async function startTikTokChat() {
 	}
 }
 
+function reconnectTikTokChat() {
+	tikTokStopped = true;
+	tikTokPollController?.abort();
+	if (selectedTikTok) {
+		setTimeout(() => {
+			if (!tikTokPollController) startTikTokChat();
+		}, 0);
+	}
+}
+
 window.addEventListener("pagehide", () => {
 	tikTokStopped = true;
 	tikTokPollController?.abort();

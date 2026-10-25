@@ -1523,7 +1523,8 @@ function showOverlaySetupScreen() {
 	const youtubeInput = document.createElement("input");
 	youtubeInput.type = "text";
 	youtubeInput.className = "mc-channel-input";
-	youtubeInput.placeholder = "Youtube Handle";
+	youtubeInput.placeholder = "YouTube handle, video ID, or live URL";
+	youtubeInput.title = "Use a channel handle for automatic live discovery, or paste a YouTube live/video URL or 11-character video ID to connect directly.";
 	youtubeInput.autocomplete = "off";
 	youtubeInput.spellcheck = false;
 

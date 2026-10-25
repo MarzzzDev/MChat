@@ -604,9 +604,8 @@ function connectKickSocket() {
 	socket.onclose = (event) => {
 		console.log("Kick WebSocket closed:", event.code, event.reason);
 
-		if (kickSocket === socket) {
-			kickSocket = null;
-		}
+		if (kickSocket !== socket) return;
+		kickSocket = null;
 
 		if (event.code >= 4000 && event.code < 4100) {
 			console.error("Kick config error, not reconnecting:", event.reason);
@@ -616,6 +615,20 @@ function connectKickSocket() {
 		kickReconnectTimer = setTimeout(connectKickSocket, kickReconnectDelay);
 		kickReconnectDelay = Math.min(kickReconnectDelay * 2, 60000);
 	};
+}
+
+function reconnectKickChat() {
+	clearTimeout(kickReconnectTimer);
+	kickReconnectTimer = null;
+	kickReconnectDelay = 3000;
+	if (kickSocket) {
+		const socket = kickSocket;
+		kickSocket = null;
+		try {
+			socket.close(1000, "Manual reconnect");
+		} catch {}
+	}
+	if (KICK_CHATROOM_ID) connectKickSocket();
 }
 
 async function startKickChat(slug) {

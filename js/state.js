@@ -3,6 +3,7 @@ let TWITCH_USER_ID = null;
 
 let twitchIRCSocket = null;
 let twitchIRCReconnectTimer = null;
+let twitchIRCReconnectDelay = 3000;
 let twitchIRCBuffer = "";
 let twitchIRCReadyPromise = null;
 let twitchIRCReadyResolve = null;

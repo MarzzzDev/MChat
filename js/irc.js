@@ -114,6 +114,10 @@ function createTwitchIRCSocket() {
 		socket.onclose = (event) => {
 			console.log("Twitch IRC WebSocket closed:", event.code, event.reason);
 
+			if (twitchIRCSocket !== socket) {
+				return;
+			}
+
 			twitchIRCSocket = null;
 
 			if (twitchIRCReadyReject) {
@@ -128,16 +132,35 @@ function createTwitchIRCSocket() {
 			}
 
 			clearTimeout(twitchIRCReconnectTimer);
+			const delay = twitchIRCReconnectDelay;
+			twitchIRCReconnectDelay = Math.min(twitchIRCReconnectDelay * 2, 60000);
 
 			twitchIRCReconnectTimer = setTimeout(() => {
 				if (CHANNEL && !twitchIRCSocket) {
 					createTwitchIRCSocket().catch(() => { });
 				}
-			}, 3000);
+			}, delay);
 		};
 	});
 
 	return twitchIRCReadyPromise;
+}
+
+function reconnectTwitchChat() {
+	clearTimeout(twitchIRCReconnectTimer);
+	twitchIRCReconnectTimer = null;
+	twitchIRCReconnectDelay = 3000;
+	const socket = twitchIRCSocket;
+	twitchIRCSocket = null;
+	if (socket) {
+		try {
+			socket.close(1000, "Manual reconnect");
+		} catch {}
+	}
+	if (CHANNEL) {
+		return createTwitchIRCSocket();
+	}
+	return Promise.resolve();
 }
 
 function parseTwitchIRCLine(raw) {
@@ -197,6 +220,7 @@ function handleTwitchIRCMessage(raw) {
 	const message = parseTwitchIRCLine(raw);
 
 	if (message.command === "ROOMSTATE") {
+		twitchIRCReconnectDelay = 3000;
 		const roomId = message.tags["room-id"];
 
 		if (roomId) {
