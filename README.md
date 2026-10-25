@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1><img src="waga.gif" alt="Waga" height="128" align="middle"> MChat</h1>
+<h1><img src="waga.gif" alt="Waga" height="84" align="middle"> <span style="font-size: 1.5em;">MChat</span></h1>
 
 ### One chat overlay for Twitch, Kick, YouTube Live, and TikTok LIVE.
 
