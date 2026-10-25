@@ -182,8 +182,11 @@ async function startOverlay() {
 
 	applyStoredOptionOverrides();
 
-	startLoadingScreen();
-	hideStaticLoadingText();
+	const restoredChat = restoreUpdatedChat();
+	if (!restoredChat) {
+		startLoadingScreen();
+		hideStaticLoadingText();
+	}
 
 	CHANNEL = selectedChannel || null;
 	hideOverlaySetupScreen();
