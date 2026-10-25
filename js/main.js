@@ -28,11 +28,6 @@ async function resolveTwitchChannelId(login) {
 	return data?.user?.id ? String(data.user.id) : null;
 }
 
-let resolveChannelData;
-const channelDataReady = new Promise((resolve) => {
-	resolveChannelData = resolve;
-});
-
 function startChannelIdLookup() {
 	const cachedId = getCachedChannelId(CHANNEL);
 
@@ -84,8 +79,6 @@ function startChannelIdLookup() {
 	imageHosts.forEach((host) => add(host, false));
 })();
 
-const TWITCH_READY_TIMEOUT_MS = 3000;
-
 function hideStaticLoadingText() {
 	const loadingText = document.getElementById("loading-text");
 
@@ -120,7 +113,6 @@ function onTwitchRoomReady() {
 	}
 
 	channelDataPromise = trackTask("7TV channel emotes", load7TVEmotes);
-	channelDataPromise.then(resolveChannelData);
 
 	trackTask("Twitch badges", loadTwitchBadges);
 	trackTask("BTTV emotes", loadBTTVEmotes);
@@ -195,7 +187,7 @@ async function startOverlay() {
 		  })
 		: Promise.resolve(null);
 
-	const required = [trackTask("7TV global emotes", load7TVGlobalEmotes)];
+	trackTask("7TV global emotes", load7TVGlobalEmotes);
 
 	trackTask("FFZ emotes", loadFFZEmotes);
 	trackTask("Chatterino badges", loadChatterinoBadges);
@@ -213,15 +205,6 @@ async function startOverlay() {
 			console.error("YouTube chat startup error:", error),
 		);
 	}
-
-	if (CHANNEL) {
-		required.push(channelDataReady);
-	}
-
-	await Promise.race([
-		Promise.allSettled(required),
-		new Promise((resolve) => setTimeout(resolve, TWITCH_READY_TIMEOUT_MS)),
-	]);
 
 	stopLoadingScreen();
 	startEmoteRefreshLoop();
