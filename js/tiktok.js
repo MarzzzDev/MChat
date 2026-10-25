@@ -1,4 +1,4 @@
-const TIKTOK_EVENTS_URL = String(params.get("tiktokApi") || "https://tiktok-api.marz.lol/events").trim();
+const TIKTOK_EVENTS_URL = "https://tiktok-api.marz.lol/events";
 let tikTokPollController = null;
 let tikTokStopped = false;
 let tikTokConnectionWarningShown = false;
