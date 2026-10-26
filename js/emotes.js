@@ -16,21 +16,6 @@ async function pickFirstLoaded(urls, probe, waveSize = 4) {
 	return null;
 }
 
-const paintLayerUrlCache = new Map();
-
-function getWorking7TVPaintLayerUrl(paint, layer) {
-	const key = `${paint?.id}:${layer?.id}`;
-
-	if (!paintLayerUrlCache.has(key)) {
-		paintLayerUrlCache.set(
-			key,
-			pickFirstLoaded(get7TVPaintLayerUrls(paint, layer), loadPaintImage),
-		);
-	}
-
-	return paintLayerUrlCache.get(key);
-}
-
 function get7TVPaintLayerUrls(paint, layer) {
 	if (!paint?.id || !layer?.id) {
 		return [];
@@ -55,25 +40,6 @@ function get7TVPaintLayerUrls(paint, layer) {
 		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/2x.webp`,
 		`https://cdn.7tv.app/paint/${paintId}/layer/${layerId}/1x.webp`,
 	];
-}
-
-function loadPaintImage(url) {
-	return new Promise((resolve) => {
-		const img = new Image();
-
-		img.onload = () => {
-			resolve(url);
-		};
-
-		img.onerror = () => {
-			resolve(null);
-		};
-
-		img.decoding = "async";
-		img.loading = "eager";
-
-		img.src = url;
-	});
 }
 
 function loadTwemoji() {

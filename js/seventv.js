@@ -512,27 +512,6 @@ async function handleSevenTVEmoteSetUpdate(body) {
 	});
 }
 
-async function load7TVGlobalEmotes() {
-	try {
-		const response = await fetch("https://7tv.io/v3/emote-sets/global");
-
-		if (!response.ok) {
-			throw new Error(`7TV global emote error: ${response.status}`);
-		}
-
-		const data = await response.json();
-
-		for (const emote of data.emotes || []) {
-			add7TVEmote(emote);
-			add7TVEmote(emote, sevenTVGlobalEmotes);
-		}
-
-		console.log(`Loaded ${sevenTVEmotes.size} total 7TV emotes.`);
-	} catch (error) {
-		console.error("7TV global emote error:", error);
-	}
-}
-
 async function load7TVKickEmotes() {
 	if (!KICK_USER_ID) {
 		return;
