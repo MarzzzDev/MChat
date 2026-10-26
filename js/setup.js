@@ -116,6 +116,63 @@ function showOverlaySetupScreen() {
 	controlsHead.appendChild(controlTitle);
 	controlsHead.appendChild(controlSubtitle);
 
+	const presetPicker = document.createElement("section");
+	presetPicker.className = "mc-presets";
+	const presetButton = document.createElement("button");
+	presetButton.type = "button";
+	presetButton.className = "mc-preset-trigger";
+	presetButton.textContent = "Presets";
+	presetButton.setAttribute("aria-haspopup", "true");
+	presetButton.setAttribute("aria-expanded", "false");
+	const presetMenu = document.createElement("div");
+	presetMenu.className = "mc-preset-menu";
+	presetMenu.setAttribute("role", "menu");
+	presetMenu.hidden = true;
+	const presets = [
+		{ name: "Classic Twitch", settings: { badgeScale: 1.1, fade: "off", entryAnimation: "none", highlights: "1", hlRaids: "0", hlStreaks: "0", colonMatchUsername: "0" } },
+		{ name: "Chatterino", settings: { badgeScale: 1.1, timestamps: true, badges: true, centerBadges: false, messageCards: false, platformIndicator: false, badgeNameSpacing: 3, authorMessageSpacing: 3, fade: "off", entryAnimation: "none" } },
+		{ name: "Clean & Minimal", settings: { badgeScale: 1.1, emoteSpacing: "1", badgeNameSpacing: "0", authorMessageSpacing: "0", font: "arial", messageCards: "1", messageCardColor: "000000", messageCardOpacity: "0.09", messageSpacing: "0", entryAnimation: "from-left", collapse: "1" } },
+		{ name: "Cozy / Soft", settings: { badgeScale: 1.1, messageCards: true, messageCardColor: "#30263b", messageCardOpacity: 0.82, messageCardRadius: 18, messageCardPadding: 8, messageSpacing: 8, entryAnimation: "smooth-scroll" } },
+		{ name: "Soft Shadow", settings: { badgeScale: 1.1, messageCards: false, shadow: true, shadowIntensity: 0.72, shadowSize: 8, shadowOffset: 2, textColor: "#ffffff", entryAnimation: "smooth-scroll" } },
+		{ name: "Neon", settings: { badgeScale: 1.1, messageCards: true, messageCardColor: "#160b2b", messageCardOpacity: 0.94, messageCardRadius: 6, messageCardBorderWidth: 1, messageCardBorderColor: "#a855f7", textColor: "#f5e9ff", linkColor: "#5ee7ff", entryAnimation: "from-right", fade: 18 } },
+	];
+	for (const preset of presets) {
+		const option = document.createElement("button");
+		option.type = "button";
+		option.className = "mc-preset-option";
+		option.setAttribute("role", "menuitem");
+		const optionName = document.createElement("strong");
+		optionName.textContent = preset.name;
+		option.appendChild(optionName);
+		option.addEventListener("click", () => {
+			applyImportedSettings(importFromMChat(new URLSearchParams(preset.settings)));
+			presetMenu.hidden = true;
+			presetButton.setAttribute("aria-expanded", "false");
+			presetButton.focus();
+		});
+		presetMenu.appendChild(option);
+	}
+	presetButton.addEventListener("click", () => {
+		presetMenu.hidden = !presetMenu.hidden;
+		presetButton.setAttribute("aria-expanded", String(!presetMenu.hidden));
+		if (!presetMenu.hidden) presetMenu.querySelector("button")?.focus();
+	});
+	presetPicker.addEventListener("keydown", (event) => {
+		if (event.key === "Escape" && !presetMenu.hidden) {
+			presetMenu.hidden = true;
+			presetButton.setAttribute("aria-expanded", "false");
+			presetButton.focus();
+		}
+	});
+	document.addEventListener("pointerdown", (event) => {
+		if (!presetPicker.contains(event.target)) {
+			presetMenu.hidden = true;
+			presetButton.setAttribute("aria-expanded", "false");
+		}
+	});
+	presetPicker.append(presetButton, presetMenu);
+	topActions.insertBefore(presetPicker, comboLink);
+
 	const panelStack = document.createElement("div");
 	panelStack.className = "mc-panel-stack";
 

@@ -427,6 +427,20 @@ body:has(#overlay-setup-screen)::-webkit-scrollbar {
 	padding: 20px 24px 16px;
 	border-bottom: 1px solid var(--mc-line);
 }
+#overlay-setup-screen .mc-presets { position: relative; flex: 0 0 auto; }
+#overlay-setup-screen .mc-preset-trigger { min-width: 88px; height: 30px; padding: 0 10px; color: var(--mc-text); background: var(--mc-surface); border: 1px solid var(--mc-line); border-radius: 6px; cursor: pointer; font: inherit; font-size: 11px; }
+#overlay-setup-screen .mc-preset-trigger:hover, #overlay-setup-screen .mc-preset-trigger[aria-expanded="true"] { border-color: var(--mc-line-strong); background: var(--mc-surface-raised, var(--mc-surface)); }
+#overlay-setup-screen .mc-preset-trigger:focus-visible, #overlay-setup-screen .mc-preset-option:focus-visible { outline: 2px solid #9b70ff; outline-offset: 2px; }
+#overlay-setup-screen .mc-preset-menu { position: absolute; z-index: 20; top: calc(100% + 7px); right: 0; width: 210px; max-height: min(60vh, 360px); overflow-y: auto; padding: 5px; color: var(--mc-text); background: var(--mc-surface); border: 1px solid var(--mc-line); border-radius: 9px; box-shadow: 0 12px 32px #0009; }
+#overlay-setup-screen .mc-preset-menu { scrollbar-width: thin; scrollbar-color: var(--mc-line-strong) transparent; }
+#overlay-setup-screen .mc-preset-menu::-webkit-scrollbar { width: 8px; }
+#overlay-setup-screen .mc-preset-menu::-webkit-scrollbar-track { background: transparent; }
+#overlay-setup-screen .mc-preset-menu::-webkit-scrollbar-thumb { background: var(--mc-line-strong); border: 2px solid transparent; border-radius: 8px; background-clip: padding-box; }
+#overlay-setup-screen .mc-preset-menu::-webkit-scrollbar-thumb:hover { background: #777b89; border: 2px solid transparent; background-clip: padding-box; }
+#overlay-setup-screen .mc-preset-menu[hidden] { display: none; }
+#overlay-setup-screen .mc-preset-option { display: flex; width: 100%; flex-direction: column; gap: 3px; padding: 8px 9px; color: var(--mc-text); text-align: left; background: transparent; border: 0; border-radius: 6px; cursor: pointer; font: inherit; }
+#overlay-setup-screen .mc-preset-option:hover { background: var(--mc-surface-raised, var(--mc-line)); }
+#overlay-setup-screen .mc-preset-option strong { font-size: 11px; }
 
 #overlay-setup-screen .mc-control-title {
 	margin: 0;
