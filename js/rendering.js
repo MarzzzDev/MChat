@@ -782,8 +782,6 @@ async function onMsg(
 		}
 	}
 
-	const indicatorPlatform = tags["preview-platform"] || platform;
-
 	if (platformIndicatorEnabled && !previewEntry && isMultiChat()) {
 		const indicator = createPlatformIndicator(platform);
 

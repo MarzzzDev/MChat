@@ -155,8 +155,6 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.badges = settings.badges !== false;
 	result.timestamps = settings.timestamps === true;
-	result.emoteOverlap = false;
-
 	result.badgeTwitch = settings.badgeTwitch !== false;
 
 	result.badgeFfz = settings.badgeFfz !== false;
@@ -1016,8 +1014,6 @@ emoteScale = Math.max(0.25, Math.min(emoteScale, 3));
 let emoteSpacing = readNumericParam("emoteSpacing", 3);
 emoteSpacing = Math.max(0, Math.min(emoteSpacing, 20));
 document.documentElement.style.setProperty("--emote-spacing", `${emoteSpacing}px`);
-let emoteOverlapEnabled = false;
-
 let bigEmotesEnabled = parseQueryBoolean("bigEmotes", true);
 
 let bigEmoteScale = readNumericParam("bigEmoteScale", 1.2);

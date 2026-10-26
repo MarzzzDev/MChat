@@ -2734,7 +2734,6 @@ function showOverlaySetupScreen() {
 	const badgeScaleLabel = document.createElement("label");
 	badgeScaleLabel.className = "mc-label";
 	badgeScaleLabel.textContent = "Badge scale";
-	const badgeScaleLine = document.createElement("div");
 	const badgeScaleInput = document.createElement("input");
 	badgeScaleInput.type = "number";
 	badgeScaleInput.className = "mc-input";
