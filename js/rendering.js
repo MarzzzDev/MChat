@@ -344,17 +344,25 @@ function captureChatPositions(chat) {
 }
 
 function animateChatPush(previous) {
+	const chat = previous[0]?.[0]?.parentElement;
+	if (chat?._pushAnimations) {
+		for (const animation of chat._pushAnimations) animation.finish();
+		chat._pushAnimations = [];
+	}
+	const animations = [];
 	for (const [message, oldTop] of previous) {
 		if (!message.isConnected) continue;
 
 		const shift = oldTop - message.getBoundingClientRect().top;
 		if (Math.abs(shift) < 1) continue;
 
-		message.animate(
+		const animation = message.animate(
 			[{ translate: `0 ${shift}px` }, { translate: "0 0" }],
-			{ duration: 320, easing: "cubic-bezier(.2,.75,.25,1)" },
+			{ duration: 150, easing: "cubic-bezier(.2,.75,.25,1)" },
 		);
+		animations.push(animation);
 	}
+	if (chat) chat._pushAnimations = animations;
 }
 
 function trimChatToLimit(chat) {

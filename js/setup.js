@@ -134,7 +134,6 @@ function showOverlaySetupScreen() {
 		{ name: "Clean & Minimal", settings: { badgeScale: 1.1, emoteSpacing: "1", badgeNameSpacing: "0", authorMessageSpacing: "0", font: "arial", messageCards: "1", messageCardColor: "000000", messageCardOpacity: "0.09", messageSpacing: "0", entryAnimation: "from-left", collapse: "1" } },
 		{ name: "Cozy / Soft", settings: { badgeScale: 1.1, messageCards: true, messageCardColor: "#30263b", messageCardOpacity: 0.82, messageCardRadius: 18, messageCardPadding: 8, messageSpacing: 8, entryAnimation: "smooth-scroll" } },
 		{ name: "Soft Shadow", settings: { badgeScale: 1.1, messageCards: false, shadow: true, shadowIntensity: 0.72, shadowSize: 8, shadowOffset: 2, textColor: "#ffffff", entryAnimation: "smooth-scroll" } },
-		{ name: "Neon", settings: { badgeScale: 1.1, messageCards: true, messageCardColor: "#160b2b", messageCardOpacity: 0.94, messageCardRadius: 6, messageCardBorderWidth: 1, messageCardBorderColor: "#a855f7", textColor: "#f5e9ff", linkColor: "#5ee7ff", entryAnimation: "from-right", fade: 18 } },
 	];
 	for (const preset of presets) {
 		const option = document.createElement("button");
