@@ -821,6 +821,11 @@ function runModCommand(text, isMod, isBroadcaster = false) {
 }
 
 function removePlatformElement(element) {
+	if (!element) return;
+	clearTimeout(element?._fadeTimer);
+	clearTimeout(element?._removeTimer);
+	if (lastRepeat?.element === element) lastRepeat = null;
+	element.getAnimations().forEach((animation) => animation.cancel());
 	element.remove();
 	unregisterMessageIds(element);
 

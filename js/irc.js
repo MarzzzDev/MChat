@@ -288,7 +288,7 @@ function handleTwitchIRCClearUserMessages(userId) {
 		return;
 	}
 
-	for (const element of elements) {
+	for (const element of Array.from(elements)) {
 		removePlatformElement(element);
 	}
 
@@ -296,7 +296,8 @@ function handleTwitchIRCClearUserMessages(userId) {
 }
 
 function handleTwitchIRCClearChat() {
-	if (selectedKick || selectedYouTube) {
+	lastRepeat = null;
+	if (selectedKick || selectedYouTube || selectedTikTok) {
 		clearPlatformMessages("twitch");
 		return;
 	}

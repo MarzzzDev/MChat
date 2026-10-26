@@ -221,6 +221,10 @@ async function load7TVEmotes() {
 			`https://7tv.io/v3/users/twitch/${TWITCH_USER_ID}`,
 		);
 
+		if (userResponse.status === 404) {
+			return;
+		}
+
 		if (!userResponse.ok) {
 			throw new Error(`7TV user error: ${userResponse.status}`);
 		}

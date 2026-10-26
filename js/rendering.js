@@ -344,25 +344,15 @@ function captureChatPositions(chat) {
 }
 
 function animateChatPush(previous) {
-	const chat = previous[0]?.[0]?.parentElement;
-	if (chat?._pushAnimations) {
-		for (const animation of chat._pushAnimations) animation.finish();
-		chat._pushAnimations = [];
-	}
-	const animations = [];
 	for (const [message, oldTop] of previous) {
 		if (!message.isConnected) continue;
-
 		const shift = oldTop - message.getBoundingClientRect().top;
 		if (Math.abs(shift) < 1) continue;
-
-		const animation = message.animate(
+		message.animate(
 			[{ translate: `0 ${shift}px` }, { translate: "0 0" }],
-			{ duration: 150, easing: "cubic-bezier(.2,.75,.25,1)" },
+			{ duration: 140, easing: "linear" },
 		);
-		animations.push(animation);
 	}
-	if (chat) chat._pushAnimations = animations;
 }
 
 function trimChatToLimit(chat) {
@@ -393,6 +383,10 @@ function placeInChat(chat, element) {
 	insertChatMessage(chat, element);
 	trimChatToLimit(chat);
 	animateChatPush(previous);
+}
+
+function enqueueChatMessage(chat, message) {
+	placeInChat(chat, message);
 }
 
 function registerMessageId(message, messageId) {
@@ -454,7 +448,7 @@ function refreshMessageTimestamps() {
 
 window.refreshMessageTimestamps = refreshMessageTimestamps;
 
-	function scheduleMessageFade(message, userKey) {
+function scheduleMessageFade(message, userKey) {
 	clearTimeout(message._fadeTimer);
 	clearTimeout(message._removeTimer);
 
@@ -469,16 +463,7 @@ window.refreshMessageTimestamps = refreshMessageTimestamps;
 			message.style.animation = "messageFadeOut 1s ease-in forwards";
 
 			message._removeTimer = setTimeout(() => {
-				message.remove();
-				unregisterMessageIds(message);
-
-				if (userKey && userMessageElements.has(userKey)) {
-					userMessageElements.get(userKey).delete(message);
-
-					if (userMessageElements.get(userKey).size === 0) {
-						userMessageElements.delete(userKey);
-					}
-				}
+				removePlatformElement(message);
 			}, 1000);
 		},
 		Math.max(0, fade * 1000 - 1000),
@@ -508,13 +493,14 @@ function removePreviewEntry(entry) {
 
 	element.remove();
 
-	const set = userMessageElements.get(entry.userId);
+	const userKey = entry.userKey ?? entry.userId;
+	const set = userMessageElements.get(userKey);
 
 	if (set) {
 		set.delete(element);
 
 		if (set.size === 0) {
-			userMessageElements.delete(entry.userId);
+			userMessageElements.delete(userKey);
 		}
 	}
 }
@@ -581,6 +567,7 @@ function addPreviewMessage(user, msg, usernameColor, userId, tags = {}) {
 		msg,
 		usernameColor,
 		userId,
+		userKey: userId == null ? null : (tags.platform && tags.platform !== "twitch" ? `${tags.platform}:${userId}` : userId),
 		tags,
 		createdAt: Date.now(),
 		element: null,
@@ -704,6 +691,10 @@ async function onMsg(
 		(lastRepeat.element.parentNode === chat || lastRepeat.element._pendingChat === chat)
 	) {
 		registerMessageId(lastRepeat.element, messageId);
+		if (userKey) {
+			if (!userMessageElements.has(userKey)) userMessageElements.set(userKey, new Set());
+			userMessageElements.get(userKey).add(lastRepeat.element);
+		}
 		bumpRepeat(lastRepeat, previewEntry);
 		return;
 	}
@@ -824,7 +815,7 @@ async function onMsg(
 	message.appendChild(text);
 
 	applyMessageHighlights(message, tags, user);
-	placeInChat(chat, message);
+	enqueueChatMessage(chat, message);
 
 	if (typeof applyMessageAlignment === "function") {
 		applyMessageAlignment(message);

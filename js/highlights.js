@@ -438,7 +438,7 @@ function hlShiftHex(hex, degrees) {
 	const g = parseInt(value.slice(2, 4), 16) / 255;
 	const b = parseInt(value.slice(4, 6), 16) / 255;
 	const max = Math.max(red, g, b);
-	const min = Math.min(r, g, b);
+	const min = Math.min(red, g, b);
 	const l = (max + min) / 2;
 	const d = max - min;
 
@@ -451,7 +451,7 @@ function hlShiftHex(hex, degrees) {
 		if (max === red) {
 			h = ((g - b) / d) % 6;
 		} else if (max === g) {
-			h = (b - r) / d + 2;
+			h = (b - red) / d + 2;
 		} else {
 			h = (red - g) / d + 4;
 		}

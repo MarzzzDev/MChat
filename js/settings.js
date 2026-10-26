@@ -28,6 +28,13 @@ function parseQueryBoolean(name, fallback) {
 	return fallback;
 }
 
+function readNumericParam(name, fallback) {
+	const raw = params.get(name);
+	if (raw === null || raw.trim() === "") return fallback;
+	const value = Number(raw);
+	return Number.isFinite(value) ? value : fallback;
+}
+
 function decodeLegacySerializedSettings(encoded) {
 	if (!encoded) {
 		return {};
@@ -49,6 +56,13 @@ function decodeLegacySerializedSettings(encoded) {
 
 		return null;
 	}
+}
+
+function readNumericSetting(settings, key, fallback) {
+	const raw = settings[key];
+	if (raw == null || (typeof raw === "string" && raw.trim() === "")) return fallback;
+	const value = Number(raw);
+	return Number.isFinite(value) ? value : fallback;
 }
 
 function normaliseOverlaySettings(settings = {}) {
@@ -82,19 +96,19 @@ function normaliseOverlaySettings(settings = {}) {
 			? settings.messageCardColor
 			: "#141414";
 
-	result.messageCardOpacity = Number(settings.messageCardOpacity ?? 0.72);
+	result.messageCardOpacity = readNumericSetting(settings, "messageCardOpacity", 0.72);
 	if (!Number.isFinite(result.messageCardOpacity)) {
 		result.messageCardOpacity = 0.72;
 	}
 	result.messageCardOpacity = Math.max(0, Math.min(result.messageCardOpacity, 1));
 
-	result.messageCardRadius = Number(settings.messageCardRadius ?? 10);
+	result.messageCardRadius = readNumericSetting(settings, "messageCardRadius", 10);
 	if (!Number.isFinite(result.messageCardRadius)) {
 		result.messageCardRadius = 10;
 	}
 	result.messageCardRadius = Math.max(0, Math.min(result.messageCardRadius, 32));
 
-	result.messageCardBorderWidth = Number(settings.messageCardBorderWidth ?? 0);
+	result.messageCardBorderWidth = readNumericSetting(settings, "messageCardBorderWidth", 0);
 	if (!Number.isFinite(result.messageCardBorderWidth)) {
 		result.messageCardBorderWidth = 0;
 	}
@@ -112,19 +126,19 @@ function normaliseOverlaySettings(settings = {}) {
 		? settings.messageCardBorderStyle
 		: "solid";
 
-	result.messageCardPadding = Number(settings.messageCardPadding ?? 0);
+	result.messageCardPadding = readNumericSetting(settings, "messageCardPadding", 0);
 	if (!Number.isFinite(result.messageCardPadding)) {
 		result.messageCardPadding = 0;
 	}
 	result.messageCardPadding = Math.max(0, Math.min(result.messageCardPadding, 24));
 
-	result.messageSpacing = Number(settings.messageSpacing ?? 3);
+	result.messageSpacing = readNumericSetting(settings, "messageSpacing", 3);
 	if (!Number.isFinite(result.messageSpacing)) {
 		result.messageSpacing = 3;
 	}
 	result.messageSpacing = Math.max(0, Math.min(result.messageSpacing, 32));
 
-	result.fade = settings.fade === false ? false : Number(settings.fade ?? 15);
+	result.fade = settings.fade === false ? false : readNumericSetting(settings, "fade", 15);
 
 	result.entryAnimation = ["classic", "from-left", "from-right", "smooth-scroll", "none"].includes(
 		settings.entryAnimation,
@@ -189,7 +203,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.colonMatchUsername = settings.colonMatchUsername !== false;
 
-	result.scale = Number(settings.scale ?? 0.5);
+	result.scale = readNumericSetting(settings, "scale", 0.5);
 
 	if (!Number.isFinite(result.scale)) {
 		result.scale = 0.5;
@@ -197,20 +211,20 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.scale = Math.max(0.25, Math.min(result.scale, 3));
 
-	result.emoteScale = Number(settings.emoteScale ?? 1);
+	result.emoteScale = readNumericSetting(settings, "emoteScale", 1);
 
 	if (!Number.isFinite(result.emoteScale)) {
 		result.emoteScale = 1;
 	}
 
 	result.emoteScale = Math.max(0.25, Math.min(result.emoteScale, 3));
-	result.emoteSpacing = Number(settings.emoteSpacing ?? 3);
+	result.emoteSpacing = readNumericSetting(settings, "emoteSpacing", 3);
 	if (!Number.isFinite(result.emoteSpacing)) result.emoteSpacing = 3;
 	result.emoteSpacing = Math.max(0, Math.min(result.emoteSpacing, 20));
 
 	result.bigEmotes = settings.bigEmotes !== false;
 
-	result.bigEmoteScale = Number(settings.bigEmoteScale ?? 1.2);
+	result.bigEmoteScale = readNumericSetting(settings, "bigEmoteScale", 1.2);
 
 	if (!Number.isFinite(result.bigEmoteScale)) {
 		result.bigEmoteScale = 1.2;
@@ -218,15 +232,15 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.bigEmoteScale = Math.max(1, Math.min(result.bigEmoteScale, 3));
 
-	result.badgeScale = Number(settings.badgeScale ?? 1);
+	result.badgeScale = readNumericSetting(settings, "badgeScale", 1);
 	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1;
 	result.badgeScale = Math.max(0.25, Math.min(result.badgeScale, 2));
 
-	result.badgeSpacing = Number(settings.badgeSpacing ?? 3);
+	result.badgeSpacing = readNumericSetting(settings, "badgeSpacing", 3);
 	if (!Number.isFinite(result.badgeSpacing)) result.badgeSpacing = 3;
 	result.badgeSpacing = Math.max(0, Math.min(result.badgeSpacing, 30));
-	result.badgeNameSpacing = Math.max(0, Math.min(Number(settings.badgeNameSpacing ?? 3) || 0, 30));
-	result.authorMessageSpacing = Math.max(0, Math.min(Number(settings.authorMessageSpacing ?? 3) || 0, 30));
+	result.badgeNameSpacing = Math.max(0, Math.min(readNumericSetting(settings, "badgeNameSpacing", 3) || 0, 30));
+	result.authorMessageSpacing = Math.max(0, Math.min(readNumericSetting(settings, "authorMessageSpacing", 3) || 0, 30));
 
 	result.wrap = settings.wrap === true;
 
@@ -244,11 +258,11 @@ function normaliseOverlaySettings(settings = {}) {
 	result.usernameFontName = sanitizeFontName(settings.usernameFontName);
 	result.messageFontName = sanitizeFontName(settings.messageFontName);
 
-	result.usernameSize = Number(settings.usernameSize ?? 50);
+	result.usernameSize = readNumericSetting(settings, "usernameSize", 50);
 	if (!Number.isFinite(result.usernameSize)) result.usernameSize = 50;
 	result.usernameSize = Math.max(8, Math.min(result.usernameSize, 100));
 
-	result.messageSize = Number(settings.messageSize ?? 50);
+	result.messageSize = readNumericSetting(settings, "messageSize", 50);
 	if (!Number.isFinite(result.messageSize)) result.messageSize = 50;
 	result.messageSize = Math.max(8, Math.min(result.messageSize, 100));
 	result.separateTypography =
@@ -261,7 +275,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.shadow = settings.shadow !== false;
 
-	result.shadowIntensity = Number(settings.shadowIntensity ?? 0.9);
+	result.shadowIntensity = readNumericSetting(settings, "shadowIntensity", 0.9);
 
 	if (!Number.isFinite(result.shadowIntensity)) {
 		result.shadowIntensity = 0.9;
@@ -269,7 +283,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.shadowIntensity = Math.max(0, Math.min(result.shadowIntensity, 1));
 
-	result.shadowSize = Number(settings.shadowSize ?? 6);
+	result.shadowSize = readNumericSetting(settings, "shadowSize", 6);
 
 	if (!Number.isFinite(result.shadowSize)) {
 		result.shadowSize = 6;
@@ -277,7 +291,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.shadowSize = Math.max(0, Math.min(result.shadowSize, 40));
 
-	result.shadowOffset = Number(settings.shadowOffset ?? 3);
+	result.shadowOffset = readNumericSetting(settings, "shadowOffset", 3);
 
 	if (!Number.isFinite(result.shadowOffset)) {
 		result.shadowOffset = 3;
@@ -294,7 +308,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.customFont = sanitizeFontName(settings.customFont);
 
-	result.gifScale = Number(settings.gifScale ?? 1);
+	result.gifScale = readNumericSetting(settings, "gifScale", 1);
 
 	if (!Number.isFinite(result.gifScale)) {
 		result.gifScale = 1;
@@ -302,7 +316,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.gifScale = Math.max(0.25, Math.min(result.gifScale, 3));
 
-	result.strokeWidth = Number(settings.strokeWidth ?? 0);
+	result.strokeWidth = readNumericSetting(settings, "strokeWidth", 0);
 
 	if (!Number.isFinite(result.strokeWidth)) {
 		result.strokeWidth = 0;
@@ -880,16 +894,13 @@ let messageCardColor = (() => {
 	return /^[0-9a-fA-F]{6}$/.test(value) ? `#${value}` : "#141414";
 })();
 
-let messageCardOpacity = Number(params.get("messageCardOpacity") ?? 0.72);
-if (!Number.isFinite(messageCardOpacity)) messageCardOpacity = 0.72;
+let messageCardOpacity = readNumericParam("messageCardOpacity", 0.72);
 messageCardOpacity = Math.max(0, Math.min(messageCardOpacity, 1));
 
-let messageCardRadius = Number(params.get("messageCardRadius") ?? 10);
-if (!Number.isFinite(messageCardRadius)) messageCardRadius = 10;
+let messageCardRadius = readNumericParam("messageCardRadius", 10);
 messageCardRadius = Math.max(0, Math.min(messageCardRadius, 32));
 
-let messageCardBorderWidth = Number(params.get("messageCardBorderWidth") ?? 0);
-if (!Number.isFinite(messageCardBorderWidth)) messageCardBorderWidth = 0;
+let messageCardBorderWidth = readNumericParam("messageCardBorderWidth", 0);
 messageCardBorderWidth = Math.max(0, Math.min(messageCardBorderWidth, 8));
 
 let messageCardBorderColor = (() => {
@@ -905,12 +916,10 @@ if (!["solid", "dashed", "dotted"].includes(messageCardBorderStyle)) {
 	messageCardBorderStyle = "solid";
 }
 
-let messageCardPadding = Number(params.get("messageCardPadding") ?? 0);
-if (!Number.isFinite(messageCardPadding)) messageCardPadding = 0;
+let messageCardPadding = readNumericParam("messageCardPadding", 0);
 messageCardPadding = Math.max(0, Math.min(messageCardPadding, 24));
 
-let messageSpacing = Number(params.get("messageSpacing") ?? 3);
-if (!Number.isFinite(messageSpacing)) messageSpacing = 3;
+let messageSpacing = readNumericParam("messageSpacing", 3);
 messageSpacing = Math.max(0, Math.min(messageSpacing, 32));
 
 function applyMessageCardSettings() {
@@ -996,35 +1005,22 @@ let platformIndicatorEnabled = parseQueryBoolean("platformIndicator", true);
 
 let colonMatchUsernameEnabled = parseQueryBoolean("colonMatchUsername", true);
 
-let scale = Number(params.get("scale") ?? 0.5);
-
-if (!Number.isFinite(scale)) {
-	scale = 0.5;
-}
+let scale = readNumericParam("scale", 0.5);
 
 scale = Math.max(0.25, Math.min(scale, 3));
 
-let emoteScale = Number(params.get("emoteScale") ?? 1);
-
-if (!Number.isFinite(emoteScale)) {
-	emoteScale = 1;
-}
+let emoteScale = readNumericParam("emoteScale", 1);
 
 emoteScale = Math.max(0.25, Math.min(emoteScale, 3));
 
-let emoteSpacing = Number(params.get("emoteSpacing") ?? 3);
-if (!Number.isFinite(emoteSpacing)) emoteSpacing = 3;
+let emoteSpacing = readNumericParam("emoteSpacing", 3);
 emoteSpacing = Math.max(0, Math.min(emoteSpacing, 20));
 document.documentElement.style.setProperty("--emote-spacing", `${emoteSpacing}px`);
 let emoteOverlapEnabled = false;
 
 let bigEmotesEnabled = parseQueryBoolean("bigEmotes", true);
 
-let bigEmoteScale = Number(params.get("bigEmoteScale") ?? 1.2);
-
-if (!Number.isFinite(bigEmoteScale)) {
-	bigEmoteScale = 1.2;
-}
+let bigEmoteScale = readNumericParam("bigEmoteScale", 1.2);
 
 bigEmoteScale = Math.max(1, Math.min(bigEmoteScale, 3));
 
@@ -1046,38 +1042,25 @@ if (badgeScale > 2) badgeScale /= 100;
 badgeScale = Math.max(0.25, Math.min(badgeScale, 2));
 document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
 
-let badgeSpacing = Number(params.get("badgeSpacing") ?? 3);
-if (!Number.isFinite(badgeSpacing)) badgeSpacing = 3;
+let badgeSpacing = readNumericParam("badgeSpacing", 3);
 badgeSpacing = Math.max(0, Math.min(badgeSpacing, 30));
 document.documentElement.style.setProperty("--badge-spacing", `${badgeSpacing}px`);
-let badgeNameSpacing = Math.max(0, Math.min(Number(params.get("badgeNameSpacing") ?? 3) || 0, 30));
-let authorMessageSpacing = Math.max(0, Math.min(Number(params.get("authorMessageSpacing") ?? 3) || 0, 30));
+let badgeNameSpacing = Math.max(0, Math.min(readNumericParam("badgeNameSpacing", 3), 30));
+let authorMessageSpacing = Math.max(0, Math.min(readNumericParam("authorMessageSpacing", 3), 30));
 document.documentElement.style.setProperty("--badge-name-spacing", `${badgeNameSpacing}px`);
 document.documentElement.style.setProperty("--author-message-spacing", `${authorMessageSpacing}px`);
 
 let shadowEnabled = parseQueryBoolean("shadow", true);
 
-let shadowIntensity = Number(params.get("shadowIntensity") ?? 0.9);
-
-if (!Number.isFinite(shadowIntensity)) {
-	shadowIntensity = 0.9;
-}
+let shadowIntensity = readNumericParam("shadowIntensity", 0.9);
 
 shadowIntensity = Math.max(0, Math.min(shadowIntensity, 1));
 
-let shadowSize = Number(params.get("shadowSize") ?? 6);
-
-if (!Number.isFinite(shadowSize)) {
-	shadowSize = 6;
-}
+let shadowSize = readNumericParam("shadowSize", 6);
 
 shadowSize = Math.max(0, Math.min(shadowSize, 40));
 
-let shadowOffset = Number(params.get("shadowOffset") ?? 3);
-
-if (!Number.isFinite(shadowOffset)) {
-	shadowOffset = 3;
-}
+let shadowOffset = readNumericParam("shadowOffset", 3);
 
 shadowOffset = Math.max(0, Math.min(shadowOffset, 20));
 
@@ -1290,12 +1273,10 @@ let messageFontMode = cleanFontMode(params.get("messageFont"));
 let usernameFontName = sanitizeFontName(params.get("usernameFontName"));
 let messageFontName = sanitizeFontName(params.get("messageFontName"));
 
-let usernameFontSize = Number(params.get("usernameSize") ?? 50);
-if (!Number.isFinite(usernameFontSize)) usernameFontSize = 50;
+let usernameFontSize = readNumericParam("usernameSize", 50);
 usernameFontSize = Math.max(8, Math.min(usernameFontSize, 100));
 
-let messageFontSize = Number(params.get("messageSize") ?? 50);
-if (!Number.isFinite(messageFontSize)) messageFontSize = 50;
+let messageFontSize = readNumericParam("messageSize", 50);
 messageFontSize = Math.max(8, Math.min(messageFontSize, 100));
 
 let roleTypographyEnabled = parseQueryBoolean(
@@ -1378,19 +1359,11 @@ let uppercaseEnabled = parseQueryBoolean("uppercase", false);
 let centerBadgesEnabled = parseQueryBoolean("centerBadges", true);
 
 
-let gifScale = Number(params.get("gifScale") ?? 1);
-
-if (!Number.isFinite(gifScale)) {
-	gifScale = 1;
-}
+let gifScale = readNumericParam("gifScale", 1);
 
 gifScale = Math.max(0.25, Math.min(gifScale, 3));
 
-let strokeWidth = Number(params.get("strokeWidth") ?? 0);
-
-if (!Number.isFinite(strokeWidth)) {
-	strokeWidth = 0;
-}
+let strokeWidth = readNumericParam("strokeWidth", 0);
 
 strokeWidth = Math.max(0, Math.min(strokeWidth, 20));
 
