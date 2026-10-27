@@ -390,16 +390,36 @@ function captureChatPositions(chat) {
 	]);
 }
 
+const SMOOTH_PUSH_MS = 220;
+
+const SMOOTH_ENTRY_KEYFRAMES = [
+	{ opacity: 0, transform: "translateY(8px) scale(0.98)" },
+	{ opacity: 1, transform: "translateY(0) scale(1)" },
+];
+const SMOOTH_ENTRY_OPTIONS = { duration: 300, easing: "ease-out" };
+
 function animateChatPush(previous) {
+	const animations = [];
+
 	for (const [message, oldTop] of previous) {
 		if (!message.isConnected) continue;
 		const shift = oldTop - message.getBoundingClientRect().top;
 		if (Math.abs(shift) < 1) continue;
-		message.animate(
-			[{ translate: `0 ${shift}px` }, { translate: "0 0" }],
-			{ duration: 140, easing: "linear" },
+		animations.push(
+			message.animate(
+				[{ translate: `0 ${shift}px` }, { translate: "0 0" }],
+				{ duration: SMOOTH_PUSH_MS, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+			),
 		);
 	}
+
+	return animations;
+}
+
+function revealSmoothMessage(message) {
+	message.style.visibility = "";
+	if (!message.isConnected) return;
+	message.animate(SMOOTH_ENTRY_KEYFRAMES, SMOOTH_ENTRY_OPTIONS);
 }
 
 function trimChatToLimit(chat) {
@@ -426,10 +446,26 @@ function insertChatMessage(chat, message) {
 }
 
 function placeInChat(chat, element) {
+	const smooth = entryAnimation === "smooth-scroll";
 	const previous = captureChatPositions(chat);
+
+	if (smooth) element.style.visibility = "hidden";
+
 	insertChatMessage(chat, element);
 	trimChatToLimit(chat);
-	animateChatPush(previous);
+
+	const pushes = animateChatPush(previous);
+
+	if (!smooth) return;
+
+	if (pushes.length === 0) {
+		revealSmoothMessage(element);
+		return;
+	}
+
+	Promise.all(pushes.map((animation) => animation.finished.catch(() => {}))).then(
+		() => revealSmoothMessage(element),
+	);
 }
 
 function enqueueChatMessage(chat, message) {
