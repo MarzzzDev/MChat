@@ -62,11 +62,12 @@ function createReplyHeader(replyInfo, tags, platform) {
 		.trim();
 
 	if (parentBody) {
-		const body = renderMessageText(
-			parentBody,
-			{ platform },
-			replyInfo.username,
-		);
+		const parentId = tags["reply-parent-msg-id"];
+		const parentMessage = parentId ? messageElements.get(String(parentId)) : null;
+		const renderedParentBody = parentMessage?.querySelector(":scope > .text");
+		const body = renderedParentBody
+			? renderedParentBody.cloneNode(true)
+			: renderMessageText(parentBody, { platform }, replyInfo.username);
 
 		body.className = "reply-body";
 		header.appendChild(body);
