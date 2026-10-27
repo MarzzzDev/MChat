@@ -62,12 +62,7 @@ function createReplyHeader(replyInfo, tags, platform) {
 		.trim();
 
 	if (parentBody) {
-		const parentId = tags["reply-parent-msg-id"];
-		const parentMessage = parentId ? messageElements.get(String(parentId)) : null;
-		const renderedParentBody = parentMessage?.querySelector(":scope > .text");
-		const body = renderedParentBody
-			? renderedParentBody.cloneNode(true)
-			: renderMessageText(parentBody, { platform }, replyInfo.username);
+		const body = renderMessageText(parentBody, { platform }, replyInfo.username);
 
 		body.className = "reply-body";
 		header.appendChild(body);
@@ -88,7 +83,7 @@ function getReplyInfo(tags, msg) {
 				.replace(/\x01$/, "");
 		}
 
-		return { username: null, message: cleanMessage };
+		return { username: null, message: cleanMessage, prefixLength: 0 };
 	}
 
 	let cleanMessage = msg.trim();
@@ -98,9 +93,60 @@ function getReplyInfo(tags, msg) {
 		"i",
 	);
 
+	const prefixMatch = cleanMessage.match(replyPrefix);
 	cleanMessage = cleanMessage.replace(replyPrefix, "").replace(/\x01$/, "");
 
-	return { username: replyUsername, message: cleanMessage };
+	return {
+		username: replyUsername,
+		message: cleanMessage,
+		prefixLength: prefixMatch?.[0].length || 0,
+	};
+}
+
+function offsetReplyMediaRanges(tags, offset) {
+	if (!offset) return tags;
+
+	const adjusted = Object.assign({}, tags);
+	if (adjusted.emotes) {
+		adjusted.emotes = adjusted.emotes
+			.split("/")
+			.map((group) => {
+				const separator = group.indexOf(":");
+				if (separator === -1) return group;
+				const id = group.slice(0, separator);
+				const ranges = group
+					.slice(separator + 1)
+					.split(",")
+					.flatMap((range) => {
+						const dash = range.indexOf("-");
+						if (dash === -1) return [];
+						const start = Number(range.slice(0, dash)) - offset;
+						const end = Number(range.slice(dash + 1)) - offset;
+						return start >= 0 && end >= start ? [`${start}-${end}`] : [];
+					});
+				return ranges.length ? `${id}:${ranges.join(",")}` : "";
+			})
+			.filter(Boolean)
+			.join("/");
+	}
+	if (adjusted.gifs) {
+		adjusted.gifs = String(adjusted.gifs)
+			.split(",")
+			.map((entry) => {
+				const separator = entry.indexOf("|");
+				const range = entry.slice(0, separator);
+				const dash = range.indexOf("-");
+				if (separator === -1 || dash === -1) return "";
+				const start = Number(range.slice(0, dash)) - offset;
+				const end = Number(range.slice(dash + 1)) - offset;
+				return start >= 0 && end >= start
+					? `${start}-${end}${entry.slice(separator)}`
+					: "";
+			})
+			.filter(Boolean)
+			.join(",");
+	}
+	return adjusted;
 }
 
 function getTwitchDisplayColor(color, login) {
@@ -761,7 +807,11 @@ async function onMsg(
 		usernameElement.textContent = user + "\u00A0";
 	}
 
-	const text = renderMessageText(replyInfo.message, tags, user);
+	const text = renderMessageText(
+		replyInfo.message,
+		offsetReplyMediaRanges(tags, replyInfo.prefixLength),
+		user,
+	);
 
 	if (bigEmotesEnabled && isEmoteOnlyMessage(text)) {
 		message.classList.add("big-emote-message");
