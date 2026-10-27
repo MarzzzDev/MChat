@@ -538,6 +538,13 @@ body.center-badges .message-badges {
     );
 }
 
+body:not(.center-badges) .badges,
+body:not(.center-badges) .message-badges {
+    align-items: center;
+    vertical-align: text-bottom !important;
+    transform: translateY(-0.11em);
+}
+
 .message[data-platform="tiktok"] .message-badges {
     vertical-align: middle !important;
     align-items: center;

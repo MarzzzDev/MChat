@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#e6d58f">
+
+    <link rel="icon" href="favicon.png" type="image/png">
+
+    <title>MChat - Free Multistream Chat Overlay</title>
+
+    <meta name="robots" content="index, follow">
+    <meta name="description" content="MChat is a free multistream chat overlay for Twitch, Kick, YouTube and TikTok LIVE, with customizable settings and support for 7TV, BTTV and FFZ. Works with OBS, Streamlabs and XSplit.">
+    <meta name="author" content="marz_dev">
+
+    <link rel="canonical" href="https://mchat.marz.lol/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="MChat">
+    <meta property="og:title" content="MChat">
+    <meta property="og:description" content="Chat overlay for Twitch, Kick, YouTube and TikTok LIVE with support for 7TV, BTTV and FFZ.">
+    <meta property="og:url" content="https://mchat.marz.lol/">
+    <meta property="og:image" content="https://mchat.marz.lol/preview.png">
+    <meta property="og:image:alt" content="MChat chat overlay preview">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MChat">
+    <meta name="twitter:description" content="Chat overlay for Twitch, Kick, YouTube and TikTok LIVE with 7TV, BTTV and FFZ support.">
+    <meta name="twitter:image" content="https://mchat.marz.lol/preview.png">
+
+    <script type="application/json" id="discord:component-embed">
+    {
+        "component": {
+            "type": 17,
+            "accent_color": 15127951,
+            "components": [
+                {
+                    "type": 10,
+                    "content": "# MChat\nChat overlay for Twitch, Kick & YouTube with support for 7TV, BTTV and FFZ."
+                },
+                {
+                    "type": 12,
+                    "items": [
+                        {
+                            "media": {
+                                "url": "https://mchat.marz.lol/preview.png"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": 14
+                },
+                {
+                    "type": 1,
+                    "components": [
+                        {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Try MChat",
+                            "url": "https://mchat.marz.lol/"
+                        },
+                        {
+                            "type": 2,
+                            "style": 5,
+                            "label": "View on GitHub",
+                            "url": "https://github.com/MarzzzDev/MChat"
+                        }
+                    ]
+                },
+                {
+                    "type": 10,
+                    "content": "-# mchat.marz.lol · Modern & Customizable"
+                }
+            ]
+        }
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "MChat",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any",
+        "description": "Free multistream chat overlay for Twitch and YouTube with Kick, 7TV, FFZ and BTTV support.",
+        "url": "https://mchat.marz.lol/",
+        "image": "https://mchat.marz.lol/preview.png",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        }
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="setup.css">
+</head>
+
+<body>
+    <noscript>
+        <h1>MChat - Free Multistream Chat Overlay</h1>
+        <p>
+            MChat is a free, customizable chat overlay for OBS, Streamlabs and XSplit.
+            It combines Twitch, Kick, YouTube and TikTok LIVE chat with 7TV, FFZ and BTTV emotes,
+            effects and badges.
+        </p>
+        <p>Enable JavaScript to use the MChat setup screen.</p>
+    </noscript>
+
+    <div id="chat"></div>
+    <script defer src="./js/fetch-cache.js"></script>
+    <script defer src="./js/updater.js"></script>
+    <script defer src="./js/combos.js"></script>
+
+    <script defer src="./js/state.js"></script>
+    <script defer src="./js/settings.js"></script>
+    <script defer src="./js/platforms.js"></script>
+    <script defer src="./js/youtube.js"></script>
+    <script defer src="./js/tiktok.js"></script>
+    <script defer src="./js/kick.js"></script>
+    <script defer src="./js/seventv.js"></script>
+    <script defer src="./js/twitch-data.js"></script>
+
+    <script defer src="./js/build-info.js"></script>
+    <script defer src="./js/setup-preview.js"></script>
+    <script defer src="./js/setup-links.js"></script>
+    <script defer src="./js/setup.js"></script>
+
+    <script defer src="./js/emotes.js"></script>
+    <script defer src="./js/badge-data.js"></script>
+    <script defer src="./js/badge-display.js"></script>
+    <script defer src="./js/third-party-badges.js"></script>
+    <script defer src="./js/emote-display.js"></script>
+    <script defer src="./js/message-display.js"></script>
+    <script defer src="./js/rendering.js"></script>
+    <script defer src="./js/irc.js"></script>
+    <script defer src="./js/styles.js"></script>
+    <script defer src="./js/highlights.js"></script>
+    <script defer src="./js/main.js"></script>
+<script>window.addEventListener("load",()=>{const chat=document.getElementById("chat");chat.style.display="block";chat.style.position="fixed";chat.style.inset="0";chat.style.background="#222";const row=document.createElement("div");row.className="message";const author=document.createElement("span");author.className="message-author";const badges=document.createElement("span");badges.className="badges message-badges";const img=document.createElement("img");img.className="badge";img.src="logos/twitch.png";badges.appendChild(img);const name=document.createElement("span");name.className="username";name.textContent="Username:";name.style.color="white";author.append(badges,name);const text=document.createElement("span");text.className="text";text.textContent=" sample text";row.append(author,text);chat.append(row);});</script></body>
+</html>
