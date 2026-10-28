@@ -22,7 +22,7 @@ const previewMessages = [
 	],
 	[
 		"XDR412",
-		"Maybe",
+		"really",
 		"#DAA520",
 		"195845559",
 		{ badges: "moderator/1,subscriber/1,pikachu/1" },
