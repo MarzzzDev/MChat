@@ -57,7 +57,7 @@ window.applyStrokeMode = applyStrokeMode;
 
 const MIN_NAME_BRIGHTNESS = 100;
 
-export const TWITCH_DEFAULT_COLORS = [
+const TWITCH_DEFAULT_COLORS = [
 	"#FF0000",
 	"#7c5cfb",
 	"#008000",

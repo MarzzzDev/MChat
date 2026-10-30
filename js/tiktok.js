@@ -139,6 +139,24 @@ function tikTokRender(user, text, event, tags = {}) {
 	Promise.resolve(onMsg(name, text, tiktokUsers[id], uid || id, normalized, null, eventId || null)).catch((error) => console.error("TikTok message rendering error:", error));
 }
 
+const TWITCH_DEFAULT_COLORS = [
+	"#FF0000",
+	"#7c5cfb",
+	"#008000",
+	"#B22222",
+	"#FF7F50",
+	"#9ACD32",
+	"#FF4500",
+	"#2E8B57",
+	"#DAA520",
+	"#D2691E",
+	"#5F9EA0",
+	"#1E90FF",
+	"#FF69B4",
+	"#8A2BE2",
+	"#	",
+];
+
 function tikTokHandleEvent(message) {
 	const event = message.event || {};
 	const user = event.user || {};
