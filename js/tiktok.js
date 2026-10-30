@@ -3,6 +3,7 @@ let tikTokPollController = null;
 let tikTokStopped = false;
 let tikTokConnectionWarningShown = false;
 const tikTokSeen = new Set();
+const tiktokUsers = {};
 
 function tikTokUserName(user) {
 	if (typeof user === "string") return user;
@@ -135,16 +136,25 @@ function tikTokRender(user, text, event, tags = {}) {
 		...tags,
 	};
 	if (!normalized.segments) normalized.segments = tikTokMessageSegments(text, event);
-	Promise.resolve(onMsg(name, text, "#ffffff", uid || id, normalized, null, eventId || null)).catch((error) => console.error("TikTok message rendering error:", error));
+	Promise.resolve(onMsg(name, text, tiktokUsers[id], uid || id, normalized, null, eventId || null)).catch((error) => console.error("TikTok message rendering error:", error));
 }
 
 function tikTokHandleEvent(message) {
 	const event = message.event || {};
 	const user = event.user || {};
 	switch (event.type) {
-		case "chat":
+		case "chat": {
+			const userId = tikTokUserId(user);
+
+			if (!Object.hasOwn(tiktokUsers, userId)) {
+				tiktokUsers[userId] = TWITCH_DEFAULT_COLORS[
+					Math.floor(Math.random() * TWITCH_DEFAULT_COLORS.length)
+				];
+			}
+
 			tikTokRender(user, event.comment || event.text || "", event);
 			break;
+		}
 		case "gift":
 			if (event.streaking) break;
 			tikTokRender(user, `sent ${event.giftName || "a gift"}${Number(event.repeatCount) > 1 ? ` ×${event.repeatCount}` : ""}`, event, { "is-action": true });
