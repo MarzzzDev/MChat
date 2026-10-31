@@ -49,11 +49,6 @@ function decodeLegacySerializedSettings(encoded) {
 
 		return JSON.parse(json) || {};
 	} catch (error) {
-		console.warn(
-			"Legacy serialized overlay settings could not be decoded:",
-			error,
-		);
-
 		return null;
 	}
 }
@@ -230,8 +225,8 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.bigEmoteScale = Math.max(1, Math.min(result.bigEmoteScale, 3));
 
-	result.badgeScale = readNumericSetting(settings, "badgeScale", 1);
-	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1;
+	result.badgeScale = readNumericSetting(settings, "badgeScale", 1.1);
+	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1.1;
 	result.badgeScale = Math.max(0.25, Math.min(result.badgeScale, 2));
 
 	result.badgeSpacing = readNumericSetting(settings, "badgeSpacing", 3);
@@ -300,7 +295,6 @@ function normaliseOverlaySettings(settings = {}) {
 	result.bold = settings.bold !== false;
 
 	result.uppercase = settings.uppercase === true;
-
 
 	result.centerBadges = settings.centerBadges !== false;
 
@@ -497,7 +491,7 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["bigEmoteScale", String(normalised.bigEmoteScale)]);
 	}
 
-	if (normalised.badgeScale !== 1) {
+	if (normalised.badgeScale !== 1.1) {
 		query.push(["badgeScale", String(normalised.badgeScale)]);
 	}
 
@@ -632,7 +626,6 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 	if (normalised.messageSpacing !== 3) {
 		query.push(["messageSpacing", String(normalised.messageSpacing)]);
 	}
-
 
 	if (normalised.fade !== 15) {
 		query.push([
@@ -821,10 +814,6 @@ function migrateLegacySerializedLink() {
 	url.search = "";
 
 	appendFlatOverlaySettings(url, channel, legacySettings);
-
-	console.warn(
-		"This overlay link used the old serialized settings format. Redirecting it to the new readable query-parameter format.",
-	);
 
 	window.location.replace(url.toString());
 
@@ -1031,9 +1020,9 @@ applyBigEmoteSettings();
 
 const badgeScaleParam = params.get("badgeScale");
 let badgeScale = badgeScaleParam === null || badgeScaleParam === ""
-	? 1
+	? 1.1
 	: Number(badgeScaleParam);
-if (!Number.isFinite(badgeScale)) badgeScale = 1;
+if (!Number.isFinite(badgeScale)) badgeScale = 1.1;
 if (badgeScale > 2) badgeScale /= 100;
 badgeScale = Math.max(0.25, Math.min(badgeScale, 2));
 document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
@@ -1353,7 +1342,6 @@ let boldEnabled = parseQueryBoolean("bold", true);
 let uppercaseEnabled = parseQueryBoolean("uppercase", false);
 
 let centerBadgesEnabled = parseQueryBoolean("centerBadges", true);
-
 
 let gifScale = readNumericParam("gifScale", 1);
 
