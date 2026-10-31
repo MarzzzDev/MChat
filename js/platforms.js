@@ -1,13 +1,101 @@
 const PLATFORM_PROXY_URL = "https://dark-sky-7185.marseceva.workers.dev/";
 
-function getPlatformProxy() {
-	const value = String(params.get("proxy") || PLATFORM_PROXY_URL || "").trim();
+const TRUSTED_PROXY_ORIGINS = new Set([new URL(PLATFORM_PROXY_URL).origin]);
 
-	return value.replace(/\/+$/, "");
+const PROXY_STRIPPED_HEADERS = new Set([
+	"cookie",
+	"cookie2",
+	"set-cookie",
+	"authorization",
+	"proxy-authorization",
+	"x-csrf-token",
+	"x-xsrf-token",
+]);
+const PROXY_SENSITIVE_HEADER_PATTERN = /auth|token|secret|session|cookie|api-?key/i;
+
+function validatePlatformProxyUrl(value) {
+	const raw = String(value ?? "").trim();
+
+	if (!raw || raw.length > 512) {
+		return null;
+	}
+
+	let url;
+
+	try {
+		url = new URL(raw);
+	} catch {
+		return null;
+	}
+
+	if (url.protocol !== "https:" || url.username || url.password) {
+		return null;
+	}
+
+	if (url.search || url.hash || !TRUSTED_PROXY_ORIGINS.has(url.origin)) {
+		return null;
+	}
+
+	return url.origin + url.pathname.replace(/\/+$/, "");
+}
+
+function getPlatformProxy() {
+	const override = params.get("proxy");
+
+	if (override) {
+		const validated = validatePlatformProxyUrl(override);
+
+		if (validated) {
+			return validated;
+		}
+
+		console.warn("[proxy] Ignoring ?proxy= override: not a trusted HTTPS origin.");
+	}
+
+	return validatePlatformProxyUrl(PLATFORM_PROXY_URL) || "";
+}
+
+function sanitizeProxyHeaders(headers) {
+	const clean = new Headers();
+
+	try {
+		new Headers(headers || undefined).forEach((value, name) => {
+			const lower = name.toLowerCase();
+
+			if (
+				PROXY_STRIPPED_HEADERS.has(lower) ||
+				PROXY_SENSITIVE_HEADER_PATTERN.test(lower)
+			) {
+				return;
+			}
+
+			clean.set(name, value);
+		});
+	} catch {}
+
+	return clean;
 }
 
 function proxiedUrl(target) {
-	return `${getPlatformProxy()}/?u=${encodeURIComponent(target)}`;
+	const proxy = getPlatformProxy();
+
+	if (!proxy) {
+		throw new Error("No trusted platform proxy is configured.");
+	}
+
+	let url;
+
+	try {
+		url = new URL(String(target));
+	} catch {
+		throw new Error("Invalid proxy target URL.");
+	}
+
+	if (url.protocol !== "https:" || url.username || url.password) {
+		throw new Error("Proxy target must be an https URL without credentials.");
+	}
+
+	return `${proxy}/?u=${encodeURIComponent(url.href)}`;
 }
 
 async function platformFetch(url, init = {}) {
@@ -15,7 +103,66 @@ async function platformFetch(url, init = {}) {
 		return fetch(url, init);
 	}
 
-	return fetch(proxiedUrl(url), init);
+	return fetch(
+		proxiedUrl(url),
+		Object.assign({}, init, {
+			headers: sanitizeProxyHeaders(init.headers),
+			credentials: "omit",
+			referrerPolicy: "no-referrer",
+		}),
+	);
+}
+
+function createBoundedQueue({ maxSize, batchSize, intervalMs, handler }) {
+	const items = [];
+	let timer = null;
+	let dropped = 0;
+
+	function drain() {
+		timer = null;
+
+		const count = Math.min(batchSize, items.length);
+
+		for (let i = 0; i < count; i++) {
+			const item = items.shift();
+
+			try {
+				handler(item);
+			} catch (error) {
+				console.error("[queue] handler error:", error);
+			}
+		}
+
+		if (items.length) {
+			timer = setTimeout(drain, intervalMs);
+		}
+	}
+
+	return {
+		push(item) {
+			if (items.length >= maxSize) {
+				items.shift();
+				dropped += 1;
+			}
+
+			items.push(item);
+
+			if (timer === null) {
+				timer = setTimeout(drain, 0);
+			}
+		},
+		clear() {
+			items.length = 0;
+			clearTimeout(timer);
+			timer = null;
+		},
+		get size() {
+			return items.length;
+		},
+		get dropped() {
+			return dropped;
+		},
+	};
 }
 
 const MOD_COMMANDS = new Map([["-refresh", () => hardRefreshOverlay()]]);
@@ -871,10 +1018,10 @@ function clearPlatformMessages(platform) {
 		return;
 	}
 
-	for (const element of chat.querySelectorAll(
-		`.message[data-platform="${platform}"]`,
-	)) {
-		removePlatformElement(element);
+	for (const element of Array.from(chat.querySelectorAll(".message"))) {
+		if (element.dataset.platform === platform) {
+			removePlatformElement(element);
+		}
 	}
 }
 
@@ -902,7 +1049,10 @@ function createPlatformBadges(tags) {
 
 	container.className = "badges platform-badges";
 	if (tags.platform === "tiktok" && pfpsEnabled && tags["profile-picture"]) {
-		const pfp = createBadge(tags["profile-picture"], `${tags["display-name"] || "TikTok user"} profile picture`);
+		const pfpUrl = safeMediaUrl(tags["profile-picture"]);
+		const pfp = pfpUrl
+			? createBadge(pfpUrl, `${String(tags["display-name"] || "TikTok user").slice(0, 100)} profile picture`)
+			: null;
 		if (pfp) {
 			pfp.classList.add("tiktok-pfp-badge");
 			pfp.style.objectFit = "cover";
@@ -911,11 +1061,18 @@ function createPlatformBadges(tags) {
 		}
 	}
 
-	for (const badge of tags["platform-badges"] || []) {
-		const img = createBadge(badge.url, badge.title);
+	const platformBadges = Array.isArray(tags["platform-badges"])
+		? tags["platform-badges"].filter(Boolean).slice(0, 20)
+		: [];
+
+	for (const badge of platformBadges) {
+		const badgeUrl = safeMediaUrl(badge.url);
+		const img = badgeUrl
+			? createBadge(badgeUrl, String(badge.title || "").slice(0, 100))
+			: null;
 
 		if (img) {
-			img.alt = badge.title || "";
+			img.alt = String(badge.title || "").slice(0, 100);
 			if (tags.platform === "tiktok" && badge.combined) {
 				const item = document.createElement("span");
 				item.className = "tiktok-combined-badge";
@@ -926,8 +1083,9 @@ function createPlatformBadges(tags) {
 				item.style.overflow = "hidden";
 				item.style.borderRadius = "5px";
 				const dark = badge.darkBackgroundColor || badge.backgroundColor;
-				if (dark) item.style.backgroundColor = dark;
-				const background = badge.darkBackgroundUrl || badge.backgroundUrl;
+				const darkColor = safeCssColor(dark);
+				if (darkColor) item.style.backgroundColor = darkColor;
+				const background = safeMediaUrl(badge.darkBackgroundUrl || badge.backgroundUrl);
 				if (background) {
 					const backgroundImage = document.createElement("img");
 					backgroundImage.className = "tiktok-badge-background";
@@ -945,9 +1103,9 @@ function createPlatformBadges(tags) {
 				if (badge.text) {
 					const label = document.createElement("span");
 					label.className = "tiktok-combined-badge-text";
-					label.textContent = badge.text;
-					label.style.color = badge.textColor || "#ffffff";
-					label.title = badge.title || "TikTok badge";
+					label.textContent = String(badge.text).slice(0, 50);
+					label.style.color = safeCssColor(badge.textColor) || "#ffffff";
+					label.title = String(badge.title || "TikTok badge").slice(0, 100);
 					label.style.position = "relative";
 					label.style.zIndex = "1";
 					item.appendChild(label);
@@ -958,11 +1116,13 @@ function createPlatformBadges(tags) {
 				container.appendChild(img);
 			}
 
-			if (badge.fallback) {
+			const fallbackUrl = safeMediaUrl(badge.fallback);
+
+			if (fallbackUrl) {
 				img.addEventListener(
 					"error",
 					() => {
-						img.src = badge.fallback;
+						img.src = fallbackUrl;
 					},
 					{ once: true },
 				);
@@ -980,6 +1140,72 @@ function isCommandMessage(text) {
 		.startsWith("!");
 }
 
+const MAX_PLATFORM_SEGMENTS = 300;
+const MAX_PLATFORM_TEXT_CHARS = 1000;
+const MAX_PLATFORM_NAME_CHARS = 100;
+const BLOCKED_TAG_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function sanitizePlatformSegments(segments) {
+	const clean = [];
+	let budget = MAX_PLATFORM_TEXT_CHARS;
+
+	for (const segment of Array.isArray(segments) ? segments : []) {
+		if (clean.length >= MAX_PLATFORM_SEGMENTS || budget <= 0) {
+			break;
+		}
+
+		if (!segment || typeof segment !== "object") {
+			continue;
+		}
+
+		if (segment.type === "emote") {
+			const url = safeMediaUrl(segment.url);
+			const name = String(segment.name ?? "").slice(0, 100);
+
+			if (url) {
+				clean.push(Object.assign({}, segment, { url, name }));
+				budget -= name.length;
+				continue;
+			}
+
+			if (name) {
+				clean.push({ type: "text", text: name });
+				budget -= name.length;
+			}
+
+			continue;
+		}
+
+		const text = String(segment.text ?? "").slice(0, budget);
+
+		if (text) {
+			clean.push(Object.assign({}, segment, { type: "text", text }));
+			budget -= text.length;
+		}
+	}
+
+	return clean;
+}
+
+let platformMessageQueue = null;
+
+function getPlatformMessageQueue() {
+	platformMessageQueue ??= createBoundedQueue({
+		maxSize: 500,
+		batchSize: 20,
+		intervalMs: 50,
+		handler: (job) => {
+			Promise.resolve(
+				onMsg(job.username, job.text, job.color, job.userId, job.tags, null, job.messageId),
+			).catch((error) =>
+				console.error(`${job.tags.platform} message rendering error:`, error),
+			);
+		},
+	});
+
+	return platformMessageQueue;
+}
+
 function emitPlatformMessage({
 	platform,
 	username,
@@ -990,26 +1216,53 @@ function emitPlatformMessage({
 	badges = [],
 	extraTags = {},
 }) {
-	const text = segments
+	const safePlatform = /^[a-z0-9_-]{1,20}$/.test(String(platform)) ? String(platform) : "twitch";
+	const safeSegments = sanitizePlatformSegments(segments);
+	const safeName = String(username ?? "Unknown").slice(0, MAX_PLATFORM_NAME_CHARS);
+
+	const text = safeSegments
 		.map((segment) => (segment.type === "emote" ? segment.name : segment.text))
 		.join("");
 
 	const tags = Object.assign({
-		platform,
-		segments,
+		platform: safePlatform,
+		segments: safeSegments,
 		emotes: "",
 		gifs: "",
 		badges: "",
-		"platform-badges": badges,
-		"display-name": username,
+		"platform-badges": Array.isArray(badges) ? badges.slice(0, 20) : [],
+		"display-name": safeName,
 		"user-id": userId,
 		"is-action": false,
 		"custom-reward-id": "",
-	}, extraTags);
+	});
 
-	Promise.resolve(
-		onMsg(username, text, color, userId, tags, null, messageId),
-	).catch((error) => console.error(`${platform} message rendering error:`, error));
+	for (const [key, value] of Object.entries(extraTags || {})) {
+		if (BLOCKED_TAG_KEYS.has(key)) {
+			continue;
+		}
+
+		if (key === "hl-color") {
+			const safe = safeCssColor(value);
+
+			if (safe) {
+				tags[key] = safe;
+			}
+
+			continue;
+		}
+
+		tags[key] = typeof value === "string" ? value.slice(0, 500) : value;
+	}
+
+	getPlatformMessageQueue().push({
+		username: safeName,
+		text,
+		color,
+		userId,
+		tags,
+		messageId: messageId == null ? null : String(messageId).slice(0, 128),
+	});
 }
 
 const PLATFORM_INDICATOR_LOGOS = {

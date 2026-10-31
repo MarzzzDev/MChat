@@ -1,3 +1,102 @@
+const MAX_REMOTE_URL_LENGTH = 2048;
+const MAX_DATA_URL_LENGTH = 8192;
+const SAFE_DATA_IMAGE = /^data:image\/(?:png|gif|webp|jpeg|svg\+xml)[;,]/i;
+
+function safeMediaUrl(value) {
+	if (typeof value !== "string") {
+		return null;
+	}
+
+	let candidate = value.trim();
+
+	if (!candidate) {
+		return null;
+	}
+
+	if (/^data:/i.test(candidate)) {
+		return candidate.length <= MAX_DATA_URL_LENGTH && SAFE_DATA_IMAGE.test(candidate)
+			? candidate
+			: null;
+	}
+
+	if (candidate.length > MAX_REMOTE_URL_LENGTH) {
+		return null;
+	}
+
+	if (candidate.startsWith("//")) {
+		candidate = `https:${candidate}`;
+	}
+
+	let url;
+
+	try {
+		url = new URL(candidate);
+	} catch {
+		return null;
+	}
+
+	if (url.protocol !== "https:" || url.username || url.password) {
+		return null;
+	}
+
+	return url.href;
+}
+
+function cssUrl(value) {
+	const safe = safeMediaUrl(value);
+
+	return safe ? `url("${safe.replace(/["\\\n\r]/g, encodeURIComponent)}")` : null;
+}
+
+function safeCssColor(value) {
+	if (typeof value !== "string") {
+		return null;
+	}
+
+	const color = value.trim();
+
+	if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) {
+		return color;
+	}
+
+	if (
+		/^rgba?\(\s*\d{1,3}\s*(?:,\s*\d{1,3}\s*){2}(?:,\s*(?:0|1|0?\.\d+|\d{1,3}%?)\s*)?\)$/i.test(
+			color,
+		)
+	) {
+		return color;
+	}
+
+	return null;
+}
+
+function isTrusted7TVUrl(href) {
+	try {
+		const url = new URL(href);
+
+		return (
+			url.protocol === "https:" &&
+			!url.username &&
+			!url.password &&
+			(url.hostname === "7tv.app" || url.hostname.endsWith(".7tv.app"))
+		);
+	} catch {
+		return false;
+	}
+}
+
+function setBoundedCache(map, key, value, limit) {
+	if (map.has(key)) {
+		map.delete(key);
+	}
+
+	map.set(key, value);
+
+	while (map.size > limit) {
+		map.delete(map.keys().next().value);
+	}
+}
+
 async function pickFirstLoaded(urls, probe, waveSize = 4) {
 	for (let i = 0; i < urls.length; i += waveSize) {
 		const wave = urls
@@ -42,6 +141,43 @@ function get7TVPaintLayerUrls(paint, layer) {
 	];
 }
 
+const TWEMOJI_VERSION = "14.0.2";
+const TWEMOJI_INTEGRITY =
+	"sha384-32KMvAMS4DUBcQtHG6fzADguo/tpN1Nh6BAJa2QqZc6/i0K+YPQE+bWiqBRAWuFs";
+const TWEMOJI_CDN_URL = `https://cdn.jsdelivr.net/npm/twemoji@${TWEMOJI_VERSION}/dist/twemoji.min.js`;
+
+function getTwemojiScriptSources() {
+	return [TWEMOJI_CDN_URL];
+}
+
+function injectTwemojiScript(src) {
+	return new Promise((resolve, reject) => {
+		const script = document.createElement("script");
+
+		script.src = src;
+		script.integrity = TWEMOJI_INTEGRITY;
+		script.crossOrigin = "anonymous";
+		script.referrerPolicy = "no-referrer";
+		script.async = true;
+
+		script.onload = () => {
+			if (window.twemoji) {
+				resolve(window.twemoji);
+			} else {
+				script.remove();
+				reject(new Error("Twemoji loaded but was not found."));
+			}
+		};
+
+		script.onerror = () => {
+			script.remove();
+			reject(new Error(`Failed to load Twemoji from ${src}.`));
+		};
+
+		(document.head || document.documentElement).appendChild(script);
+	});
+}
+
 function loadTwemoji() {
 	if (window.twemoji) {
 		return Promise.resolve(window.twemoji);
@@ -51,26 +187,20 @@ function loadTwemoji() {
 		return twemojiReady;
 	}
 
-	twemojiReady = new Promise((resolve, reject) => {
-		const script = document.createElement("script");
+	twemojiReady = (async () => {
+		let lastError = null;
 
-		script.src =
-			"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js";
-
-		script.onload = () => {
-			if (window.twemoji) {
-				resolve(window.twemoji);
-			} else {
-				reject(new Error("Twemoji loaded but was not found."));
+		for (const src of getTwemojiScriptSources()) {
+			try {
+				return await injectTwemojiScript(src);
+			} catch (error) {
+				lastError = error;
 			}
-		};
+		}
 
-		script.onerror = () => {
-			reject(new Error("Failed to load Twemoji."));
-		};
-
-		(document.head || document.documentElement).appendChild(script);
-	});
+		twemojiReady = null;
+		throw lastError || new Error("Failed to load Twemoji.");
+	})();
 
 	return twemojiReady;
 }
@@ -98,19 +228,19 @@ function get7TVEmoteFile(emote) {
 function get7TVHostUrl(emote) {
 	let host = emote?.data?.host?.url;
 
-	if (!host) {
+	if (typeof host !== "string" || !host) {
 		return null;
 	}
 
 	if (host.startsWith("//")) {
-		return `https:${host}`;
+		host = `https:${host}`;
+	} else if (!/^https?:\/\//i.test(host)) {
+		host = `https://${host}`;
 	}
 
-	if (!host.startsWith("http")) {
-		return `https://${host}`;
-	}
+	host = host.replace(/\/+$/, "");
 
-	return host;
+	return isTrusted7TVUrl(host) ? host : null;
 }
 
 function add7TVEmote(emote, target = sevenTVEmotes) {
@@ -122,12 +252,12 @@ function add7TVEmote(emote, target = sevenTVEmotes) {
 
 	let host = get7TVHostUrl(emote);
 
-	if ((!file || !host) && emote.id) {
-		host = `https://cdn.7tv.app/emote/${emote.id}`;
+	if ((!file || !host) && emote.id && /^[\w-]{1,64}$/.test(String(emote.id))) {
+		host = `https://cdn.7tv.app/emote/${encodeURIComponent(String(emote.id))}`;
 		file = { name: "4x.webp" };
 	}
 
-	if (!file || !host) {
+	if (!file || !host || !/^[\w.-]{1,64}$/.test(String(file.name || ""))) {
 		return;
 	}
 
@@ -250,15 +380,7 @@ async function load7TVEmotes() {
 }
 
 function normalizeImageUrl(url) {
-	if (!url) {
-		return null;
-	}
-
-	if (url.startsWith("//")) {
-		return `https:${url}`;
-	}
-
-	return url;
+	return safeMediaUrl(url);
 }
 
 function getFFZImage(emote) {
@@ -375,8 +497,8 @@ async function loadBTTVEmotes() {
 
 		const globalData = await globalResponse.json();
 
-		for (const emote of globalData || []) {
-			if (!emote.code || !emote.id) {
+		for (const emote of Array.isArray(globalData) ? globalData : []) {
+			if (!emote?.code || !/^[\w-]{1,64}$/.test(String(emote.id || ""))) {
 				continue;
 			}
 
@@ -401,7 +523,7 @@ async function loadBTTVEmotes() {
 			);
 
 			for (const emote of emotes) {
-				if (!emote.code || !emote.id) {
+				if (!emote?.code || !/^[\w-]{1,64}$/.test(String(emote.id || ""))) {
 					continue;
 				}
 
@@ -485,6 +607,11 @@ function createPaintDropShadowFilter(paint) {
 
 function loadPaintImage(url) {
 	return new Promise((resolve) => {
+		if (!safeMediaUrl(url)) {
+			resolve(null);
+			return;
+		}
+
 		const img = new Image();
 
 		img.onload = () => {
@@ -502,18 +629,30 @@ function loadPaintImage(url) {
 	});
 }
 
+const paintLayerUrlCache = new Map();
+
 async function getWorking7TVPaintLayerUrl(paint, layer) {
 	const urls = get7TVPaintLayerUrls(paint, layer);
 
-	for (const url of urls) {
-		const workingUrl = await loadPaintImage(url);
-
-		if (workingUrl) {
-			return workingUrl;
-		}
+	if (!urls.length) {
+		return null;
 	}
 
-	return null;
+	const key = `${paint.id}:${layer.id}`;
+
+	if (!paintLayerUrlCache.has(key)) {
+		const pending = pickFirstLoaded(urls, loadPaintImage, 6).then((url) => {
+			if (!url) {
+				paintLayerUrlCache.delete(key);
+			}
+
+			return url;
+		});
+
+		setBoundedCache(paintLayerUrlCache, key, pending, 500);
+	}
+
+	return paintLayerUrlCache.get(key);
 }
 
 async function applyPaint(element, paint) {
@@ -527,19 +666,7 @@ async function applyPaint(element, paint) {
 		return;
 	}
 
-	element.classList.remove("seven-tv-painted");
-
-	element.style.backgroundImage = "";
-
-	element.style.backgroundColor = "";
-
-	element.style.filter = "";
-
-	element.style.textShadow = "none";
-
-	element.style.color = "transparent";
-
-	element.style.webkitTextFillColor = "transparent";
+	const paintSeq = (element._paintSeq = (element._paintSeq || 0) + 1);
 
 	const backgrounds = [];
 
@@ -578,6 +705,10 @@ async function applyPaint(element, paint) {
 
 			let angle = Number(type.angle ?? 0);
 
+			if (!Number.isFinite(angle)) {
+				angle = 0;
+			}
+
 			background =
 				`${type.repeating ? "repeating-" : ""}` +
 				`linear-gradient(` +
@@ -602,7 +733,7 @@ async function applyPaint(element, paint) {
 				continue;
 			}
 
-			const shape = type.shape || "circle";
+			const shape = type.shape === "ellipse" ? "ellipse" : "circle";
 
 			background =
 				`${type.repeating ? "repeating-" : ""}` +
@@ -614,15 +745,17 @@ async function applyPaint(element, paint) {
 			const animatedUrl = await getWorking7TVPaintLayerUrl(paint, layer);
 
 			if (!animatedUrl) {
-				const image = type.images?.[0];
+				background = cssUrl(type.images?.[0]?.url);
 
-				if (!image?.url) {
+				if (!background) {
 					continue;
 				}
-
-				background = `url("${image.url}")`;
 			} else {
-				background = `url("${animatedUrl}")`;
+				background = cssUrl(animatedUrl);
+
+				if (!background) {
+					continue;
+				}
 			}
 		}
 
@@ -635,11 +768,21 @@ async function applyPaint(element, paint) {
 		}
 	}
 
-	if (!backgrounds.length) {
+	if (element._paintSeq !== paintSeq || !backgrounds.length) {
 		return;
 	}
 
 	const imageLayers = backgrounds.map((layer) => layer.background).reverse();
+
+	element.classList.remove("seven-tv-painted");
+
+	element.style.backgroundImage = "";
+
+	element.style.backgroundColor = "";
+
+	element.style.filter = "";
+
+	element.style.textShadow = "none";
 
 	element.classList.add("seven-tv-painted");
 
@@ -760,12 +903,17 @@ function build7TVStyleQuery(gqlPlatform) {
 	`;
 }
 
-const SEVENTV_STYLE_TTL_MS = 10 * 60 * 1000;
-const SEVENTV_STYLE_EMPTY_TTL_MS = 2 * 60 * 1000;
+const SEVENTV_STYLE_CACHE_LIMIT = 2000;
+const SEVENTV_STYLE_TTL_MS = 3 * 60 * 1000;
+const SEVENTV_STYLE_EMPTY_TTL_MS = 60 * 1000;
 
 function isSevenTVStyleFresh(entry) {
 	if (!entry) {
 		return false;
+	}
+
+	if (entry.pinned) {
+		return true;
 	}
 
 	const ttl = entry.paint || entry.badge
@@ -775,7 +923,31 @@ function isSevenTVStyleFresh(entry) {
 	return Date.now() - (entry.t || 0) < ttl;
 }
 
-function get7TVStyle(userId, platform = "twitch") {
+function getSevenTVStyleKey(userId, platform = "twitch") {
+	const id = String(userId);
+
+	return platform === "twitch" ? id : `${platform}:${id}`;
+}
+
+function isSevenTVStyleCached(userId, platform = "twitch") {
+	if (!userId || (platform !== "twitch" && platform !== "kick")) {
+		return true;
+	}
+
+	return isSevenTVStyleFresh(
+		sevenTVStyleCache.get(getSevenTVStyleKey(userId, platform)),
+	);
+}
+
+function pinSevenTVStyle(userId, platform = "twitch") {
+	const entry = sevenTVStyleCache.get(getSevenTVStyleKey(userId, platform));
+
+	if (entry) {
+		entry.pinned = true;
+	}
+}
+
+function get7TVStyle(userId, platform = "twitch", force = false) {
 	const empty = { paint: null, badge: null };
 
 	if (!userId || (platform !== "twitch" && platform !== "kick")) {
@@ -783,11 +955,11 @@ function get7TVStyle(userId, platform = "twitch") {
 	}
 
 	const id = String(userId);
-	const key = platform === "twitch" ? id : `${platform}:${id}`;
+	const key = getSevenTVStyleKey(id, platform);
 
 	const cached = sevenTVStyleCache.get(key);
 
-	if (isSevenTVStyleFresh(cached)) {
+	if (!force && isSevenTVStyleFresh(cached)) {
 		return Promise.resolve(cached);
 	}
 
@@ -840,7 +1012,7 @@ function get7TVStyle(userId, platform = "twitch") {
 				t: Date.now(),
 			};
 
-			sevenTVStyleCache.set(key, resolved);
+			setBoundedCache(sevenTVStyleCache, key, resolved, SEVENTV_STYLE_CACHE_LIMIT);
 
 			return resolved;
 		} catch (error) {
@@ -861,6 +1033,297 @@ async function get7TVPaint(userId, platform = "twitch") {
 	const style = await get7TVStyle(userId, platform);
 
 	return style.paint;
+}
+
+const PAINT_STYLE_PROPERTIES = [
+	"backgroundImage",
+	"backgroundSize",
+	"backgroundPosition",
+	"backgroundRepeat",
+	"backgroundClip",
+	"webkitBackgroundClip",
+	"backgroundOrigin",
+	"backgroundAttachment",
+	"filter",
+	"textShadow",
+	"display",
+	"position",
+	"willChange",
+];
+
+function clearPaint(element, color) {
+	if (!element) {
+		return;
+	}
+
+	element._paintSeq = (element._paintSeq || 0) + 1;
+
+	if (!element.classList.contains("seven-tv-painted")) {
+		return;
+	}
+
+	element.classList.remove("seven-tv-painted");
+
+	for (const property of PAINT_STYLE_PROPERTIES) {
+		element.style[property] = "";
+	}
+
+	if (color) {
+		element.style.color = color;
+		element.style.webkitTextFillColor = color;
+	}
+}
+
+let paintPlaceholderStyleReady = false;
+
+function ensurePaintPlaceholderStyle() {
+	if (paintPlaceholderStyleReady) {
+		return;
+	}
+
+	paintPlaceholderStyleReady = true;
+
+	const style = document.createElement("style");
+
+	style.textContent = `
+		.paint-loading {
+			background-image: linear-gradient(90deg, var(--paint-base, currentColor) 0%, rgba(255, 255, 255, 0.95) 50%, var(--paint-base, currentColor) 100%) !important;
+			background-size: 200% 100% !important;
+			-webkit-background-clip: text !important;
+			background-clip: text !important;
+			color: transparent !important;
+			-webkit-text-fill-color: transparent !important;
+			animation: paint-loading-sweep 1.1s linear infinite;
+		}
+
+		@keyframes paint-loading-sweep {
+			from { background-position: 200% 0; }
+			to { background-position: -200% 0; }
+		}
+	`;
+
+	document.head.appendChild(style);
+}
+
+function setPaintPlaceholder(element, enabled, color) {
+	if (!element) {
+		return;
+	}
+
+	if (enabled) {
+		ensurePaintPlaceholderStyle();
+
+		element.style.setProperty("--paint-base", color || "#ffffff");
+		element.classList.add("paint-loading");
+
+		return;
+	}
+
+	element.classList.remove("paint-loading");
+	element.style.removeProperty("--paint-base");
+}
+
+async function applyMessagePaint(message, usePlaceholder = true) {
+	const context = message?._cosmeticContext;
+
+	if (!context) {
+		return;
+	}
+
+	const token = (context.paintToken = (context.paintToken || 0) + 1);
+
+	const targets = [context.usernameElement];
+
+	if (context.colonElement) {
+		targets.push(context.colonElement);
+	}
+
+	if (context.actionText) {
+		targets.push(context.actionText);
+	}
+
+	const placeholderTargets = targets.filter(
+		(element) => element !== context.actionText,
+	);
+
+	if (usePlaceholder && !isSevenTVStyleCached(context.userId, context.platform)) {
+		for (const element of placeholderTargets) {
+			setPaintPlaceholder(element, true, context.usernameColor);
+		}
+	}
+
+	let paint = null;
+
+	try {
+		paint = await get7TVPaint(context.userId, context.platform);
+	} catch (error) {
+		console.error("Message paint error:", error);
+	}
+
+	for (const element of placeholderTargets) {
+		setPaintPlaceholder(element, false);
+	}
+
+	if (token !== context.paintToken) {
+		return;
+	}
+
+	if (!paint) {
+		for (const element of targets) {
+			clearPaint(element, context.usernameColor);
+		}
+
+		return;
+	}
+
+	await Promise.all(targets.map((element) => applyPaint(element, paint)));
+}
+
+function getUserMessages(userId, platform = "twitch") {
+	const key = getSevenTVStyleKey(userId, platform);
+
+	return (
+		userMessageElements.get(key) ||
+		userMessageElements.get(Number(key)) ||
+		new Set()
+	);
+}
+
+function applyUserCosmetics(userId, platform = "twitch") {
+	for (const message of getUserMessages(userId, platform)) {
+		applyMessagePaint(message, false);
+
+		if (message._badgeContext) {
+			refreshMessageBadges(message);
+		}
+	}
+}
+
+function getSevenTVStyleSignature(entry) {
+	return `${entry?.paint?.id || ""}|${entry?.badge?.id || ""}`;
+}
+
+async function refresh7TVUserStyle(userId, platform = "twitch") {
+	const key = getSevenTVStyleKey(userId, platform);
+
+	const before = getSevenTVStyleSignature(sevenTVStyleCache.get(key));
+
+	const style = await get7TVStyle(userId, platform, true);
+
+	return before !== getSevenTVStyleSignature(style);
+}
+
+const pendingCosmeticRefreshes = new Map();
+
+function schedule7TVUserCosmeticRefresh(userId, platform = "twitch") {
+	const key = getSevenTVStyleKey(userId, platform);
+
+	if (pendingCosmeticRefreshes.has(key)) {
+		return;
+	}
+
+	pendingCosmeticRefreshes.set(
+		key,
+		setTimeout(async () => {
+			pendingCosmeticRefreshes.delete(key);
+
+			if (!getUserMessages(userId, platform).size) {
+				sevenTVStyleCache.delete(key);
+				sevenTVBadges.delete(key);
+
+				return;
+			}
+
+			try {
+				if (await refresh7TVUserStyle(userId, platform)) {
+					applyUserCosmetics(userId, platform);
+				}
+			} catch (error) {
+				console.error("Cosmetic refresh error:", error);
+			}
+		}, 400),
+	);
+}
+
+const COSMETIC_REFRESH_MS = 30 * 1000;
+const COSMETIC_REFRESH_BATCH = 15;
+const COSMETIC_BULK_COOLDOWN_MS = 10 * 1000;
+
+let cosmeticRefreshTimer = null;
+let cosmeticRefreshCursor = 0;
+let cosmeticBulkTimer = null;
+let lastCosmeticBulkAt = 0;
+
+function collectVisibleCosmeticUsers() {
+	const users = [];
+
+	for (const messages of userMessageElements.values()) {
+		for (const message of messages) {
+			const context = message._cosmeticContext;
+
+			if (context && message.isConnected) {
+				users.push({ userId: context.userId, platform: context.platform });
+
+				break;
+			}
+		}
+	}
+
+	return users;
+}
+
+async function refreshVisibleCosmetics(limit = COSMETIC_REFRESH_BATCH) {
+	if (document.hidden) {
+		return;
+	}
+
+	const users = collectVisibleCosmeticUsers();
+
+	if (!users.length) {
+		return;
+	}
+
+	const start = cosmeticRefreshCursor % users.length;
+
+	const batch = users.slice(start).concat(users.slice(0, start)).slice(0, limit);
+
+	cosmeticRefreshCursor += batch.length;
+
+	for (const user of batch) {
+		try {
+			if (await refresh7TVUserStyle(user.userId, user.platform)) {
+				applyUserCosmetics(user.userId, user.platform);
+			}
+		} catch (error) {
+			console.error("Cosmetic refresh error:", error);
+		}
+	}
+}
+
+function scheduleVisibleCosmeticRefresh() {
+	if (cosmeticBulkTimer) {
+		return;
+	}
+
+	const wait = Math.max(
+		1500,
+		COSMETIC_BULK_COOLDOWN_MS - (Date.now() - lastCosmeticBulkAt),
+	);
+
+	cosmeticBulkTimer = setTimeout(() => {
+		cosmeticBulkTimer = null;
+		lastCosmeticBulkAt = Date.now();
+
+		refreshVisibleCosmetics(25);
+	}, wait);
+}
+
+function startCosmeticRefreshLoop() {
+	if (cosmeticRefreshTimer) {
+		return;
+	}
+
+	cosmeticRefreshTimer = setInterval(refreshVisibleCosmetics, COSMETIC_REFRESH_MS);
 }
 
 const EMOTE_REFRESH_MS = 60 * 1000;
@@ -898,6 +1361,9 @@ function startEmoteRefreshLoop() {
 	}
 
 	emoteRefreshTimer = setInterval(refreshChannelEmotes, EMOTE_REFRESH_MS);
+
+	startBadgeRefreshLoop();
+	startCosmeticRefreshLoop();
 
 	setTimeout(refreshChannelEmotes, 3000);
 

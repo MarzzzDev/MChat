@@ -1,3 +1,22 @@
+const MAX_IRC_LINE_LENGTH = 16 * 1024;
+const MAX_IRC_FRAME_LENGTH = 1024 * 1024;
+const MAX_IRC_TAGS = 64;
+const MAX_IRC_TAG_KEY_LENGTH = 64;
+const MAX_IRC_TAG_VALUE_LENGTH = 4096;
+const MAX_IRC_MESSAGE_CHARS = 1000;
+const MAX_IRC_QUEUE_SIZE = 1000;
+const IRC_RENDER_BATCH_SIZE = 20;
+const IRC_RENDER_INTERVAL_MS = 50;
+const MAX_IRC_PENDING_RENDERS = 500;
+const TWITCH_CHANNEL_PATTERN = /^[a-z0-9_]{1,25}$/i;
+const IRC_TAG_KEY_PATTERN = /^[A-Za-z0-9_.\/+-]+$/;
+const IRC_TAG_ESCAPES = { s: " ", ":": ";", r: "\r", n: "\n", "\\": "\\" };
+const IRC_BLOCKED_TAG_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+let twitchIRCDiscarding = false;
+let twitchIRCPendingRenders = 0;
+let twitchIRCQueue = null;
+
 function parseIRCtags(raw) {
 	const tags = {};
 
@@ -5,25 +24,40 @@ function parseIRCtags(raw) {
 		return tags;
 	}
 
-	for (const part of raw.split(";")) {
+	let count = 0;
+
+	for (const part of String(raw).split(";")) {
+		if (count >= MAX_IRC_TAGS) {
+			break;
+		}
+
 		const equals = part.indexOf("=");
+		const key = equals === -1 ? part : part.substring(0, equals);
+
+		if (
+			!key ||
+			key.length > MAX_IRC_TAG_KEY_LENGTH ||
+			!IRC_TAG_KEY_PATTERN.test(key) ||
+			IRC_BLOCKED_TAG_KEYS.has(key)
+		) {
+			continue;
+		}
+
+		count += 1;
 
 		if (equals === -1) {
-			tags[part] = "";
+			tags[key] = "";
 
 			continue;
 		}
 
-		const key = part.substring(0, equals);
-
-		const value = part.substring(equals + 1);
-
-		tags[key] = value
-			.replace(/\\s/g, " ")
-			.replace(/\\:/g, ";")
-			.replace(/\\r/g, "\r")
-			.replace(/\\n/g, "\n")
-			.replace(/\\\\/g, "\\");
+		tags[key] = part
+			.substring(equals + 1, equals + 1 + MAX_IRC_TAG_VALUE_LENGTH)
+			.replace(/\\(.?)/g, (_, char) =>
+				Object.prototype.hasOwnProperty.call(IRC_TAG_ESCAPES, char)
+					? IRC_TAG_ESCAPES[char]
+					: char,
+			);
 	}
 
 	return tags;
@@ -62,6 +96,10 @@ function createTwitchIRCSocket() {
 		return Promise.reject(new Error("No Twitch channel configured."));
 	}
 
+	if (!TWITCH_CHANNEL_PATTERN.test(String(CHANNEL))) {
+		return Promise.reject(new Error("Invalid Twitch channel name."));
+	}
+
 	if (twitchIRCSocket) {
 		try {
 			twitchIRCSocket.close();
@@ -71,6 +109,8 @@ function createTwitchIRCSocket() {
 
 	clearTimeout(twitchIRCReconnectTimer);
 	twitchIRCBuffer = "";
+	twitchIRCDiscarding = false;
+	getTwitchIRCQueue().clear();
 
 	twitchIRCReadyPromise = new Promise((resolve, reject) => {
 		twitchIRCReadyResolve = resolve;
@@ -90,20 +130,58 @@ function createTwitchIRCSocket() {
 			socket.send("PASS SCHMOOPIIE\r\n");
 			socket.send(`NICK ${nick}\r\n`);
 			socket.send(`USER ${nick} 8 * :${nick}\r\n`);
-			socket.send(`JOIN #${CHANNEL}\r\n`);
+			socket.send(`JOIN #${String(CHANNEL).toLowerCase()}\r\n`);
 		};
 
 		socket.onmessage = (event) => {
-			twitchIRCBuffer += String(event.data || "");
+			if (twitchIRCSocket !== socket || typeof event.data !== "string") {
+				return;
+			}
 
-			const messages = twitchIRCBuffer.split("\r\n");
+			let data = event.data;
+
+			if (data.length > MAX_IRC_FRAME_LENGTH) {
+				console.warn("Twitch IRC frame too large; reconnecting.");
+				twitchIRCBuffer = "";
+
+				try {
+					socket.close(1009, "Frame too large");
+				} catch {}
+
+				return;
+			}
+
+			if (twitchIRCDiscarding) {
+				const end = data.indexOf("\r\n");
+
+				if (end === -1) {
+					return;
+				}
+
+				data = data.substring(end + 2);
+				twitchIRCDiscarding = false;
+			}
+
+			const messages = (twitchIRCBuffer + data).split("\r\n");
 
 			twitchIRCBuffer = messages.pop() || "";
 
+			if (twitchIRCBuffer.length > MAX_IRC_LINE_LENGTH) {
+				twitchIRCBuffer = "";
+				twitchIRCDiscarding = true;
+			}
+
 			for (const raw of messages) {
-				if (raw) {
-					handleTwitchIRCMessage(raw);
+				if (!raw) {
+					continue;
 				}
+
+				if (raw.length > MAX_IRC_LINE_LENGTH) {
+					console.warn("Dropped oversized Twitch IRC line.");
+					continue;
+				}
+
+				enqueueTwitchIRCLine(raw);
 			}
 		};
 
@@ -209,7 +287,59 @@ function parseTwitchIRCLine(raw) {
 	};
 }
 
+function getTwitchIRCQueue() {
+	twitchIRCQueue ??= createBoundedQueue({
+		maxSize: MAX_IRC_QUEUE_SIZE,
+		batchSize: IRC_RENDER_BATCH_SIZE,
+		intervalMs: IRC_RENDER_INTERVAL_MS,
+		handler: handleTwitchIRCMessage,
+	});
+
+	return twitchIRCQueue;
+}
+
+function peekIRCCommand(raw) {
+	let rest = raw;
+
+	if (rest.startsWith("@")) {
+		const end = rest.indexOf(" ");
+
+		if (end === -1) {
+			return "";
+		}
+
+		rest = rest.substring(end + 1);
+	}
+
+	if (rest.startsWith(":")) {
+		const end = rest.indexOf(" ");
+
+		if (end === -1) {
+			return "";
+		}
+
+		rest = rest.substring(end + 1);
+	}
+
+	const end = rest.indexOf(" ");
+
+	return end === -1 ? rest : rest.substring(0, end);
+}
+
+function enqueueTwitchIRCLine(raw) {
+	if (raw.startsWith("PING ") || peekIRCCommand(raw) === "ROOMSTATE") {
+		handleTwitchIRCMessage(raw);
+		return;
+	}
+
+	getTwitchIRCQueue().push(raw);
+}
+
 function handleTwitchIRCMessage(raw) {
+	if (raw.length > MAX_IRC_LINE_LENGTH) {
+		return;
+	}
+
 	if (raw.startsWith("PING ")) {
 		if (twitchIRCSocket?.readyState === WebSocket.OPEN) {
 			twitchIRCSocket.send(`PONG ${raw.substring(5)}\r\n`);
@@ -331,7 +461,7 @@ function handleTwitchIRCPrivmsg(message) {
 
 	const messageId = tags.id || null;
 
-	const rawText = message.trailing || "";
+	const rawText = String(message.trailing || "").slice(0, MAX_IRC_MESSAGE_CHARS);
 
 	const login = (tags.login || prefixUser || "").toLowerCase();
 
@@ -429,9 +559,17 @@ function handleTwitchIRCPrivmsg(message) {
 	}
 	const ircTags = Object.assign({}, tags, messageTags);
 
+	if (twitchIRCPendingRenders >= MAX_IRC_PENDING_RENDERS) {
+		return;
+	}
+
+	twitchIRCPendingRenders += 1;
+
 	twitchBadgesReadyPromise
 		.catch(() => {})
 		.then(() => {
+			twitchIRCPendingRenders = Math.max(0, twitchIRCPendingRenders - 1);
+
 			try {
 				onMsg(
 					username,

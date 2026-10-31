@@ -1,22 +1,65 @@
 const GITHUB_REPO = "MarzzzDev/MChat";
 const GITHUB_BRANCH = "main";
+const GITHUB_API_PREFIX = `https://api.github.com/repos/${GITHUB_REPO}/`;
+const GITHUB_COMMIT_URL_PREFIX = `https://github.com/${GITHUB_REPO}/commit/`;
+const COMMIT_SHA_PATTERN = /^[0-9a-f]{40}$/;
+const MAX_REPO_FILES = 2000;
+const MAX_REPO_PATH_LENGTH = 256;
+const PREFETCH_CONCURRENCY = 8;
+const MAX_SNAPSHOT_HTML_CHARS = 2 * 1024 * 1024;
 const UPDATE_POLL_MS = 300 * 1000;
 const UPDATE_REFRESH_DELAY_MS = 10 * 1000;
 const UPDATE_CHAT_SNAPSHOT_KEY = "mchat-update-chat-snapshot";
+
+const UPDATER_CONFIG_VALID =
+	/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(GITHUB_REPO) &&
+	/^[A-Za-z0-9_.\/-]+$/.test(GITHUB_BRANCH) &&
+	!GITHUB_BRANCH.includes("..");
+
+function isExpectedGithubResponse(response) {
+	return typeof response?.url === "string" && response.url.startsWith(GITHUB_API_PREFIX);
+}
+
+function isSafeRepoPath(path) {
+	if (
+		typeof path !== "string" ||
+		!path ||
+		path.length > MAX_REPO_PATH_LENGTH ||
+		path.startsWith("/") ||
+		path.includes("\\") ||
+		/[\u0000-\u001f\u007f]/.test(path)
+	) {
+		return false;
+	}
+
+	return path
+		.split("/")
+		.every((segment) => segment && segment !== "." && segment !== ".." && !segment.startsWith("."));
+}
+
+function buildSameOriginRepoUrl(base, path) {
+	const encoded = path.split("/").map(encodeURIComponent).join("/");
+	const url = new URL(base + encoded, location.href);
+
+	return url.origin === location.origin && url.href.startsWith(base) ? url.href : null;
+}
 
 let lastKnownCommitSha = null;
 let updateRefreshScheduled = false;
 let refreshing = false;
 
 async function checkForGithubCommit() {
-	if (updateRefreshScheduled) return;
+	if (updateRefreshScheduled || !UPDATER_CONFIG_VALID) return;
 
 	try {
 		const response = await fetch(
-			`https://api.github.com/repos/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`,
+			`${GITHUB_API_PREFIX}commits/${encodeURIComponent(GITHUB_BRANCH)}`,
 			{
 				headers: { Accept: "application/vnd.github+json" },
 				cache: "no-cache",
+				credentials: "omit",
+				referrerPolicy: "no-referrer",
+				redirect: "error",
 			},
 		);
 
@@ -24,8 +67,25 @@ async function checkForGithubCommit() {
 			throw new Error(`GitHub API returned ${response.status}`);
 		}
 
-		const sha = (await response.json())?.sha;
-		if (!sha) return;
+		if (!isExpectedGithubResponse(response)) {
+			throw new Error("Update response came from an unexpected URL.");
+		}
+
+		const data = await response.json();
+		const sha = data?.sha;
+
+		if (typeof sha !== "string" || !COMMIT_SHA_PATTERN.test(sha)) {
+			console.warn("[updater] Ignoring update metadata with an invalid commit SHA.");
+			return;
+		}
+
+		if (
+			data.html_url !== undefined &&
+			(typeof data.html_url !== "string" || !data.html_url.startsWith(GITHUB_COMMIT_URL_PREFIX))
+		) {
+			console.warn("[updater] Ignoring update metadata for an unexpected repository.");
+			return;
+		}
 
 		if (lastKnownCommitSha === null) {
 			lastKnownCommitSha = sha;
@@ -45,14 +105,19 @@ async function checkForGithubCommit() {
 }
 
 async function listRepoFiles() {
+	if (!UPDATER_CONFIG_VALID) return [];
+
 	const ref = lastKnownCommitSha || GITHUB_BRANCH;
 
 	try {
 		const response = await fetch(
-			`https://api.github.com/repos/${GITHUB_REPO}/git/trees/${ref}?recursive=1`,
+			`${GITHUB_API_PREFIX}git/trees/${encodeURIComponent(ref)}?recursive=1`,
 			{
 				headers: { Accept: "application/vnd.github+json" },
 				cache: "no-cache",
+				credentials: "omit",
+				referrerPolicy: "no-referrer",
+				redirect: "error",
 			},
 		);
 
@@ -60,11 +125,16 @@ async function listRepoFiles() {
 			throw new Error(`GitHub API returned ${response.status}`);
 		}
 
+		if (!isExpectedGithubResponse(response)) {
+			throw new Error("File list came from an unexpected URL.");
+		}
+
 		const tree = (await response.json())?.tree;
 
 		return (Array.isArray(tree) ? tree : [])
-			.filter((entry) => entry.type === "blob")
-			.map((entry) => entry.path);
+			.filter((entry) => entry?.type === "blob" && isSafeRepoPath(entry.path))
+			.map((entry) => entry.path)
+			.slice(0, MAX_REPO_FILES);
 	} catch (error) {
 		console.warn("[updater] File list unavailable:", error);
 		return [];
@@ -104,17 +174,127 @@ async function hardRefreshOverlay() {
 			new Promise((resolve) => setTimeout(() => resolve([]), 3000)),
 		]);
 
+		const urls = [base]
+			.concat(files.map((file) => buildSameOriginRepoUrl(base, file)))
+			.filter(Boolean);
+
+		let expired = false;
+		let cursor = 0;
+
+		const worker = async () => {
+			while (!expired && cursor < urls.length) {
+				const url = urls[cursor++];
+
+				try {
+					await fetch(url, { cache: "reload", credentials: "same-origin" });
+				} catch {}
+			}
+		};
+
 		await Promise.race([
-			Promise.allSettled(
-				[""].concat(files).map((file) =>
-					fetch(base + encodeURI(file), { cache: "reload" }),
-				),
+			Promise.allSettled(Array.from({ length: PREFETCH_CONCURRENCY }, worker)),
+			new Promise((resolve) =>
+				setTimeout(() => {
+					expired = true;
+					resolve();
+				}, 5000),
 			),
-			new Promise((resolve) => setTimeout(resolve, 5000)),
 		]);
 	} finally {
 		location.reload();
 	}
+}
+
+const SNAPSHOT_ALLOWED_TAGS = new Set([
+	"div", "span", "img", "a", "br",
+	"svg", "path", "g", "circle", "rect",
+]);
+
+const SNAPSHOT_ALLOWED_ATTRS = new Set([
+	"class", "style", "alt", "title", "src", "href", "width", "height", "draggable",
+	"role", "aria-hidden", "aria-label",
+	"viewbox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin",
+	"d", "cx", "cy", "r", "x", "y", "rx", "ry",
+]);
+
+function snapshotUrlAllowed(value) {
+	const candidate = String(value || "").trim();
+
+	if (/^data:image\/(?:png|gif|webp|jpeg|svg\+xml)[;,]/i.test(candidate)) {
+		return candidate.length <= 8192;
+	}
+
+	try {
+		const url = new URL(candidate);
+
+		return url.protocol === "https:" && !url.username && !url.password;
+	} catch {
+		return false;
+	}
+}
+
+function snapshotStyleAllowed(value) {
+	const style = String(value || "");
+
+	if (/expression\s*\(|javascript:|@import|behavior\s*:|-moz-binding|[<\\]/i.test(style)) {
+		return false;
+	}
+
+	for (const match of style.matchAll(/url\(\s*(["']?)(.*?)\1\s*\)/gi)) {
+		if (!snapshotUrlAllowed(match[2])) {
+			return false;
+		}
+	}
+
+	return !/url\(/i.test(style.replace(/url\(\s*(["']?)(.*?)\1\s*\)/gi, ""));
+}
+
+function sanitizeSnapshotNode(node) {
+	for (const child of Array.from(node.childNodes)) {
+		if (child.nodeType === Node.TEXT_NODE) {
+			continue;
+		}
+
+		if (child.nodeType !== Node.ELEMENT_NODE) {
+			child.remove();
+			continue;
+		}
+
+		if (!SNAPSHOT_ALLOWED_TAGS.has(child.localName.toLowerCase())) {
+			child.remove();
+			continue;
+		}
+
+		for (const attr of Array.from(child.attributes)) {
+			const name = attr.name.toLowerCase();
+			let keep = SNAPSHOT_ALLOWED_ATTRS.has(name) || /^data-[a-z0-9-]+$/.test(name);
+
+			if (keep && (name === "src" || name === "href")) {
+				keep = snapshotUrlAllowed(attr.value);
+			} else if (keep && name === "style") {
+				keep = snapshotStyleAllowed(attr.value);
+			}
+
+			if (!keep) {
+				child.removeAttribute(attr.name);
+			}
+		}
+
+		if (child.localName.toLowerCase() === "a") {
+			child.setAttribute("rel", "noopener noreferrer");
+		}
+
+		sanitizeSnapshotNode(child);
+	}
+}
+
+function sanitizeSnapshotHtml(html) {
+	const template = document.createElement("template");
+
+	template.innerHTML = html;
+	sanitizeSnapshotNode(template.content);
+
+	return template.content;
 }
 
 function restoreUpdatedChat() {
@@ -130,7 +310,8 @@ function restoreUpdatedChat() {
 		!snapshot ||
 		snapshot.url !== location.pathname + location.search ||
 		Date.now() - Number(snapshot.createdAt) > 30 * 60 * 1000 ||
-		typeof snapshot.html !== "string"
+		typeof snapshot.html !== "string" ||
+		snapshot.html.length > MAX_SNAPSHOT_HTML_CHARS
 	) {
 		return false;
 	}
@@ -138,7 +319,7 @@ function restoreUpdatedChat() {
 	const chat = document.getElementById("chat");
 	if (!chat) return false;
 
-	chat.innerHTML = snapshot.html;
+	chat.replaceChildren(sanitizeSnapshotHtml(snapshot.html));
 	for (const message of chat.querySelectorAll(":scope > .message")) {
 		let ids = [];
 		try {

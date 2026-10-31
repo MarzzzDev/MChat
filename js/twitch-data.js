@@ -310,6 +310,22 @@ async function loadPreviewEmotes() {
 
 	await Promise.allSettled(tasks);
 
+	const previewUserIds = Array.from(
+		new Set(
+			previewMessages
+				.map((message) => String(message[3]))
+				.filter((id) => /^\d+$/.test(id)),
+		),
+	);
+
+	await Promise.allSettled(
+		previewUserIds.map(async (id) => {
+			await get7TVStyle(id, "twitch");
+			pinSevenTVStyle(id, "twitch");
+			await getExternalBadgeEntries(id);
+		}),
+	);
+
 	restoreFetch();
 	CHANNEL = previousChannel;
 	TWITCH_USER_ID = previousUserId;

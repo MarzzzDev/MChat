@@ -1,4 +1,22 @@
-const YOUTUBEI_MODULE_URL = "https://esm.sh/youtubei.js@18.1.0/web?bundle";
+const YOUTUBEI_VERSION = "18.1.0";
+const YOUTUBEI_MODULE_URL = `https://esm.sh/youtubei.js@${YOUTUBEI_VERSION}/web?bundle`;
+
+function assertTrustedYouTubeiModuleUrl(value) {
+	const url = new URL(value);
+
+	if (
+		url.origin !== "https://esm.sh" ||
+		url.pathname !== `/youtubei.js@${YOUTUBEI_VERSION}/web` ||
+		url.search !== "?bundle" ||
+		url.hash ||
+		url.username ||
+		url.password
+	) {
+		throw new Error("Refusing to load an unexpected YouTube module URL.");
+	}
+
+	return url.href;
+}
 const YOUTUBE_RETRY_NOT_LIVE_MS = 20 * 1000;
 const YOUTUBE_RETRY_ERROR_MS = 10 * 1000;
 const YOUTUBE_BACKLOG_GRACE_MS = 15 * 1000;
@@ -8,6 +26,8 @@ let youtubeChat = null;
 let youtubeRunning = false;
 let youtubeRunId = 0;
 
+const YOUTUBE_SEEN_LIMIT = 2000;
+const YOUTUBE_MAX_USERNAME_CHARS = 100;
 const youtubeSeenMessages = new Set();
 
 function youtubeModBadgeIcon() {
@@ -55,8 +75,10 @@ async function youtubeProxyFetch(input, init) {
 
 	return fetch(proxiedUrl(request.url), {
 		method: request.method,
-		headers: request.headers,
+		headers: sanitizeProxyHeaders(request.headers),
 		body,
+		credentials: "omit",
+		referrerPolicy: "no-referrer",
 	});
 }
 
@@ -67,12 +89,14 @@ async function getYouTubeInnertube() {
 
 	if (!getPlatformProxy()) {
 		throw new Error(
-			"YouTube chat needs a proxy. Set PLATFORM_PROXY_URL in platforms.js " +
-				"(deploy proxy-worker.js) or add ?proxy=https://your-worker to the URL.",
+			"YouTube chat needs a trusted proxy. Set PLATFORM_PROXY_URL in platforms.js " +
+				"(deploy proxy-worker.js) and list its origin in TRUSTED_PROXY_ORIGINS.",
 		);
 	}
 
-	const { Innertube, UniversalCache } = await import(YOUTUBEI_MODULE_URL);
+	const { Innertube, UniversalCache } = await import(
+		assertTrustedYouTubeiModuleUrl(YOUTUBEI_MODULE_URL)
+	);
 
 	youtubeInnertube = await Innertube.create({
 		fetch: youtubeProxyFetch,
@@ -115,7 +139,13 @@ function parseYouTubeInput(raw) {
 		return { path: `channel/${value}/live` };
 	}
 
-	return { path: `${value.startsWith("@") ? value : `@${value}`}/live` };
+	const handle = value.startsWith("@") ? value : `@${value}`;
+
+	if (!/^@[\w.-]{1,100}$/.test(handle)) {
+		return null;
+	}
+
+	return { path: `${handle}/live` };
 }
 
 const YOUTUBE_DIRECT_ID_PATTERNS = [
@@ -440,7 +470,7 @@ function handleYouTubeChatItem(item, startedAt) {
 
 		youtubeSeenMessages.add(messageId);
 
-		if (youtubeSeenMessages.size > 5000) {
+		if (youtubeSeenMessages.size > YOUTUBE_SEEN_LIMIT) {
 			youtubeSeenMessages.delete(youtubeSeenMessages.values().next().value);
 		}
 	}
@@ -453,8 +483,9 @@ function handleYouTubeChatItem(item, startedAt) {
 
 	const author = item.author || {};
 
-	const username =
-		youtubeText(author.name) || youtubeText(item.header?.author_name) || "Unknown";
+	const username = (
+		youtubeText(author.name) || youtubeText(item.header?.author_name) || "Unknown"
+	).slice(0, YOUTUBE_MAX_USERNAME_CHARS);
 
 	const userId = author.id
 		? String(author.id)
@@ -618,6 +649,12 @@ async function startYouTubeChat(input) {
 	const runId = ++youtubeRunId;
 
 	const target = parseYouTubeInput(input);
+
+	if (!target) {
+		console.warn("YouTube input is not a valid video, channel or handle.");
+		youtubeRunning = false;
+		return;
+	}
 
 	while (youtubeRunning && runId === youtubeRunId) {
 		let delay = YOUTUBE_RETRY_ERROR_MS;

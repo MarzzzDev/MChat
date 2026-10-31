@@ -1,3 +1,22 @@
+const failedBadgeUrls = new Map();
+const BADGE_FAILURE_TTL_MS = 60 * 1000;
+
+function isBadgeUrlFailed(url) {
+	const failedAt = failedBadgeUrls.get(url);
+
+	if (failedAt === undefined) {
+		return false;
+	}
+
+	if (Date.now() - failedAt > BADGE_FAILURE_TTL_MS) {
+		failedBadgeUrls.delete(url);
+
+		return false;
+	}
+
+	return true;
+}
+
 function preloadBadgeImage(url) {
 	if (!url) {
 		return Promise.resolve(null);
@@ -19,12 +38,16 @@ function preloadBadgeImage(url) {
 		img.decoding = "async";
 
 		img.onload = () => {
+			failedBadgeUrls.delete(url);
+
 			badgeImageCache.set(url, img);
 
 			resolve(img);
 		};
 
 		img.onerror = () => {
+			failedBadgeUrls.set(url, Date.now());
+
 			badgeImageCache.delete(url);
 
 			resolve(null);
@@ -126,70 +149,75 @@ function addPfpBadge(container, tags) {
 	});
 }
 
-const TWITCH_BADGE_ORDER = [
-	"broadcaster",
+const TWITCH_ROLE_BADGE_SETS = new Set([
 	"staff",
 	"admin",
 	"global_mod",
-	"moderator",
 	"lead_moderator",
+	"moderator",
 	"vip",
-	"artist-badge",
-	"founder",
-	"subscriber",
-	"sub-gifter",
-	"sub_gifter",
-	"bits-leader",
-	"bits",
-	"bits-charity",
-	"hype-train",
-	"predictions",
-	"partner",
-	"turbo",
-	"premium",
-];
+	"broadcaster",
+]);
 
-function twitchBadgeRank(entry) {
-	const slash = entry.indexOf("/");
-	const set = slash === -1 ? entry : entry.substring(0, slash);
-	const index = TWITCH_BADGE_ORDER.indexOf(set);
+const TWITCH_SUBSCRIBER_BADGE_SETS = new Set(["subscriber", "founder"]);
 
-	return index === -1 ? TWITCH_BADGE_ORDER.length : index;
+function getTwitchBadgeCategory(set) {
+	if (TWITCH_ROLE_BADGE_SETS.has(set)) {
+		return "ta";
+	}
+
+	if (TWITCH_SUBSCRIBER_BADGE_SETS.has(set)) {
+		return "ts";
+	}
+
+	if (set === "predictions") {
+		return "tp";
+	}
+
+	return "tv";
 }
 
-function createTwitchBadges(tags) {
+function getFFZRoomBadgeOverride(set) {
+	if (!badgeFfz) {
+		return null;
+	}
+
+	if (set === "moderator" && ffzRoomBadges.moderator) {
+		return ffzRoomBadges.moderator;
+	}
+
+	if (set === "vip" && ffzRoomBadges.vip) {
+		return ffzRoomBadges.vip;
+	}
+
+	return null;
+}
+
+function createTwitchBadgeContainer(tags) {
 	const container = document.createElement("span");
 
 	container.className = "badges twitch-badges";
 
-	if (pfpsEnabled)  {
+	if (pfpsEnabled) {
 		addPfpBadge(container, tags);
 	}
 
-	if (!badgeTwitch) {
-		return container;
-	}
+	return container;
+}
 
-	const badgeString = tags.badges || "";
+function getTwitchBadgeEntries(tags) {
+	const badgeString = tags?.badges || "";
 
 	if (!badgeString) {
-		return container;
+		return [];
 	}
 
-	const sortedEntries = badgeString
-		.split(",")
-		.filter(Boolean)
-		.map((entry, index) => ({ entry, index }))
-		.sort(
-			(a, b) =>
-				twitchBadgeRank(a.entry) - twitchBadgeRank(b.entry) || a.index - b.index,
-		)
-		.map(({ entry }) => entry);
+	const entries = [];
 
-	for (const entry of sortedEntries) {
+	for (const entry of badgeString.split(",")) {
 		const slash = entry.indexOf("/");
 
-		if (slash === -1) {
+		if (!entry || slash === -1) {
 			continue;
 		}
 
@@ -197,29 +225,85 @@ function createTwitchBadges(tags) {
 
 		const version = entry.substring(slash + 1);
 
+		const override = getFFZRoomBadgeOverride(set);
+
+		if (override) {
+			entries.push({
+				key: `ffz|${set}|${override.url}`,
+				category: getTwitchBadgeCategory(set),
+				provider: "ffz",
+				type: set,
+				url: override.url,
+				title: override.title,
+				fromTwitch: true,
+			});
+
+			continue;
+		}
+
+		if (!badgeTwitch) {
+			continue;
+		}
+
 		let badge = twitchBadges.get(`${set}/${version}`);
 
 		if (!badge && set === "subscriber") {
 			badge = twitchBadges.get("subscriber/1");
 		}
 
-		const badgeUrl = badge?.url_2x || badge?.url_1x || badge?.url_4x || null;
+		const url = badge?.url_2x || badge?.url_1x || badge?.url_4x || null;
 
-		if (!badgeUrl) {
+		if (!url) {
 			console.warn("Twitch badge not found:", `${set}/${version}`);
 
 			continue;
 		}
 
-		const img = document.createElement("img");
+		entries.push({
+			key: `twitch|${set}/${version}|${url}`,
+			category: getTwitchBadgeCategory(set),
+			provider: "twitch",
+			type: set,
+			url,
+			title: badge?.title || set,
+			fromTwitch: true,
+		});
+	}
+
+	return entries;
+}
+
+function orderBadgeEntries(entries, userId) {
+    const layout = getMoltorinoLayout(userId);
+
+    const visible = layout
+        ? entries.filter((entry) => !layout.hidden.has(entry.category))
+        : entries.slice();
+
+    const orderKeys = layout ? layout.order : BADGE_CATEGORY_ORDER;
+    const rank = new Map(orderKeys.map((key, index) => [key, index]));
+    const maxRank = orderKeys.length;
+
+    return visible.sort((a, b) => {
+        const rankA = rank.has(a.category) ? rank.get(a.category) : maxRank;
+        const rankB = rank.has(b.category) ? rank.get(b.category) : maxRank;
+        return rankA - rankB;
+    });
+}
+
+function buildBadgeElement(entry) {
+	let img;
+
+	if (entry.provider === "twitch") {
+		img = document.createElement("img");
 
 		img.className = "badge";
 
-		img.src = badgeUrl;
+		img.src = entry.url;
 
-		img.alt = badge?.title || set;
+		img.alt = entry.title;
 
-		img.title = badge?.title || set;
+		img.title = entry.title;
 
 		img.width = 18;
 		img.height = 18;
@@ -229,116 +313,151 @@ function createTwitchBadges(tags) {
 		img.style.height = "18px";
 
 		img.style.objectFit = "contain";
+	} else {
+		img = createBadge(entry.url, entry.title);
 
-		img.dataset.badgeType = set;
-
-		img.dataset.badgeProvider = "twitch";
-
-		container.appendChild(img);
+		if (!img) {
+			return null;
+		}
 	}
 
-	return container;
+	if (entry.type) {
+		img.dataset.badgeType = entry.type;
+	}
+
+	img.dataset.badgeProvider = entry.provider;
+
+	img.dataset.badgeCategory = entry.category;
+
+	img.dataset.badgeKey = entry.key;
+
+	img.addEventListener(
+		"error",
+		() => {
+			failedBadgeUrls.set(entry.url, Date.now());
+
+			img.remove();
+		},
+		{ once: true },
+	);
+
+	return img;
 }
 
-async function loadChatterinoBadges() {
+function renderBadgeEntries(container, entries) {
+	const existing = new Map();
+
+	for (const child of Array.from(container.children)) {
+		if (child.classList.contains("pfp-badge")) {
+			continue;
+		}
+
+		const key = child.dataset.badgeKey;
+
+		if (key && !existing.has(key)) {
+			existing.set(key, child);
+		} else {
+			child.remove();
+		}
+	}
+
+	const desired = [];
+	const seen = new Set();
+
+	for (const entry of entries) {
+		if (seen.has(entry.key) || isBadgeUrlFailed(entry.url)) {
+			continue;
+		}
+
+		seen.add(entry.key);
+
+		let node = existing.get(entry.key);
+
+		if (node) {
+			existing.delete(entry.key);
+		} else {
+			node = buildBadgeElement(entry);
+		}
+
+		if (node) {
+			desired.push(node);
+		}
+	}
+
+	for (const node of existing.values()) {
+		node.remove();
+	}
+
+	const current = Array.from(container.children).filter(
+		(child) => !child.classList.contains("pfp-badge"),
+	);
+
+	const unchanged =
+		current.length === desired.length &&
+		current.every((node, index) => node === desired[index]);
+
+	if (!unchanged) {
+		for (const node of desired) {
+			container.appendChild(node);
+		}
+	}
+}
+
+async function refreshMessageBadges(message) {
+	const context = message?._badgeContext;
+
+	if (!context) {
+		return;
+	}
+
+	const token = (context.token = (context.token || 0) + 1);
+
+	let external = [];
+
 	try {
-		const response = await fetch("https://api.chatterino.com/badges");
-
-		if (!response.ok) {
-			throw new Error(`Chatterino badges: ${response.status}`);
-		}
-
-		const data = await response.json();
-
-		for (const badge of data.badges || []) {
-			const url = normalizeImageUrl(
-				badge.image3 || badge.image2 || badge.image1,
-			);
-
-			if (!url) {
-				continue;
-			}
-
-			const title = badge.tooltip || "Chatterino Badge";
-
-			for (const rawId of badge.users || []) {
-				const id = String(rawId);
-
-				if (!chatterinoBadges.has(id)) {
-					chatterinoBadges.set(id, []);
-				}
-
-				chatterinoBadges.get(id).push({ url, title });
-			}
-		}
-
+		external = await getExternalBadgeEntries(context.userId, context.tags);
 	} catch (error) {
-		console.error("Chatterino badge error:", error);
+		console.error("External badge error:", error);
 	}
+
+	if (token !== context.token) {
+		return;
+	}
+
+	renderBadgeEntries(
+		context.badges,
+		orderBadgeEntries(
+			getTwitchBadgeEntries(context.tags).concat(external),
+			context.userId,
+		),
+	);
+
+	context.authorGroup.classList.toggle(
+		"has-badges",
+		context.badges.childElementCount > 0,
+	);
 }
 
-function createFFZRoomBadge(tags) {
-	if (!badgeFfz) {
-		return null;
+let badgeRerenderFrame = 0;
+
+function refreshAllMessageBadges() {
+	if (badgeRerenderFrame) {
+		return;
 	}
 
-	const badgeString = tags.badges || "";
+	badgeRerenderFrame = requestAnimationFrame(() => {
+		badgeRerenderFrame = 0;
 
-	if (!badgeString) {
-		return null;
-	}
-
-	const badgeTypes = new Set();
-
-	for (const entry of badgeString.split(",").filter(Boolean)) {
-		const slash = entry.indexOf("/");
-
-		const type = slash === -1 ? entry : entry.substring(0, slash);
-
-		badgeTypes.add(type);
-	}
-
-	if (badgeTypes.has("moderator") && ffzRoomBadges.moderator) {
-		const badge = ffzRoomBadges.moderator;
-
-		const img = createBadge(badge.url, badge.title);
-
-		if (!img) {
-			return null;
+		for (const message of document.querySelectorAll(".message")) {
+			if (message._badgeContext) {
+				refreshMessageBadges(message);
+			}
 		}
+	});
+}
 
-		img.dataset.badgeType = "moderator";
-
-		img.dataset.badgeProvider = "ffz";
-
-		return {
-			type: "moderator",
-
-			img,
-		};
-	}
-
-	if (badgeTypes.has("vip") && ffzRoomBadges.vip) {
-		const badge = ffzRoomBadges.vip;
-
-		const img = createBadge(badge.url, badge.title);
-
-		if (!img) {
-			return null;
-		}
-
-		img.dataset.badgeType = "vip";
-
-		img.dataset.badgeProvider = "ffz";
-
-		return {
-			type: "vip",
-
-			img,
-		};
-	}
-
-	return null;
+function onBadgeRegistriesChanged() {
+	refreshAllMessageBadges();
 }
 
 function hasTwitchBadge(tags, badgeType) {
@@ -399,4 +518,3 @@ function isBadgeProviderEnabled(provider) {
 			return true;
 	}
 }
-

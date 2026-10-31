@@ -239,6 +239,9 @@ function runPreviewMessage() {
 async function startPreviewMessages() {
 	previewActive = true;
 
+	startBadgeRefreshLoop();
+	startCosmeticRefreshLoop();
+
 	try {
 		await loadPreviewEmotes();
 	} catch (error) {

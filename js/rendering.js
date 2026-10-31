@@ -1,5 +1,11 @@
 const REPLY_ICON_PATH = "M3 24V19a7 7 0 0 1 7-7h24";
 
+const MAX_CHAT_MESSAGE_CHARS = 1000;
+const MAX_CHAT_USERNAME_CHARS = 100;
+const MAX_REPLY_BODY_CHARS = 300;
+const MAX_CHAT_MESSAGES = 100;
+const DEFAULT_USERNAME_COLOR = "#ffffff";
+
 function createReplyHeader(replyInfo, tags, platform) {
 	if (!replyInfo?.username) {
 		return null;
@@ -31,13 +37,14 @@ function createReplyHeader(replyInfo, tags, platform) {
 	label.className = "reply-label";
 	label.textContent = "Replying to\u00A0";
 
-	const login = String(replyInfo.username).toLowerCase();
+	const replyUsername = String(replyInfo.username).slice(0, MAX_CHAT_USERNAME_CHARS);
+	const login = replyUsername.toLowerCase();
 	const known = knownChatters.get(login);
 
 	const target = createMention(
 		{
-			name: replyInfo.username,
-			color: known?.color || tags["reply-parent-color"] || "",
+			name: replyUsername,
+			color: safeCssColor(known?.color) || safeCssColor(tags["reply-parent-color"]) || "",
 			userId: tags["reply-parent-user-id"] || known?.userId || null,
 			platform: known?.platform || platform,
 		},
@@ -59,10 +66,11 @@ function createReplyHeader(replyInfo, tags, platform) {
 	const parentBody = String(tags["reply-parent-msg-body"] || "")
 		.replace(/^\x01?ACTION /, "")
 		.replace(/\x01$/, "")
-		.trim();
+		.trim()
+		.slice(0, MAX_REPLY_BODY_CHARS);
 
 	if (parentBody) {
-		const body = renderMessageText(parentBody, { platform }, replyInfo.username);
+		const body = renderMessageText(parentBody, { platform }, replyUsername);
 
 		body.className = "reply-body";
 		header.appendChild(body);
@@ -424,7 +432,7 @@ function revealSmoothMessage(message) {
 
 function trimChatToLimit(chat) {
 	let messageCount = chat.querySelectorAll(":scope > .message").length;
-	while (messageCount > 100) {
+	while (messageCount > MAX_CHAT_MESSAGES) {
 		const oldest = newestTopEnabled
 			? chat.lastElementChild
 			: chat.firstElementChild;
@@ -695,7 +703,7 @@ function rerenderPreviewChat() {
 		entry.element = null;
 	}
 
-	previewChat.innerHTML = "";
+	previewChat.replaceChildren();
 	messageElements.clear();
 	userMessageElements.clear();
 	lastRepeat = null;
@@ -752,8 +760,15 @@ async function onMsg(
 
 	applyStrokeMode();
 
-	const platform = tags.platform || "twitch";
-	msg = String(msg ?? "").replace(/\s{2,}/g, " ");
+	tags = tags && typeof tags === "object" ? tags : {};
+	const platform = /^[a-z0-9_-]{1,20}$/.test(String(tags.platform || "twitch"))
+		? String(tags.platform || "twitch")
+		: "twitch";
+	user = String(user ?? "Unknown").slice(0, MAX_CHAT_USERNAME_CHARS);
+	usernameColor = safeCssColor(usernameColor) || DEFAULT_USERNAME_COLOR;
+	msg = String(msg ?? "")
+		.slice(0, MAX_CHAT_MESSAGE_CHARS)
+		.replace(/\s{2,}/g, " ");
 	const userKey =
 		userId == null ? null : platform === "twitch" ? userId : `${platform}:${userId}`;
 
@@ -795,22 +810,15 @@ async function onMsg(
 
 	const badges = badgesEnabled
 		? platform === "twitch"
-			? createTwitchBadges(tags)
+			? createTwitchBadgeContainer(tags)
 			: createPlatformBadges(tags)
 		: document.createElement("span");
 
-	const ffzRoomBadge = platform === "twitch" ? createFFZRoomBadge(tags) : null;
-
-	if (ffzRoomBadge) {
-		const twitchBadge = badges.querySelector(
-			`.badge[data-badge-type="${ffzRoomBadge.type}"]`,
+	if (badgesEnabled && platform === "twitch") {
+		renderBadgeEntries(
+			badges,
+			orderBadgeEntries(getTwitchBadgeEntries(tags), userId),
 		);
-
-		if (twitchBadge) {
-			twitchBadge.replaceWith(ffzRoomBadge.img);
-		} else {
-			badges.appendChild(ffzRoomBadge.img);
-		}
 	}
 
 	badges.classList.add("message-badges");
@@ -854,19 +862,8 @@ async function onMsg(
 	}
 
 	if (tags["is-action"]) {
-		if (userId) {
-			get7TVPaint(userId, platform).then((paint) => {
-				if (paint) {
-					applyPaint(text, paint);
-				} else {
-					text.style.color = usernameColor;
-					text.style.webkitTextFillColor = usernameColor;
-				}
-			});
-		} else {
-			text.style.color = usernameColor;
-			text.style.webkitTextFillColor = usernameColor;
-		}
+		text.style.color = usernameColor;
+		text.style.webkitTextFillColor = usernameColor;
 	}
 
 	if (platformIndicatorEnabled && !previewEntry && isMultiChat()) {
@@ -907,6 +904,7 @@ async function onMsg(
 	}
 
 	if (messageId) {
+		messageId = String(messageId).slice(0, 128);
 		message.dataset.messageId = messageId;
 		registerMessageId(message, messageId);
 	}
@@ -918,24 +916,28 @@ async function onMsg(
 
 		userMessageElements.get(userKey).add(message);
 
-		get7TVPaint(userId, platform).then((paint) => {
-			if (paint) {
-				applyPaint(usernameElement, paint);
+		message._cosmeticContext = {
+			userId,
+			platform,
+			usernameElement,
+			colonElement: colonElement && colonMatchUsernameEnabled ? colonElement : null,
+			actionText: tags["is-action"] ? text : null,
+			usernameColor,
+			paintToken: 0,
+		};
 
-				if (colonElement && colonMatchUsernameEnabled) {
-					applyPaint(colonElement, paint);
-				}
-			}
-		});
+		applyMessagePaint(message, true);
 
 		if (badgesEnabled && platform === "twitch") {
-			createExternalBadges(userId, tags).then((externalBadges) => {
-				if (externalBadges.children.length > 0) {
-					externalBadges.classList.add("message-badges");
-					authorGroup.classList.add("has-badges");
-					authorGroup.insertBefore(externalBadges, usernameElement);
-				}
-			});
+			message._badgeContext = {
+				badges,
+				authorGroup,
+				userId: String(userId),
+				tags,
+				token: 0,
+			};
+
+			refreshMessageBadges(message);
 		}
 
 		if (badgesEnabled && platform === "kick") {

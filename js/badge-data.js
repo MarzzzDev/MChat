@@ -8,20 +8,116 @@ const HOMIES_BADGE_URLS = [
 	"https://itzalex.github.io/badges2",
 ];
 
-async function loadHomiesBadges() {
-	homiesBadges.clear();
+const BADGE_CATEGORY_ORDER = [
+    "ta",
+    "ts",
+    "tv",
+    "tp",
+    "ff",
+    "fa",
+    "bt",
+    "bl",
+    "c",
+    "jc",
+    "bh",
+    "m",
+    "hc",
+    "hs",
+    "7", 
+];
 
+const BADGE_CATEGORY_SET = new Set(BADGE_CATEGORY_ORDER);
+const MAX_LAYOUT_ORDER_KEYS = 64;
+const BADGE_REFRESH_FAST_MS = 30 * 1000;
+const BADGE_REFRESH_SLOW_MS = 5 * 60 * 1000;
+const MOLTORINO_BADGE_URL = "https://api.moltorino.com/v2/badges";
+
+const badgeBodySignatures = new Map();
+
+function hashBadgeBody(text) {
+	let hash = 5381;
+
+	for (let index = 0; index < text.length; index++) {
+		hash = ((hash << 5) + hash + text.charCodeAt(index)) | 0;
+	}
+
+	return hash >>> 0;
+}
+
+function badgeBodyChanged(name, text) {
+	const signature = `${text.length}:${hashBadgeBody(text)}`;
+
+	if (badgeBodySignatures.get(name) === signature) {
+		return false;
+	}
+
+	badgeBodySignatures.set(name, signature);
+
+	return true;
+}
+
+function replaceMapContents(target, source) {
+	target.clear();
+
+	for (const [key, value] of source) {
+		target.set(key, value);
+	}
+}
+
+const homiesSourceMaps = HOMIES_BADGE_URLS.map(() => new Map());
+
+function parseHomiesSource(data, category) {
+	const parsed = new Map();
+
+	for (const badge of data?.badges || []) {
+		const url = normalizeImageUrl(
+			badge.image3 || badge.image2 || badge.image1,
+		);
+
+		if (!url) {
+			continue;
+		}
+
+		const title = badge.tooltip || "Homies Badge";
+
+		const ids = Array.isArray(badge.users) ? badge.users.slice() : [];
+
+		if (badge.userId) {
+			ids.push(badge.userId);
+		}
+
+		for (const rawId of ids) {
+			const id = String(rawId).trim();
+
+			if (!id) {
+				continue;
+			}
+
+			if (!parsed.has(id)) {
+				parsed.set(id, []);
+			}
+
+			parsed.get(id).push({ url, title, category });
+		}
+	}
+
+	return parsed;
+}
+
+async function loadHomiesBadges() {
 	const results = await Promise.allSettled(
 		HOMIES_BADGE_URLS.map(async (url) => {
-			const response = await fetch(url);
+			const response = await fetch(url, { cache: "no-cache" });
 
 			if (!response.ok) {
 				throw new Error(`${url}: ${response.status}`);
 			}
 
-			return response.json();
+			return response.text();
 		}),
 	);
+
+	let changed = false;
 
 	results.forEach((result, index) => {
 		if (result.status !== "fulfilled") {
@@ -33,7 +129,86 @@ async function loadHomiesBadges() {
 			return;
 		}
 
-		for (const badge of result.value?.badges || []) {
+		if (!badgeBodyChanged(`homies:${index}`, result.value)) {
+			return;
+		}
+
+		try {
+			homiesSourceMaps[index] = parseHomiesSource(
+				JSON.parse(result.value),
+				index === 0 ? "hc" : "hs",
+			);
+
+			changed = true;
+		} catch (error) {
+			badgeBodySignatures.delete(`homies:${index}`);
+
+			console.error("Homies badge parse error:", HOMIES_BADGE_URLS[index], error);
+		}
+	});
+
+	if (!changed) {
+		return false;
+	}
+
+	const merged = new Map();
+
+	for (const source of homiesSourceMaps) {
+		for (const [id, list] of source) {
+			if (!merged.has(id)) {
+				merged.set(id, []);
+			}
+
+			merged.get(id).push(...list);
+		}
+	}
+
+	replaceMapContents(homiesBadges, merged);
+
+	return true;
+}
+
+const bttvBadges = new Map();
+const dankchatBadges = new Map();
+const moltorinoBadges = new Map();
+const moltorinoLayouts = new Map();
+
+let moltorinoDefaultOrder = BADGE_CATEGORY_ORDER.slice();
+let moltorinoGeneration = null;
+let moltorinoBundleVersion = -1;
+
+const DANKCHAT_BADGE_API = "https://flxrs.com/api/badges";
+
+const DANKCHAT_BADGE_PROXY = "https://dank-chat-badges.marseceva.workers.dev";
+
+const DANKCHAT_BADGE_SOURCES = [
+	{
+		label: DANKCHAT_BADGE_PROXY,
+		load: () => fetch(DANKCHAT_BADGE_PROXY, { cache: "no-cache" }),
+	},
+	{ label: DANKCHAT_BADGE_API, load: () => platformFetch(DANKCHAT_BADGE_API) },
+];
+
+async function loadChatterinoBadges() {
+	try {
+		const response = await fetch("https://api.chatterino.com/badges", {
+			cache: "no-cache",
+		});
+
+		if (!response.ok) {
+			throw new Error(`Chatterino badges: ${response.status}`);
+		}
+
+		const text = await response.text();
+
+		if (!badgeBodyChanged("chatterino", text)) {
+			return false;
+		}
+
+		const data = JSON.parse(text);
+		const parsed = new Map();
+
+		for (const badge of data.badges || []) {
 			const url = normalizeImageUrl(
 				badge.image3 || badge.image2 || badge.image1,
 			);
@@ -42,54 +217,50 @@ async function loadHomiesBadges() {
 				continue;
 			}
 
-			const title = badge.tooltip || "Homies Badge";
+			const title = badge.tooltip || "Chatterino Badge";
 
-			const ids = Array.isArray(badge.users) ? badge.users.slice() : [];
-			if (badge.userId) ids.push(badge.userId);
+			for (const rawId of badge.users || []) {
+				const id = String(rawId);
 
-			for (const rawId of ids) {
-				const id = String(rawId).trim();
-
-				if (!id) {
-					continue;
+				if (!parsed.has(id)) {
+					parsed.set(id, []);
 				}
 
-				if (!homiesBadges.has(id)) {
-					homiesBadges.set(id, []);
-				}
-
-				homiesBadges.get(id).push({ url, title });
+				parsed.get(id).push({ url, title });
 			}
 		}
-	});
+
+		replaceMapContents(chatterinoBadges, parsed);
+
+		return true;
+	} catch (error) {
+		badgeBodySignatures.delete("chatterino");
+
+		console.error("Chatterino badge error:", error);
+
+		return false;
+	}
 }
-
-const bttvBadges = new Map();
-const dankchatBadges = new Map();
-const moltorinoBadges = new Map();
-
-const DANKCHAT_BADGE_API = "https://flxrs.com/api/badges";
-
-const DANKCHAT_BADGE_PROXY = "https://dank-chat-badges.marseceva.workers.dev";
-
-const DANKCHAT_BADGE_SOURCES = [
-	{ label: DANKCHAT_BADGE_PROXY, load: () => fetch(DANKCHAT_BADGE_PROXY) },
-	{ label: DANKCHAT_BADGE_API, load: () => platformFetch(DANKCHAT_BADGE_API) },
-];
 
 async function loadBTTVBadges() {
 	try {
 		const response = await fetch(
 			"https://api.betterttv.net/3/cached/badges/twitch",
+			{ cache: "no-cache" },
 		);
 
 		if (!response.ok) {
 			throw new Error(`BTTV badges: ${response.status}`);
 		}
 
-		const data = await response.json();
+		const text = await response.text();
 
-		bttvBadges.clear();
+		if (!badgeBodyChanged("bttv", text)) {
+			return false;
+		}
+
+		const data = JSON.parse(text);
+		const parsed = new Map();
 
 		for (const entry of Array.isArray(data) ? data : []) {
 			const id = String(entry?.providerId || "").trim();
@@ -100,23 +271,31 @@ async function loadBTTVBadges() {
 				continue;
 			}
 
-			if (!bttvBadges.has(id)) {
-				bttvBadges.set(id, []);
+			if (!parsed.has(id)) {
+				parsed.set(id, []);
 			}
 
-			bttvBadges.get(id).push({
+			parsed.get(id).push({
 				url,
 				title: entry?.badge?.description || "BTTV Badge",
 			});
 		}
+
+		replaceMapContents(bttvBadges, parsed);
+
+		return true;
 	} catch (error) {
+		badgeBodySignatures.delete("bttv");
+
 		console.error("BTTV badge error:", error);
+
+		return false;
 	}
 }
 
 async function loadDankChatBadges() {
 	try {
-		let data = null;
+		let text = null;
 
 		for (const source of DANKCHAT_BADGE_SOURCES) {
 			try {
@@ -126,7 +305,7 @@ async function loadDankChatBadges() {
 					throw new Error(`${source.label}: ${response.status}`);
 				}
 
-				data = await response.json();
+				text = await response.text();
 
 				break;
 			} catch (error) {
@@ -134,11 +313,16 @@ async function loadDankChatBadges() {
 			}
 		}
 
-		if (!data) {
+		if (text === null) {
 			throw new Error("DankChat badges: all sources failed");
 		}
 
-		dankchatBadges.clear();
+		if (!badgeBodyChanged("dankchat", text)) {
+			return false;
+		}
+
+		const data = JSON.parse(text);
+		const parsed = new Map();
 
 		for (const badge of Array.isArray(data) ? data : []) {
 			const url = normalizeImageUrl(badge?.url);
@@ -156,22 +340,135 @@ async function loadDankChatBadges() {
 					continue;
 				}
 
-				if (!dankchatBadges.has(id)) {
-					dankchatBadges.set(id, []);
+				if (!parsed.has(id)) {
+					parsed.set(id, []);
 				}
 
-				dankchatBadges.get(id).push({ url, title });
+				parsed.get(id).push({ url, title });
 			}
 		}
 
+		replaceMapContents(dankchatBadges, parsed);
+
+		return true;
 	} catch (error) {
+		badgeBodySignatures.delete("dankchat");
+
 		console.error("DankChat badge error:", error);
+
+		return false;
 	}
+}
+
+function normalizeBadgeCategoryKeys(raw) {
+	const keys = [];
+	const seen = new Set();
+
+	for (const value of Array.isArray(raw) ? raw : []) {
+		if (typeof value !== "string") {
+			continue;
+		}
+
+		const key = value.trim().toLowerCase();
+
+		if (!BADGE_CATEGORY_SET.has(key) || seen.has(key)) {
+			continue;
+		}
+
+		seen.add(key);
+		keys.push(key);
+
+		if (keys.length >= MAX_LAYOUT_ORDER_KEYS) {
+			break;
+		}
+	}
+
+	return keys;
+}
+
+function completeBadgeCategoryOrder(order) {
+	const TWITCH_FIRST = ["ta", "ts", "tv", "tp"];
+
+	const withoutTwitch = order.filter((key) => !TWITCH_FIRST.includes(key));
+	const result = [...TWITCH_FIRST, ...withoutTwitch];
+
+	for (const key of BADGE_CATEGORY_ORDER) {
+		if (result.includes(key)) {
+			continue;
+		}
+
+		if (key === "fa") {
+			result.splice(result.indexOf("ff") + 1, 0, key);
+		} else if (key === "bl") {
+			const index = result.indexOf("m");
+
+			if (index === -1) {
+				result.push(key);
+			} else {
+				result.splice(index, 0, key);
+			}
+		} else {
+			result.push(key);
+		}
+	}
+
+	return result;
+}
+
+function buildMoltorinoLayout(user, defaultOrder) {
+	const hasOrder = Object.prototype.hasOwnProperty.call(user, "order");
+	const hasHidden = Object.prototype.hasOwnProperty.call(user, "hidden");
+	const hasActive = Object.prototype.hasOwnProperty.call(user, "activeBadge");
+
+	if (!hasOrder && !hasHidden && !hasActive) {
+		return null;
+	}
+
+	let order = hasOrder
+		? normalizeBadgeCategoryKeys(user.order)
+		: defaultOrder.slice();
+
+	if (!order.length) {
+		order = BADGE_CATEGORY_ORDER.slice();
+	}
+
+	return {
+		order: completeBadgeCategoryOrder(order),
+		hidden: new Set(normalizeBadgeCategoryKeys(user.hidden)),
+	};
+}
+
+function selectMoltorinoBadge(user, definitions) {
+	const assigned = [];
+
+	for (const rawId of Array.isArray(user.badges) ? user.badges : []) {
+		const id = String(rawId).trim().toLowerCase();
+
+		if (id && definitions.has(id) && !assigned.includes(id)) {
+			assigned.push(id);
+		}
+	}
+
+	if (Object.prototype.hasOwnProperty.call(user, "activeBadge")) {
+		const active = user.activeBadge;
+
+		if (typeof active !== "string" || !active.trim()) {
+			return null;
+		}
+
+		const id = active.trim().toLowerCase();
+
+		if (assigned.includes(id)) {
+			return definitions.get(id);
+		}
+	}
+
+	return assigned.length ? definitions.get(assigned[0]) : null;
 }
 
 async function loadMoltorinoBadges() {
 	try {
-		const response = await fetch("https://api.moltorino.com/v2/badges");
+		const response = await fetch(MOLTORINO_BADGE_URL, { cache: "no-store" });
 
 		if (!response.ok) {
 			throw new Error(`Moltorino badges: ${response.status}`);
@@ -179,73 +476,95 @@ async function loadMoltorinoBadges() {
 
 		const data = await response.json();
 
+		const generation = String(data?.generation || "");
+		const bundleVersion = Number(data?.bundleVersion);
+
+		if (
+			generation &&
+			generation === moltorinoGeneration &&
+			Number.isFinite(bundleVersion) &&
+			bundleVersion <= moltorinoBundleVersion
+		) {
+			return false;
+		}
+
 		const definitions = new Map();
 
 		for (const badge of data?.badges || []) {
-			const url = normalizeImageUrl(
-				badge?.images?.["4x"] ||
-				badge?.images?.["3x"] ||
-				badge?.images?.["2x"] ||
-				badge?.images?.["1x"],
-			);
+			const id = String(badge?.id || "").trim().toLowerCase();
 
-			if (!badge?.id || !url) {
+			if (!id || !String(badge?.images?.["1x"] || "").trim()) {
 				continue;
 			}
 
-			definitions.set(String(badge.id), {
+			const url = normalizeImageUrl(
+				badge.images["4x"] ||
+				badge.images["3x"] ||
+				badge.images["2x"] ||
+				badge.images["1x"],
+			);
+
+			if (!url) {
+				continue;
+			}
+
+			definitions.set(id, {
 				url,
 				title: badge.tooltip || "Moltorino Badge",
-				priority: Number(badge.priority) || 0,
 			});
 		}
 
-		moltorinoBadges.clear();
+		const defaultOrder = completeBadgeCategoryOrder(BADGE_CATEGORY_ORDER);
+
+		const nextBadges = new Map();
+		const nextLayouts = new Map();
 
 		for (const [rawId, user] of Object.entries(data?.users || {})) {
 			const id = String(rawId).trim();
 
-			if (!id || !user) {
+			if (!id || !user || typeof user !== "object") {
 				continue;
 			}
 
-			let definition = null;
+			const layout = buildMoltorinoLayout(user, defaultOrder);
 
-			if (Object.prototype.hasOwnProperty.call(user, "activeBadge")) {
-				if (user.activeBadge === null) {
-					continue;
-				}
-
-				definition = definitions.get(String(user.activeBadge));
+			if (layout) {
+				nextLayouts.set(id, layout);
 			}
 
-			if (!definition) {
-				for (const badgeId of user.badges || []) {
-					const candidate = definitions.get(String(badgeId));
+			const definition = selectMoltorinoBadge(user, definitions);
 
-					if (
-						candidate &&
-						(!definition || candidate.priority < definition.priority)
-					) {
-						definition = candidate;
-					}
-				}
+			if (definition) {
+				nextBadges.set(id, [
+					{
+						url: definition.url,
+						title: definition.title,
+					},
+				]);
 			}
-
-			if (!definition) {
-				continue;
-			}
-
-			moltorinoBadges.set(id, [
-				{
-					url: definition.url,
-					title: definition.title,
-				},
-			]);
 		}
+
+		replaceMapContents(moltorinoBadges, nextBadges);
+		replaceMapContents(moltorinoLayouts, nextLayouts);
+
+		moltorinoDefaultOrder = defaultOrder;
+		moltorinoGeneration = generation || null;
+		moltorinoBundleVersion = Number.isFinite(bundleVersion) ? bundleVersion : -1;
+
+		return true;
 	} catch (error) {
 		console.error("Moltorino badge error:", error);
+
+		return false;
 	}
+}
+
+function getMoltorinoLayout(userId) {
+	if (userId == null) {
+		return null;
+	}
+
+	return moltorinoLayouts.get(String(userId)) || null;
 }
 
 function normalizeFFZRoomBadge(badge, title) {
@@ -362,4 +681,81 @@ async function loadFFZBadges() {
 	} catch (error) {
 		console.error("FFZ badge error:", error);
 	}
+}
+
+async function refreshFFZRoomBadges() {
+	if (typeof previewActive !== "undefined" && previewActive) {
+		return false;
+	}
+
+	const snapshot = () =>
+		JSON.stringify([ffzRoomBadges.vip, ffzRoomBadges.moderator]);
+
+	const before = snapshot();
+
+	await loadFFZBadges();
+
+	return before !== snapshot();
+}
+
+const badgeRefreshRunning = { fast: false, slow: false };
+let badgeRefreshStarted = false;
+
+async function refreshBadgeSource(loader) {
+	try {
+		return Boolean(await loader());
+	} catch (error) {
+		console.error("Badge refresh error:", error);
+
+		return false;
+	}
+}
+
+async function refreshBadgeRegistries(full) {
+	const tier = full ? "slow" : "fast";
+
+	if (document.hidden || badgeRefreshRunning[tier]) {
+		return;
+	}
+
+	badgeRefreshRunning[tier] = true;
+
+	try {
+		const loaders = [loadMoltorinoBadges];
+
+		if (full) {
+			loaders.push(
+				loadChatterinoBadges,
+				loadHomiesBadges,
+				loadBTTVBadges,
+				loadDankChatBadges,
+				refreshFFZRoomBadges,
+			);
+		}
+
+		const results = await Promise.all(loaders.map(refreshBadgeSource));
+
+		if (results.some(Boolean) && typeof onBadgeRegistriesChanged === "function") {
+			onBadgeRegistriesChanged();
+		}
+	} finally {
+		badgeRefreshRunning[tier] = false;
+	}
+}
+
+function startBadgeRefreshLoop() {
+	if (badgeRefreshStarted) {
+		return;
+	}
+
+	badgeRefreshStarted = true;
+
+	setInterval(() => refreshBadgeRegistries(false), BADGE_REFRESH_FAST_MS);
+	setInterval(() => refreshBadgeRegistries(true), BADGE_REFRESH_SLOW_MS);
+
+	document.addEventListener("visibilitychange", () => {
+		if (!document.hidden) {
+			refreshBadgeRegistries(true);
+		}
+	});
 }

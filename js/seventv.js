@@ -208,6 +208,90 @@ function subscribeToSevenTVChannelEmoteSets(channelId, platform = "TWITCH") {
 	);
 }
 
+function subscribeToSevenTVCosmetics(channelId, platform = "TWITCH") {
+	if (!sevenTVEventSocket || !channelId) {
+		return;
+	}
+
+	for (const type of ["cosmetic.*", "entitlement.*"]) {
+		const subKey = `${type}:${platform}:${channelId}`;
+
+		if (sevenTVSubscriptions.has(subKey)) {
+			continue;
+		}
+
+		sevenTVSubscriptions.add(subKey);
+
+		sevenTVEventSocket.send(
+			JSON.stringify({
+				op: SEVENTV_OPCODES.SUBSCRIBE,
+
+				d: {
+					type,
+
+					condition: {
+						platform,
+
+						ctx: "channel",
+
+						id: String(channelId),
+					},
+				},
+			}),
+		);
+	}
+}
+
+function collectSevenTVConnections(value, found = [], depth = 0) {
+	if (!value || typeof value !== "object" || depth > 6) {
+		return found;
+	}
+
+	if (Array.isArray(value)) {
+		for (const item of value) {
+			collectSevenTVConnections(item, found, depth + 1);
+		}
+
+		return found;
+	}
+
+	if (Array.isArray(value.connections)) {
+		for (const connection of value.connections) {
+			if (connection?.platform && connection?.id) {
+				found.push({
+					platform: String(connection.platform).toUpperCase(),
+					id: String(connection.id),
+				});
+			}
+		}
+	}
+
+	for (const child of Object.values(value)) {
+		collectSevenTVConnections(child, found, depth + 1);
+	}
+
+	return found;
+}
+
+function handleSevenTVCosmeticEvent(body) {
+	const connections = collectSevenTVConnections(body).filter(
+		(connection) => connection.platform === "TWITCH" || connection.platform === "KICK",
+	);
+
+	if (!connections.length) {
+		scheduleVisibleCosmeticRefresh();
+
+		return;
+	}
+
+	for (const connection of connections) {
+		schedule7TVUserCosmeticRefresh(
+			connection.id,
+			connection.platform === "KICK" ? "kick" : "twitch",
+		);
+	}
+}
+
 function connectSevenTVEvents(emoteSetId, url = null) {
 	if (emoteSetId) {
 		sevenTVEmoteSetId = emoteSetId;
@@ -226,6 +310,7 @@ function connectSevenTVEvents(emoteSetId, url = null) {
 		if (sevenTVSessionId) {
 			subscribeToEmoteSetUpdates(sevenTVEmoteSetId);
 			subscribeToSevenTVChannelEmoteSets(TWITCH_USER_ID, "TWITCH");
+			subscribeToSevenTVCosmetics(TWITCH_USER_ID, "TWITCH");
 		}
 
 		return sevenTVEventSocket;
@@ -293,6 +378,9 @@ function handleSevenTVEventMessage(data) {
 		subscribeToSevenTVChannelEmoteSets(TWITCH_USER_ID, "TWITCH");
 		subscribeToSevenTVChannelEmoteSets(KICK_USER_ID, "KICK");
 
+		subscribeToSevenTVCosmetics(TWITCH_USER_ID, "TWITCH");
+		subscribeToSevenTVCosmetics(KICK_USER_ID, "KICK");
+
 		if (sevenTVHadSession && typeof refreshChannelEmotes === "function") {
 			refreshChannelEmotes();
 		}
@@ -334,6 +422,11 @@ function handleSevenTVEventMessage(data) {
 
 		if (type === "emote_set.update") {
 			handleSevenTVEmoteSetUpdate(data.d.body);
+		} else if (
+			typeof type === "string" &&
+			(type.startsWith("entitlement.") || type.startsWith("cosmetic."))
+		) {
+			handleSevenTVCosmeticEvent(data.d.body);
 		}
 
 		return;
@@ -562,6 +655,7 @@ async function load7TVKickEmotes() {
 		if (sevenTVSessionId) {
 			subscribeToEmoteSetUpdates(sevenTVKickEmoteSetId);
 			subscribeToSevenTVChannelEmoteSets(KICK_USER_ID, "KICK");
+			subscribeToSevenTVCosmetics(KICK_USER_ID, "KICK");
 		}
 	} else {
 		connectSevenTVEvents(null);
