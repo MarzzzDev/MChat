@@ -1249,6 +1249,14 @@ const COSMETIC_REFRESH_MS = 30 * 1000;
 const COSMETIC_REFRESH_BATCH = 15;
 const COSMETIC_BULK_COOLDOWN_MS = 10 * 1000;
 
+function startCosmeticRefreshLoop() {
+	if (cosmeticRefreshTimer) {
+		return;
+	}
+
+	cosmeticRefreshTimer = setInterval(refreshVisibleCosmetics, COSMETIC_REFRESH_MS);
+}
+
 let cosmeticRefreshTimer = null;
 let cosmeticRefreshCursor = 0;
 let cosmeticBulkTimer = null;
