@@ -1999,7 +1999,7 @@ function showOverlaySetupScreen() {
 		"Colon Matches Username Color",
 		"Color the colon after the username with the username color/7TV Paint. When off, the colon uses the message text color instead.",
 		"colonMatchUsername",
-		colonMatchUsernameEnabled,
+		false,
 	);
 	const highlightsCheckbox = addToggle(
 		appearancePanel,
@@ -2804,7 +2804,7 @@ function showOverlaySetupScreen() {
 		"Bold text",
 		"Use the heaviest font weight for usernames and messages.",
 		"bold",
-		boldEnabled,
+		false,
 	);
 
 	typographyPanel.to(emotesPanel);
@@ -3077,15 +3077,11 @@ function showOverlaySetupScreen() {
 	sideActions.appendChild(error);
 
 	resetSettingsButton.addEventListener("click", () => {
-		restoringSettings = true;
-		clearTimeout(saveTimer);
 		try {
 			localStorage.removeItem(SETUP_STORAGE_KEY);
 		} catch {}
-		applyImportedSettings(importFromMChat(new URLSearchParams()));
-		clearTimeout(saveTimer);
-		restoringSettings = false;
-		saveSetupSettings();
+		restoringSettings = true;
+		window.location.replace(window.location.pathname);
 	});
 
 	copyButton.addEventListener("click", async () => {

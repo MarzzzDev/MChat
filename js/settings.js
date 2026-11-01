@@ -194,7 +194,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.platformIndicator = settings.platformIndicator !== false;
 
-	result.colonMatchUsername = settings.colonMatchUsername !== false;
+	result.colonMatchUsername = settings.colonMatchUsername === true;
 
 	result.scale = readNumericSetting(settings, "scale", 0.5);
 
@@ -229,10 +229,10 @@ function normaliseOverlaySettings(settings = {}) {
 	if (!Number.isFinite(result.badgeScale)) result.badgeScale = 1.1;
 	result.badgeScale = Math.max(0.25, Math.min(result.badgeScale, 2));
 
-	result.badgeSpacing = readNumericSetting(settings, "badgeSpacing", 3);
-	if (!Number.isFinite(result.badgeSpacing)) result.badgeSpacing = 3;
+	result.badgeSpacing = readNumericSetting(settings, "badgeSpacing", 6);
+	if (!Number.isFinite(result.badgeSpacing)) result.badgeSpacing = 6;
 	result.badgeSpacing = Math.max(0, Math.min(result.badgeSpacing, 30));
-	result.badgeNameSpacing = Math.max(0, Math.min(readNumericSetting(settings, "badgeNameSpacing", 3) || 0, 30));
+	result.badgeNameSpacing = Math.max(0, Math.min(readNumericSetting(settings, "badgeNameSpacing", 10) || 0, 30));
 	result.authorMessageSpacing = Math.max(0, Math.min(readNumericSetting(settings, "authorMessageSpacing", 3) || 0, 30));
 
 	result.wrap = settings.wrap === true;
@@ -292,7 +292,7 @@ function normaliseOverlaySettings(settings = {}) {
 
 	result.shadowOffset = Math.max(0, Math.min(result.shadowOffset, 20));
 
-	result.bold = settings.bold !== false;
+	result.bold = settings.bold === true;
 
 	result.uppercase = settings.uppercase === true;
 
@@ -495,10 +495,10 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["badgeScale", String(normalised.badgeScale)]);
 	}
 
-	if (normalised.badgeSpacing !== 3) {
+	if (normalised.badgeSpacing !== 6) {
 		query.push(["badgeSpacing", String(normalised.badgeSpacing)]);
 	}
-	if (normalised.badgeNameSpacing !== 3) query.push(["badgeNameSpacing", String(normalised.badgeNameSpacing)]);
+	if (normalised.badgeNameSpacing !== 10) query.push(["badgeNameSpacing", String(normalised.badgeNameSpacing)]);
 	if (normalised.authorMessageSpacing !== 3) query.push(["authorMessageSpacing", String(normalised.authorMessageSpacing)]);
 
 	const fontKey = fontValueToQueryKey(normalised.font);
@@ -535,8 +535,8 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		}
 	}
 
-	if (normalised.bold !== true) {
-		query.push(["bold", "0"]);
+	if (normalised.bold !== false) {
+		query.push(["bold", normalised.bold ? "1" : "0"]);
 	}
 
 	if (normalised.uppercase === true) {
@@ -739,7 +739,7 @@ function appendFlatOverlaySettings(url, channel, settings, extra = {}) {
 		query.push(["platformIndicator", normalised.platformIndicator ? "1" : "0"]);
 	}
 
-	if (normalised.colonMatchUsername !== true) {
+	if (normalised.colonMatchUsername !== false) {
 		query.push(["colonMatchUsername", normalised.colonMatchUsername ? "1" : "0"]);
 	}
 
@@ -990,7 +990,7 @@ let pinsEnabled = parseQueryBoolean("pins", false);
 
 let platformIndicatorEnabled = parseQueryBoolean("platformIndicator", true);
 
-let colonMatchUsernameEnabled = parseQueryBoolean("colonMatchUsername", true);
+let colonMatchUsernameEnabled = parseQueryBoolean("colonMatchUsername", false);
 
 let scale = readNumericParam("scale", 0.5);
 
@@ -1027,10 +1027,10 @@ if (badgeScale > 2) badgeScale /= 100;
 badgeScale = Math.max(0.25, Math.min(badgeScale, 2));
 document.documentElement.style.setProperty("--badge-scale", String(badgeScale));
 
-let badgeSpacing = readNumericParam("badgeSpacing", 3);
+let badgeSpacing = readNumericParam("badgeSpacing", 6);
 badgeSpacing = Math.max(0, Math.min(badgeSpacing, 30));
 document.documentElement.style.setProperty("--badge-spacing", `${badgeSpacing}px`);
-let badgeNameSpacing = Math.max(0, Math.min(readNumericParam("badgeNameSpacing", 3), 30));
+let badgeNameSpacing = Math.max(0, Math.min(readNumericParam("badgeNameSpacing", 10), 30));
 let authorMessageSpacing = Math.max(0, Math.min(readNumericParam("authorMessageSpacing", 3), 30));
 document.documentElement.style.setProperty("--badge-name-spacing", `${badgeNameSpacing}px`);
 document.documentElement.style.setProperty("--author-message-spacing", `${authorMessageSpacing}px`);
