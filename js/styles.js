@@ -8,6 +8,7 @@ function ensureEmoteScaleStyle() {
 
 		style.textContent = `
 			.emote:not(.seven-tv-zero-width):not(.twitch-gif),
+			.seven-tv-zero-width,
 			.twemoji {
 				height:
 					calc(
@@ -20,6 +21,7 @@ function ensureEmoteScaleStyle() {
 			}
 
 			.message.big-emote-message .text .emote:not(.seven-tv-zero-width):not(.twitch-gif),
+			.message.big-emote-message .text .seven-tv-zero-width,
 			.message.big-emote-message .text .twemoji {
 				height:
 					calc(
@@ -539,17 +541,8 @@ function addGlobalStyle() {
 		}
 
 		.emote-overlay-target {
-			position:
-				relative;
-
 			display:
-				inline-block;
-
-			width:
-				auto;
-
-			height:
-				auto;
+				inline-grid;
 
 			line-height:
 				0;
@@ -563,11 +556,17 @@ function addGlobalStyle() {
 
 		.emote-overlay-target >
 		.emote:not(.seven-tv-zero-width) {
-			position:
-				relative;
+			grid-area:
+				1 / 1;
 
 			display:
 				block;
+
+			align-self:
+				center;
+
+			justify-self:
+				center;
 
 			z-index:
 				1;
@@ -575,20 +574,11 @@ function addGlobalStyle() {
 
 		.emote-overlay-target >
 		.seven-tv-zero-width {
-			position:
-				absolute;
+			grid-area:
+				1 / 1;
 
-			left:
-				50%;
-
-			top:
-				50%;
-
-			width:
-				100%;
-
-			height:
-				100%;
+			display:
+				block;
 
 			max-width:
 				none;
@@ -596,14 +586,11 @@ function addGlobalStyle() {
 			max-height:
 				none;
 
-			object-fit:
-				contain;
+			align-self:
+				center;
 
-			transform:
-				translate(-50%, -50%);
-
-			display:
-				block;
+			justify-self:
+				center;
 
 			pointer-events:
 				none;

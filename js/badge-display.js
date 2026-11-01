@@ -108,7 +108,23 @@ function createBadge(url, title) {
 	return img;
 }
 
-function addPfpBadge(container, tags) {
+async function get7tvPfp(twitchUserId) {
+	try {
+		const res = await fetch(`https://7tv.io/v3/users/twitch/${twitchUserId}`);
+
+		if (!res.ok) {
+			return null;
+		}
+
+		const data = await res.json();
+
+		return data?.user?.avatar_url || null;
+	} catch {
+		return null;
+	}
+}
+
+async function addPfpBadge(container, tags) {
 	if (typeof badgePfp !== "undefined" && !badgePfp) {
 		return;
 	}
@@ -140,13 +156,21 @@ function addPfpBadge(container, tags) {
 
 	container.prepend(img);
 
-	getTwitchPfp(userId, 70).then((url) => {
-		if (url) {
-			img.src = url;
-		} else {
-			img.remove();
-		}
-	});
+	let url = null;
+
+	if (badgeSeventv) {
+		url = await get7tvPfp(userId);
+	}
+
+	if (!url) {
+		url = await getTwitchPfp(userId, 70);
+	}
+
+	if (url) {
+		img.src = url;
+	} else {
+		img.remove();
+	}
 }
 
 const TWITCH_ROLE_BADGE_SETS = new Set([

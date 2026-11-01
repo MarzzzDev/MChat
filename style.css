@@ -6,6 +6,9 @@ body {
     flex-direction: column;
     background: transparent;
     font-family: var(--chat-font);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
 }
 
 :root {
@@ -19,10 +22,10 @@ body {
     --message-font-size: 50px;
     --badge-scale: 1;
     --badge-spacing: 3px;
-    --shadow-offset-x: 2px;
-    --shadow-offset-y: 2px;
-    --shadow-blur: 8px;
-    --shadow-color: black;
+    --shadow-offset-x: 1px;
+    --shadow-offset-y: 1px;
+    --shadow-blur: 3px;
+    --shadow-color: rgba(0, 0, 0, 0.6);
     --chat-weight: 900;
     --gif-scale: 1;
     --emote-spacing: 3px;
@@ -395,6 +398,8 @@ body[data-entry-animation="none"] {
     flex: 0 0 auto;
     filter: var(--ffz-effect-filter, );
     transition: transform 0.15s ease;
+    transform: translateZ(0);
+    will-change: filter;
 }
 
 .twemoji {
