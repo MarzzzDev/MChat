@@ -661,3 +661,8 @@ body.uppercase .reply-header {
 .message.has-reply {
     padding-top: 4px;
 }
+
+.message-badges,
+.badges {
+    margin-left: 8px !important;
+}
