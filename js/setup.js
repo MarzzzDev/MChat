@@ -72,6 +72,72 @@ function showOverlaySetupScreen() {
 	topActions.appendChild(topLink);
 	topbar.appendChild(topActions);
 
+	const reworkStyle = document.createElement("style");
+	reworkStyle.dataset.marzSetup = "true";
+	reworkStyle.textContent = `
+		#overlay-setup-screen .mc-topbar {
+			position: relative;
+		}
+
+		#overlay-setup-screen .mc-rework-banner {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			max-width: 46%;
+			padding: 4px 14px;
+			border-radius: 999px;
+			background: rgba(245, 190, 60, 0.14);
+			color: #e8b84a;
+			font-size: 12px;
+			white-space: nowrap;
+			overflow: hidden;
+			pointer-events: none;
+		}
+
+		#overlay-setup-screen .mc-rework-title {
+			font-weight: 700;
+			flex-shrink: 0;
+		}
+
+		#overlay-setup-screen .mc-rework-note {
+			opacity: 0.75;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		@media (max-width: 1100px) {
+			#overlay-setup-screen .mc-rework-note {
+				display: none;
+			}
+		}
+
+		@media (max-width: 900px) {
+			#overlay-setup-screen .mc-rework-banner {
+				display: none;
+			}
+		}
+	`;
+	document.head.appendChild(reworkStyle);
+
+	const reworkBanner = document.createElement("div");
+	reworkBanner.className = "mc-rework-banner";
+	reworkBanner.setAttribute("role", "status");
+
+	const reworkTitle = document.createElement("span");
+	reworkTitle.className = "mc-rework-title";
+	reworkTitle.textContent = "🚧 Full rework underway";
+
+	const reworkNote = document.createElement("span");
+	reworkNote.className = "mc-rework-note";
+	reworkNote.textContent = "New UI, improved and systems more are coming. Things may shift or break while it lands.";
+
+	reworkBanner.append(reworkTitle, reworkNote);
+	topbar.appendChild(reworkBanner);
+	
 	const sidebar = document.createElement("aside");
 	sidebar.className = "mc-sidebar";
 
@@ -333,6 +399,7 @@ function showOverlaySetupScreen() {
 	screen.appendChild(sidebar);
 	screen.appendChild(controls);
 	screen.appendChild(stage);
+
 	document.body.appendChild(screen);
 
 	
