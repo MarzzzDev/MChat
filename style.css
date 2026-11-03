@@ -664,5 +664,6 @@ body.uppercase .reply-header {
 
 #chat {
     padding-left: 20px;
+    transform: translateY(-8px);
     box-sizing: border-box;
 }
