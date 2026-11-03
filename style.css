@@ -662,7 +662,7 @@ body.uppercase .reply-header {
     padding-top: 4px;
 }
 
-.message-badges,
-.badges {
-    margin-left: 8px !important;
+#chat {
+    padding-left: 20px;
+    box-sizing: border-box;
 }
