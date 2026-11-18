@@ -179,16 +179,6 @@ let moltorinoBundleVersion = -1;
 
 const DANKCHAT_BADGE_API = "https://flxrs.com/api/badges";
 
-const DANKCHAT_BADGE_PROXY = "https://dank-chat-badges.marseceva.workers.dev";
-
-const DANKCHAT_BADGE_SOURCES = [
-	{
-		label: DANKCHAT_BADGE_PROXY,
-		load: () => fetch(DANKCHAT_BADGE_PROXY, { cache: "no-cache" }),
-	},
-	{ label: DANKCHAT_BADGE_API, load: () => platformFetch(DANKCHAT_BADGE_API) },
-];
-
 async function loadChatterinoBadges() {
 	try {
 		const response = await fetch("https://api.chatterino.com/badges", {
@@ -294,70 +284,56 @@ async function loadBTTVBadges() {
 }
 
 async function loadDankChatBadges() {
-	try {
-		let text = null;
+    try {
+        const response = await platformFetch(DANKCHAT_BADGE_API);
 
-		for (const source of DANKCHAT_BADGE_SOURCES) {
-			try {
-				const response = await source.load();
+        if (!response.ok) {
+            throw new Error(`DankChat badges: ${response.status}`);
+        }
 
-				if (!response.ok) {
-					throw new Error(`${source.label}: ${response.status}`);
-				}
+        const text = await response.text();
 
-				text = await response.text();
+        if (!badgeBodyChanged("dankchat", text)) {
+            return false;
+        }
 
-				break;
-			} catch (error) {
-				console.warn("DankChat badge source failed:", source.label, error);
-			}
-		}
+        const data = JSON.parse(text);
+        const parsed = new Map();
 
-		if (text === null) {
-			throw new Error("DankChat badges: all sources failed");
-		}
+        for (const badge of Array.isArray(data) ? data : []) {
+            const url = normalizeImageUrl(badge?.url);
 
-		if (!badgeBodyChanged("dankchat", text)) {
-			return false;
-		}
+            if (!url) {
+                continue;
+            }
 
-		const data = JSON.parse(text);
-		const parsed = new Map();
+            const title = badge?.tooltip || "DankChat Badge";
 
-		for (const badge of Array.isArray(data) ? data : []) {
-			const url = normalizeImageUrl(badge?.url);
+            for (const rawId of badge?.users || []) {
+                const id = String(rawId).trim();
 
-			if (!url) {
-				continue;
-			}
+                if (!id) {
+                    continue;
+                }
 
-			const title = badge?.tooltip || "DankChat Badge";
+                if (!parsed.has(id)) {
+                    parsed.set(id, []);
+                }
 
-			for (const rawId of badge?.users || []) {
-				const id = String(rawId).trim();
+                parsed.get(id).push({ url, title });
+            }
+        }
 
-				if (!id) {
-					continue;
-				}
+        replaceMapContents(dankchatBadges, parsed);
 
-				if (!parsed.has(id)) {
-					parsed.set(id, []);
-				}
+        return true;
+    } catch (error) {
+        badgeBodySignatures.delete("dankchat");
 
-				parsed.get(id).push({ url, title });
-			}
-		}
+        console.error("DankChat badge error:", error);
 
-		replaceMapContents(dankchatBadges, parsed);
-
-		return true;
-	} catch (error) {
-		badgeBodySignatures.delete("dankchat");
-
-		console.error("DankChat badge error:", error);
-
-		return false;
-	}
+        return false;
+    }
 }
 
 function normalizeBadgeCategoryKeys(raw) {
