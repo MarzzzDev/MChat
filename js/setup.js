@@ -133,7 +133,7 @@ function showOverlaySetupScreen() {
 
 	const reworkNote = document.createElement("span");
 	reworkNote.className = "mc-rework-note";
-	reworkNote.textContent = "New UI, improved and systems more are coming. Things may shift or break while it lands.";
+	reworkNote.textContent = "No huge updates until then: only fixes and required changes.";
 
 	reworkBanner.append(reworkTitle, reworkNote);
 	topbar.appendChild(reworkBanner);
