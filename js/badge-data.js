@@ -177,7 +177,7 @@ let moltorinoDefaultOrder = BADGE_CATEGORY_ORDER.slice();
 let moltorinoGeneration = null;
 let moltorinoBundleVersion = -1;
 
-const DANKCHAT_BADGE_API = "https://flxrs.com/api/badges";
+const DANKCHAT_BADGE_API = "https://api.dank.chat/badges";
 
 async function loadChatterinoBadges() {
 	try {
@@ -307,7 +307,7 @@ async function loadDankChatBadges() {
                 continue;
             }
 
-            const title = badge?.tooltip || "DankChat Badge";
+            const title = badge?.type || badge?.tooltip || "DankChat Badge";
 
             for (const rawId of badge?.users || []) {
                 const id = String(rawId).trim();
